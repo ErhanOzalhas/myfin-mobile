@@ -1,121 +1,231 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MyFinApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyFinApp extends StatelessWidget {
+  const MyFinApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'MyFin',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF7F9FC),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF008DB9),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyFinHome(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class MyFinHome extends StatelessWidget {
+  const MyFinHome({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(22),
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF008DB9), Color(0xFF38BDF8)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.trending_up_rounded,
+                    color: Colors.white,
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MyFin',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.7,
+                        ),
+                      ),
+                      Text(
+                        'Smart Wealth Tracker',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 28),
+            _MetricCard(
+              title: 'Toplam Portföy',
+              value: '₺318.387,39',
+              subtitle: 'Bugün +₺3.820  ▲ %1,24',
+              icon: Icons.account_balance_wallet_rounded,
+              positive: true,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: const [
+                Expanded(
+                  child: _MetricCard(
+                    title: 'Bekleyen Kâr',
+                    value: '₺42.810',
+                    subtitle: '+%8,7',
+                    icon: Icons.trending_up_rounded,
+                    positive: true,
+                  ),
+                ),
+                SizedBox(width: 14),
+                Expanded(
+                  child: _MetricCard(
+                    title: 'Net Servet',
+                    value: '₺318K',
+                    subtitle: 'Cloud sync',
+                    icon: Icons.diamond_rounded,
+                    positive: true,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            const _SectionTitle(title: 'Canlı Piyasa'),
+            const _MarketRow(name: 'USD/TRY', value: '₺32,14', change: '▲ %0,42'),
+            const _MarketRow(name: 'EUR/TRY', value: '₺34,91', change: '▼ %0,12', positive: false),
+            const _MarketRow(name: 'Gram Altın', value: '₺2.438', change: '▲ %0,88'),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Ana Sayfa'),
+          NavigationDestination(icon: Icon(Icons.pie_chart_rounded), label: 'Portföy'),
+          NavigationDestination(icon: Icon(Icons.add_circle_rounded), label: 'Ekle'),
+          NavigationDestination(icon: Icon(Icons.show_chart_rounded), label: 'Analiz'),
+          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Ayarlar'),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final bool positive;
+
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    this.positive = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = positive ? Colors.green : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF008DB9), size: 25),
+          const SizedBox(height: 14),
+          Text(title, style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Text(
+        'Canlı Piyasa',
+        style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+}
+
+class _MarketRow extends StatelessWidget {
+  final String name;
+  final String value;
+  final String change;
+  final bool positive;
+
+  const _MarketRow({
+    required this.name,
+    required this.value,
+    required this.change,
+    this.positive = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = positive ? Colors.green : Colors.red;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w700))),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(width: 12),
+          Text(change, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
