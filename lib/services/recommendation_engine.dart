@@ -1,4 +1,5 @@
 import '../models/portfolio_item.dart';
+import 'portfolio_metrics_service.dart';
 
 enum RecommendationLevel {
   good,
@@ -26,7 +27,24 @@ class RecommendationEngine {
     required int overallScore,
     required List<PortfolioItem> items,
   }) {
+    const metrics = PortfolioMetricsService();
+
+    final allocations = metrics.allocationBySymbol(items);
+    final largestWeight = allocations.values.isEmpty
+        ? 0.0
+        : allocations.values.reduce((a, b) => a > b ? a : b);
+
     final recommendations = <RecommendationItem>[];
+
+    if (largestWeight > 0.60) {
+      recommendations.add(
+        const RecommendationItem(
+          level: RecommendationLevel.warning,
+          title: "High Concentration",
+          message: "One holding represents more than 60% of your portfolio.",
+        ),
+      );
+    }
 
     if (overallScore >= 80) {
       recommendations.add(
