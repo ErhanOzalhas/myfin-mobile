@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "484409599277",
+    "project_id": "myfin-mobile-2026",
+    "storage_bucket": "myfin-mobile-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:484409599277:android:1ddbbe56076aa7d7fcdfa4",
+        "android_client_info": {
+          "package_name": "com.example.myfin_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "484409599277-no11h9l2p40snkubhj8jpnsh3hmolfbo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgEX8FYNVT6mCqjFXS0PkIS9DodowE1Mg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "484409599277-no11h9l2p40snkubhj8jpnsh3hmolfbo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "484409599277-avin416qou9bc4lhd5pb77iuqi5oip7v.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myfinMobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
