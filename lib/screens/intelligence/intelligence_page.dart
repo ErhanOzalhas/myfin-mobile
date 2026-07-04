@@ -6,7 +6,7 @@ import '../../services/ai/portfolio_analyzer.dart';
 import '../../widgets/intelligence/intelligence_recommendation_card.dart';
 import '../../widgets/intelligence/intelligence_score_card.dart';
 import '../../widgets/intelligence_market_mood_card.dart';
-
+import '../../services/ai/recommendation_engine_v2.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -28,7 +28,12 @@ class IntelligencePage extends StatelessWidget {
         builder: (context, snapshot) {
           final items = snapshot.data ?? [];
           final analysis = PortfolioAnalyzer.analyze(items);
+final recommendationInsights =
+    const RecommendationEngineV2().generate(analysis);
 
+final recommendations = recommendationInsights
+    .map((e) => e.action)
+    .toList();
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -41,7 +46,9 @@ class IntelligencePage extends StatelessWidget {
                 const SizedBox(height: 16),
                 const IntelligenceMarketMoodCard(),
                 const SizedBox(height: 16),
-                const IntelligenceRecommendationCard(),
+               IntelligenceRecommendationCard(
+  recommendations: recommendations,
+), 
               ],
             ),
           );
