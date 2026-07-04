@@ -29,11 +29,20 @@ class IntelligencePage extends StatelessWidget {
       body: StreamBuilder<List<PortfolioItem>>(
         stream: PortfolioRepository.instance.watchPortfolio(),
         builder: (context, snapshot) {
-          final items = snapshot.data ?? [];
-          final analysis = PortfolioAnalyzer.analyze(items);
-          final historyService = AIHistoryService();
-historyService.saveIfChanged(analysis);
-final history = historyService.history;
+        final items = snapshot.data ?? [];
+final analysis = PortfolioAnalyzer.analyze(items);
+
+final historyService = AIHistoryService();
+
+if (items.isNotEmpty) {
+  historyService.saveIfChanged(analysis);
+}
+
+final history = historyService.history;  
+debugPrint('History length: ${history.length}');
+for (final h in history) {
+  debugPrint('AI Score: ${h.aiScore}');
+}
 final latest = historyService.latest;
 final previous = historyService.previous;
 final trend = const AITrendService().build(history);
