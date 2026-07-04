@@ -5,16 +5,16 @@ class AITrendService {
   const AITrendService();
 
   AITrendResult build(List<AIHistoryEntry> history) {
-    if (history.length < 2) {
-      return const AITrendResult(
-        aiScoreChange: 0,
-        riskChange: 0,
-        diversificationChange: 0,
-      );
-    }
+    if (history.length < 2 || history[1].aiScore == 0) {
+  return const AITrendResult(
+    aiScoreChange: null,
+    riskChange: null,
+    diversificationChange: null,
+  );
+}
 
-    final latest = history.first;
-    final previous = history[1];
+    final latest = history.last;
+final previous = history[history.length - 2];
 
     return AITrendResult(
       aiScoreChange: latest.aiScore - previous.aiScore,

@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 
 class IntelligenceMarketMoodCard extends StatelessWidget {
-  const IntelligenceMarketMoodCard({super.key});
+  final String mood;
+
+  const IntelligenceMarketMoodCard({
+    super.key,
+    required this.mood,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final color = switch (mood) {
+      'Bullish' => Colors.green,
+      'Bearish' => Colors.red,
+      _ => Colors.orange,
+    };
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -19,22 +30,23 @@ class IntelligenceMarketMoodCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Market Mood',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            'Market sentiment will appear here.',
+            mood,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],
