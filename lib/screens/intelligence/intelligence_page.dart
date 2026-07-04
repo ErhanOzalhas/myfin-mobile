@@ -8,6 +8,8 @@ import '../../widgets/intelligence/intelligence_score_card.dart';
 import '../../widgets/intelligence_market_mood_card.dart';
 import '../../services/ai/recommendation_engine_v2.dart';
 import '../../services/ai/ai_trend_service.dart';
+import '../../services/ai/timeline_engine.dart';
+import '../../widgets/intelligence/intelligence_timeline_card.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -35,6 +37,11 @@ final history = historyService.history;
 final latest = historyService.latest;
 final previous = historyService.previous;
 final trend = const AITrendService().build(history);
+final timelineEvents = const TimelineEngine().build(
+  analysis: analysis,
+  trend: trend,
+  history: history,
+);
 final recommendationInsights =
     const RecommendationEngineV2().generate(analysis);
 
@@ -62,7 +69,11 @@ final recommendations = recommendationInsights
                IntelligenceRecommendationCard(
   recommendations: recommendations,
 ), 
-              ],
+const SizedBox(height: 16),
+
+IntelligenceTimelineCard(
+  events: timelineEvents,
+),              ],
             ),
           );
         },
