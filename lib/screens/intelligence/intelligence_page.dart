@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/intelligence/intelligence_recommendation_card.dart';
+import '../../widgets/intelligence/intelligence_score_card.dart';
+
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -9,10 +12,15 @@ class IntelligencePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('AI Intelligence'),
       ),
-      body: const Center(
-        child: Text(
-          'AI Intelligence modülü yeniden bağlanacak.',
-          textAlign: TextAlign.center,
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            IntelligenceScoreCard(),
+            SizedBox(height: 16),
+            IntelligenceRecommendationCard(),
+          ],
         ),
       ),
     );
