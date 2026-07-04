@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 class IntelligenceScoreCard extends StatelessWidget {
-  const IntelligenceScoreCard({super.key});
+  final int score;
+  final String status;
+
+  const IntelligenceScoreCard({
+    super.key,
+    required this.score,
+    required this.status,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const score = 82;
-
     final scoreColor = score >= 80
         ? Colors.green
         : score >= 60
@@ -42,22 +47,25 @@ class IntelligenceScoreCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'AI Score',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  status,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    color: scoreColor,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text('Good'),
-                SizedBox(height: 8),
-                Text(
-                  'Overall portfolio intelligence based on diversification, risk and performance.',
+                const SizedBox(height: 8),
+                const Text(
+                  'PortfolioAnalyzer gerçek portföy verisine göre hesaplandı.',
                 ),
               ],
             ),
