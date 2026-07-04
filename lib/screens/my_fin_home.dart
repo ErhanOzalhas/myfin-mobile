@@ -25,7 +25,7 @@ import '../widgets/dashboard/portfolio_pulse_panel.dart';
 import '../widgets/dashboard/portfolio_list.dart';
 import '../widgets/dashboard/smart_insights_panel.dart';
 import 'add_portfolio_item_page.dart';
-
+import '../../models/portfolio_item.dart';
 class MyFinHome extends StatefulWidget {
   const MyFinHome({super.key});
 
@@ -153,13 +153,28 @@ onDestinationSelected: (index) {
   }
 
   if (index == 3) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const IntelligencePage(),
-      ),
-    );
-    return;
-  }
+
+  Navigator.of(context).push(
+
+    MaterialPageRoute(
+
+      builder: (_) => const IntelligencePage(),
+
+    ),
+
+  );
+
+  return;
+
+}
+if (index == 3) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => const IntelligencePage(),
+    ),
+  );
+  return;
+}
 
   final label = switch (index) {
     4 => 'Ayarlar ekranı yakında aktif olacak.',
@@ -786,7 +801,7 @@ class _AIScoreSection extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const IntelligencePage(),
+              builder: (_) => const IntelligencePage(),  
               ),
             );
           },

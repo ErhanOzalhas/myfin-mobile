@@ -6,7 +6,6 @@ class IntelligenceScoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const score = 82;
-    const status = 'Good';
 
     final scoreColor = score >= 80
         ? Colors.green
@@ -49,7 +48,10 @@ class IntelligenceScoreCard extends StatelessWidget {
               children: [
                 Text(
                   'AI Score',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 6),
                 Text('Good'),

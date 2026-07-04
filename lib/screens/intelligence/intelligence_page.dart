@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/intelligence/intelligence_recommendation_card.dart';
 import '../../widgets/intelligence/intelligence_score_card.dart';
+import '../../widgets/intelligence_market_mood_card.dart';
 
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
@@ -18,6 +19,8 @@ class IntelligencePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IntelligenceScoreCard(),
+            SizedBox(height: 16),
+            IntelligenceMarketMoodCard(),
             SizedBox(height: 16),
             IntelligenceRecommendationCard(),
           ],
