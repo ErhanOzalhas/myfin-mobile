@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../services/ai/ai_history_service.dart';
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
 import '../../services/ai/portfolio_analyzer.dart';
@@ -7,6 +7,7 @@ import '../../widgets/intelligence/intelligence_recommendation_card.dart';
 import '../../widgets/intelligence/intelligence_score_card.dart';
 import '../../widgets/intelligence_market_mood_card.dart';
 import '../../services/ai/recommendation_engine_v2.dart';
+import '../../services/ai/ai_trend_service.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -28,6 +29,12 @@ class IntelligencePage extends StatelessWidget {
         builder: (context, snapshot) {
           final items = snapshot.data ?? [];
           final analysis = PortfolioAnalyzer.analyze(items);
+          final historyService = AIHistoryService();
+historyService.saveIfChanged(analysis);
+final history = historyService.history;
+final latest = historyService.latest;
+final previous = historyService.previous;
+final trend = const AITrendService().build(history);
 final recommendationInsights =
     const RecommendationEngineV2().generate(analysis);
 
@@ -44,7 +51,13 @@ final recommendations = recommendationInsights
                   status: _statusForScore(analysis.aiScore),
                 ),
                 const SizedBox(height: 16),
-                const IntelligenceMarketMoodCard(),
+                IntelligenceMarketMoodCard(
+  mood: analysis.risk <= 35
+      ? 'Bullish'
+      : analysis.risk <= 65
+          ? 'Neutral'
+          : 'Bearish',
+),
                 const SizedBox(height: 16),
                IntelligenceRecommendationCard(
   recommendations: recommendations,
