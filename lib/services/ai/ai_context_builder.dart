@@ -5,8 +5,36 @@ class AIContextBuilder {
 
   String build(PortfolioAnalysis analysis) {
     final buffer = StringBuffer();
+    buffer.writeln(
+  'You are MyFin AI, an intelligent financial portfolio assistant.',
+);
 
-    buffer.writeln('Portfolio Summary');
+buffer.writeln(
+  'Always answer in Turkish unless the user explicitly requests another language.',
+);
+
+buffer.writeln(
+  'Write in a professional, friendly and concise tone.',
+);
+
+buffer.writeln(
+  'Use bullet points when appropriate.',
+);
+
+buffer.writeln(
+  'Base every recommendation on the portfolio data below.',
+);
+
+buffer.writeln(
+  'Do not invent portfolio information that is not provided.',
+);
+
+buffer.writeln(
+  'If there is uncertainty, clearly state your assumptions.',
+);
+
+buffer.writeln();
+   buffer.writeln('=== PORTFOLIO SUMMARY ===');
     buffer.writeln('');
 
     buffer.writeln('AI Score: ${analysis.aiScore}');
@@ -22,7 +50,7 @@ class AIContextBuilder {
     buffer.writeln('');
 
     if (analysis.strengths.isNotEmpty) {
-      buffer.writeln('Strengths:');
+      buffer.writeln('=== STRENGTHS ===');
       for (final item in analysis.strengths) {
         buffer.writeln('- $item');
       }
@@ -30,7 +58,7 @@ class AIContextBuilder {
     }
 
     if (analysis.warnings.isNotEmpty) {
-      buffer.writeln('Warnings:');
+      buffer.writeln('=== RISKS ===');
       for (final item in analysis.warnings) {
         buffer.writeln('- $item');
       }
@@ -38,7 +66,7 @@ class AIContextBuilder {
     }
 
     if (analysis.recommendations.isNotEmpty) {
-      buffer.writeln('Recommendations:');
+      buffer.writeln('=== RECOMMENDATIONS ===');
       for (final item in analysis.recommendations) {
         buffer.writeln('- $item');
       }

@@ -12,6 +12,7 @@ import '../../services/ai/timeline_engine.dart';
 import '../../widgets/intelligence/intelligence_timeline_card.dart';
 import '../../services/ai/ai_advisor_service.dart';
 import '../../widgets/intelligence/intelligence_ai_decision_card.dart';
+import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -85,31 +86,54 @@ IntelligenceRecommendationCard(
     ...recommendations,
   ],
 ),
+
 const SizedBox(height: 16),
+
 IntelligenceAIDecisionCard(
-
   strengths: analysis.strengths,
-
   warnings: analysis.warnings,
-
   riskLevel: analysis.riskLevel,
-
   investmentStyle: analysis.investmentStyle,
+),
 
+const SizedBox(height: 16),
+
+SizedBox(
+  width: double.infinity,
+  child: FilledButton.icon(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AiChatPage(
+            analysis: analysis,
+          ),
+        ),
+      );
+    },
+    icon: const Icon(Icons.smart_toy_outlined),
+    label: const Text('Talk with MyFin AI'),
+  ),
 ),
 
 const SizedBox(height: 16),
 
 IntelligenceTimelineCard(
-
   events: timelineEvents,
+),
+
+],
 
 ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+
+);
+
+},
+
+),
+
+);
+
+}
+
 }
