@@ -8,25 +8,40 @@ class AIAdvisorService {
 
   if (analysis.diversification < 60) {
     advice.add(
-      'Portföyünüz yeterince çeşitlendirilmemiş. Farklı sektörlerden varlık eklemeyi değerlendirin.',
+      'Çeşitlendirme puanınız ${analysis.diversification}. '
+      'Tek bir sektör veya varlık grubuna fazla ağırlık vermiş olabilirsiniz.',
+    );
+  } else {
+    advice.add(
+      'Çeşitlendirme puanınız ${analysis.diversification}. '
+      'Portföyünüz genel olarak dengeli görünüyor.',
     );
   }
 
   if (analysis.risk > 70) {
     advice.add(
-      'Risk seviyeniz yüksek. Daha dengeli varlık dağılımı AI Score’unuzu artırabilir.',
+      'Risk puanınız ${analysis.risk}. '
+      'Volatilitesi yüksek varlıkların oranını azaltmayı değerlendirebilirsiniz.',
     );
   }
 
   if (analysis.growth < 50) {
     advice.add(
-      'Büyüme potansiyeli düşük görünüyor. Uzun vadeli büyüme odaklı varlıklar incelenebilir.',
+      'Büyüme puanınız ${analysis.growth}. '
+      'Uzun vadeli büyüme potansiyeli taşıyan varlıklar incelenebilir.',
     );
   }
 
-  if (advice.isEmpty) {
+  if (analysis.stability < 60) {
     advice.add(
-      'Portföyünüz dengeli görünüyor. Mevcut stratejinizi koruyabilirsiniz.',
+      'İstikrar puanınız ${analysis.stability}. '
+      'Daha istikrarlı varlıklarla portföy dengelenebilir.',
+    );
+  }
+
+  if (analysis.aiScore >= 85) {
+    advice.add(
+      'AI değerlendirmesine göre portföyünüz güçlü durumda. Mevcut stratejinizi koruyabilirsiniz.',
     );
   }
 
