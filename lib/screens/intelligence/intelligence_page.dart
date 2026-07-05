@@ -11,6 +11,7 @@ import '../../services/ai/ai_trend_service.dart';
 import '../../services/ai/timeline_engine.dart';
 import '../../widgets/intelligence/intelligence_timeline_card.dart';
 import '../../services/ai/ai_advisor_service.dart';
+import '../../widgets/intelligence/intelligence_ai_decision_card.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -85,10 +86,26 @@ IntelligenceRecommendationCard(
   ],
 ),
 const SizedBox(height: 16),
+IntelligenceAIDecisionCard(
+
+  strengths: analysis.strengths,
+
+  warnings: analysis.warnings,
+
+  riskLevel: analysis.riskLevel,
+
+  investmentStyle: analysis.investmentStyle,
+
+),
+
+const SizedBox(height: 16),
 
 IntelligenceTimelineCard(
+
   events: timelineEvents,
-),              ],
+
+),
+              ],
             ),
           );
         },
