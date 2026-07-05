@@ -10,6 +10,7 @@ import '../../services/ai/recommendation_engine_v2.dart';
 import '../../services/ai/ai_trend_service.dart';
 import '../../services/ai/timeline_engine.dart';
 import '../../widgets/intelligence/intelligence_timeline_card.dart';
+import '../../services/ai/ai_advisor_service.dart';
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -57,6 +58,8 @@ final recommendationInsights =
 final recommendations = recommendationInsights
     .map((e) => e.action)
     .toList();
+    final advisorRecommendations =
+    const AIAdvisorService().generate(analysis);
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -75,9 +78,12 @@ final recommendations = recommendationInsights
           : 'Bearish',
 ),
                 const SizedBox(height: 16),
-               IntelligenceRecommendationCard(
-  recommendations: recommendations,
-), 
+IntelligenceRecommendationCard(
+  recommendations: [
+    ...advisorRecommendations,
+    ...recommendations,
+  ],
+),
 const SizedBox(height: 16),
 
 IntelligenceTimelineCard(
