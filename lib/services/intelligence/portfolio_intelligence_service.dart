@@ -1,11 +1,5 @@
 import 'package:myfin_mobile/models/portfolio_item.dart';
 
-@Deprecated(
-  'Use lib/services/portfolio_intelligence_service.dart instead.',
-)
-class PortfolioIntelligenceService {
-  ...
-}
 
 class PortfolioIntelligenceResult {
   final String riskProfile;
