@@ -7,7 +7,10 @@ import 'package:myfin_mobile/services/portfolio_summary_service.dart';
 import 'package:flutter/material.dart';
 import '../services/ai_analysis_service.dart';
 import '../services/ai_advisor_service.dart';
+import '../services/ai_simulation_service.dart';
+import '../services/portfolio_intelligence_service.dart';
 import '../models/dashboard_summary.dart';
+import '../models/ai/portfolio_intelligence.dart';
 import 'package:myfin_mobile/models/ai_portfolio_score.dart';
 import '../models/portfolio_item.dart';
 import '../repositories/dashboard_repository.dart';
@@ -15,6 +18,7 @@ import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
 import '../widgets/dashboard/ai_analysis_card.dart';
 import '../widgets/dashboard/ai_advisor_card.dart';
+import '../widgets/dashboard/ai_simulation_card.dart';
 import '../widgets/dashboard/ai_score_card.dart';
 import '../widgets/dashboard/dashboard_header.dart';
 import '../widgets/dashboard/distribution_card.dart';
@@ -287,7 +291,8 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
     );
   }
 
-  final total = items.fold<double>(0, (sum, item) => sum + item.totalCost);
+  final portfolioSnapshot = const PortfolioIntelligenceService().build(items);
+  final total = portfolioSnapshot.totalValue;
   if (total <= 0) {
     return const _PortfolioIntelligence(
       overallScore: 0,
@@ -326,7 +331,13 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
     countryWeights[country] = (countryWeights[country] ?? 0) + weight;
   }
 
-  final biggestPosition = _maxWeight(symbolWeights);
+  final fallbackBiggestPosition = _maxWeight(symbolWeights);
+  final biggestPosition = portfolioSnapshot.dominantAssetSymbol.isEmpty
+      ? fallbackBiggestPosition
+      : MapEntry(
+          portfolioSnapshot.dominantAssetSymbol,
+          portfolioSnapshot.dominantAssetWeight,
+        );
   final topSector = _maxWeight(sectorWeights);
   final topCurrency = _maxWeight(currencyWeights);
   final topCountry = _maxWeight(countryWeights);
@@ -1318,46 +1329,48 @@ class _DashboardInsightPanel extends StatelessWidget {
       stream: PortfolioRepository.instance.watchPortfolio(),
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
+        final hasItems = items.isNotEmpty;
+        final portfolio = const PortfolioIntelligenceService().build(items);
 
-        return FutureBuilder<DashboardSummary>(
-          key: ValueKey('insight-summary-$refreshTick-${items.length}'),
-          future: _loadDashboardSummary(items),
-          builder: (context, summarySnapshot) {
-            final summary = summarySnapshot.data ?? _fallbackSummary(items);
-            final hasItems = items.isNotEmpty;
-            final isPositive = summary.profitLoss >= 0;
-            final dominantType = hasItems ? _dominantAssetType(items) : 'Beklemede';
+        final needsAttention =
+            hasItems && (portfolio.profitLossPercent < 0 || portfolio.hasDominantType);
 
-            return Row(
-              children: [
-                Expanded(
-                  child: _MiniInsightCard(
-                    icon: Icons.auto_awesome_rounded,
-                    title: 'Akıllı Özet',
-                    value: hasItems
-                        ? (isPositive ? 'Pozitif seyir' : 'Dikkat gerekli')
-                        : 'Hazır',
-                    subtitle: hasItems
-                        ? '${_formatPercent(summary.profitPercent)} toplam performans'
-                        : 'İlk varlığı ekleyerek başla',
-                    color: isPositive
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFDC2626),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MiniInsightCard(
-                    icon: Icons.category_rounded,
-                    title: 'Yoğunluk',
-                    value: dominantType,
-                    subtitle: hasItems ? '${items.length} varlık izleniyor' : 'Veri yok',
-                    color: const Color(0xFF7C3AED),
-                  ),
-                ),
-              ],
-            );
-          },
+        final dominantType = hasItems && portfolio.dominantType.isNotEmpty
+            ? _assetTypeLabel(portfolio.dominantType)
+            : 'Beklemede';
+
+        return Row(
+          children: [
+            Expanded(
+              child: _MiniInsightCard(
+                icon: Icons.auto_awesome_rounded,
+                title: 'Akıllı Özet',
+                value: hasItems
+                    ? (needsAttention ? 'Dikkat gerekli' : 'Pozitif seyir')
+                    : 'Hazır',
+                subtitle: hasItems
+                    ? (portfolio.hasDominantType
+                        ? '$dominantType ağırlığı %${(portfolio.dominantTypeWeight * 100).round()}'
+                        : (portfolio.profitLossPercent < 0
+                            ? 'Risk seviyesi yüksek'
+                            : 'Risk seviyesi dengeli'))
+                    : 'İlk varlığı ekleyerek başla',
+                color: needsAttention
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF16A34A),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _MiniInsightCard(
+                icon: Icons.category_rounded,
+                title: 'Yoğunluk',
+                value: dominantType,
+                subtitle: hasItems ? '${items.length} varlık izleniyor' : 'Veri yok',
+                color: const Color(0xFF7C3AED),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1462,21 +1475,21 @@ class _PortfolioPulsePanel extends StatelessWidget {
           );
         }
 
-        return FutureBuilder<_PulseData>(
-          key: ValueKey('pulse-$refreshTick-${items.length}'),
-          future: _loadPulseData(items),
-          builder: (context, pulseSnapshot) {
-            final pulse = pulseSnapshot.data ?? _PulseData.fromCost(items);
-            return PortfolioPulsePanel(
-              title: pulse.title,
-              message: pulse.message,
-              score: pulse.score,
-              dominantLabel: pulse.dominantLabel,
-              assetCount: items.length,
-              color: pulse.color,
-              icon: pulse.icon,
-            );
-          },
+        final portfolio = const PortfolioIntelligenceService().build(items);
+        final analysis = const AIAnalysisService().analyze(items);
+        final pulse = _PulseData.fromIntelligence(
+          portfolio: portfolio,
+          score: analysis.score.overallScore,
+        );
+
+        return PortfolioPulsePanel(
+          title: pulse.title,
+          message: pulse.message,
+          score: pulse.score,
+          dominantLabel: pulse.dominantLabel,
+          assetCount: items.length,
+          color: pulse.color,
+          icon: pulse.icon,
         );
       },
     );
@@ -1582,6 +1595,54 @@ class _PulseData {
     required this.icon,
   });
 
+  factory _PulseData.fromIntelligence({
+    required PortfolioIntelligence portfolio,
+    required int score,
+  }) {
+    final dominantLabel = portfolio.dominantType.isEmpty
+        ? 'Diğer'
+        : _assetTypeLabel(portfolio.dominantType);
+
+    final safeScore = score.clamp(0, 100).toDouble();
+    final dominantPercent = (portfolio.dominantTypeWeight * 100).round();
+
+    if (safeScore >= 75 && !portfolio.hasDominantType) {
+      return _PulseData(
+        score: safeScore,
+        title: 'Portföy dengesi güçlü',
+        message: '$dominantLabel ağırlığı kontrol altında. Genel AI görünümü güçlü.',
+        dominantLabel: dominantLabel,
+        color: const Color(0xFF16A34A),
+        icon: Icons.verified_rounded,
+      );
+    }
+
+    if (safeScore >= 55) {
+      return _PulseData(
+        score: safeScore,
+        title: 'Portföy dengesi izlenmeli',
+        message: portfolio.hasDominantType
+            ? '$dominantLabel ağırlığı %$dominantPercent seviyesinde. Dağılımı düzenli takip et.'
+            : 'Portföy genel olarak izlenebilir seviyede. Yeni alımlarda dengeyi koru.',
+        dominantLabel: dominantLabel,
+        color: const Color(0xFFF59E0B),
+        icon: Icons.warning_amber_rounded,
+      );
+    }
+
+    return _PulseData(
+      score: safeScore,
+      title: 'Risk yoğunluğu yüksek',
+      message: portfolio.hasDominantType
+          ? '$dominantLabel portföyde baskın. Yeni alımlarda çeşitlendirme düşünebilirsin.'
+          : 'Portföyde risk sinyali yüksek. Dağılımı ve pozisyon büyüklüklerini gözden geçir.',
+      dominantLabel: dominantLabel,
+      color: const Color(0xFFDC2626),
+      icon: Icons.report_rounded,
+    );
+  }
+
+
   factory _PulseData.fromCost(List<PortfolioItem> items) {
     final valuesByType = <String, double>{};
     double totalCost = 0;
@@ -1662,22 +1723,12 @@ MapEntry<String, double> _dominantEntry(Map<String, double> totals) {
 Future<_DistributionSnapshot> _loadDistributionSnapshot(
   List<PortfolioItem> items,
 ) async {
-  final totals = <String, double>{};
-
-  for (final item in items) {
-    try {
-      final quote = await MarketRepository.instance.getQuote(
-        symbol: item.symbol,
-        type: item.type,
-      );
-      totals[item.type] =
-          (totals[item.type] ?? 0) + (item.quantity * quote.currentPrice);
-    } catch (_) {
-      totals[item.type] = (totals[item.type] ?? 0) + item.totalCost;
-    }
-  }
-
-  return _DistributionSnapshot.fromTotals(totals);
+  // Keep portfolio allocation aligned with the rest of the dashboard.
+  //
+  // Portfolio Pulse, Smart Summary and Smart Insights all use cost-based
+  // portfolio intelligence today. Using live market quotes here caused the
+  // allocation card to show a different dominant weight for the same portfolio.
+  return _DistributionSnapshot.fromCost(items);
 }
 
 String _dominantAssetType(List<PortfolioItem> items) {
@@ -1852,34 +1903,12 @@ class _SmartInsightsPanel extends StatelessWidget {
 }
 
 Future<_SmartInsightData> _loadSmartInsightData(List<PortfolioItem> items) async {
-  double totalCost = 0;
-  double totalValue = 0;
-  final valuesByType = <String, double>{};
+  final portfolio = const PortfolioIntelligenceService().build(items);
+  final analysis = const AIAnalysisService().analyze(items);
 
-  for (final item in items) {
-    final cost = item.totalCost;
-    double currentValue;
-
-    try {
-      final quote = await MarketRepository.instance.getQuote(
-        symbol: item.symbol,
-        type: item.type,
-      );
-      currentValue = item.quantity * quote.currentPrice;
-    } catch (_) {
-      currentValue = cost;
-    }
-
-    totalCost += cost;
-    totalValue += currentValue;
-    valuesByType[item.type] = (valuesByType[item.type] ?? 0) + currentValue;
-  }
-
-  return _SmartInsightData.fromValues(
-    items: items,
-    totalCost: totalCost,
-    totalValue: totalValue,
-    valuesByType: valuesByType,
+  return _SmartInsightData.fromPortfolio(
+    portfolio: portfolio,
+    score: analysis.score.overallScore,
   );
 }
 
@@ -1901,38 +1930,31 @@ class _SmartInsightData {
   });
 
   factory _SmartInsightData.fromCost(List<PortfolioItem> items) {
-    final valuesByType = <String, double>{};
-    double totalCost = 0;
+    final portfolio = const PortfolioIntelligenceService().build(items);
+    final analysis = const AIAnalysisService().analyze(items);
 
-    for (final item in items) {
-      totalCost += item.totalCost;
-      valuesByType[item.type] = (valuesByType[item.type] ?? 0) + item.totalCost;
-    }
-
-    return _SmartInsightData.fromValues(
-      items: items,
-      totalCost: totalCost,
-      totalValue: totalCost,
-      valuesByType: valuesByType,
+    return _SmartInsightData.fromPortfolio(
+      portfolio: portfolio,
+      score: analysis.score.overallScore,
     );
   }
 
-  factory _SmartInsightData.fromValues({
-    required List<PortfolioItem> items,
-    required double totalCost,
-    required double totalValue,
-    required Map<String, double> valuesByType,
+  factory _SmartInsightData.fromPortfolio({
+    required PortfolioIntelligence portfolio,
+    required int score,
   }) {
-    final profit = totalValue - totalCost;
-    final double profitPercent =
-    totalCost <= 0 ? 0.0 : (profit / totalCost) * 100;
-    final dominant = _dominantEntry(valuesByType);
-    final dominantLabel = dominant.key.isEmpty ? 'Diğer' : _assetTypeLabel(dominant.key);
-    final dominantRatio = totalValue <= 0 ? 0 : dominant.value / totalValue;
+    final dominantLabel = portfolio.dominantType.isEmpty
+        ? 'Diğer'
+        : _assetTypeLabel(portfolio.dominantType);
+    final dominantRatio = portfolio.dominantTypeWeight;
+    final dominantPercent = (dominantRatio * 100).round();
+    final profitPercent = portfolio.profitLossPercent;
+    final assetCount = portfolio.assetCount;
+    final safeScore = score.clamp(0, 100);
     final actions = <String>[];
 
     if (dominantRatio > .60) {
-      actions.add('$dominantLabel ağırlığı %${(dominantRatio * 100).toStringAsFixed(0)} seviyesinde. Yeni eklemelerde dengeyi artırmayı düşün.');
+      actions.add('$dominantLabel ağırlığı %$dominantPercent seviyesinde. Yeni eklemelerde dengeyi artırmayı düşün.');
     } else {
       actions.add('Dağılım dengeli görünüyor. Mevcut çeşitlendirmeyi koruyarak izlemeye devam et.');
     }
@@ -1945,13 +1967,13 @@ class _SmartInsightData {
       actions.add('Performans nötr bölgede. Ani karar yerine piyasa yönünü birkaç gün daha izle.');
     }
 
-    if (items.length < 3) {
+    if (assetCount < 3) {
       actions.add('Portföyde az sayıda varlık var. Takip listesine yeni alternatifler eklemek riski azaltabilir.');
     } else {
-      actions.add('${items.length} varlık izleniyor. Haftalık performans grafiğiyle momentum değişimini karşılaştır.');
+      actions.add('$assetCount varlık izleniyor. Haftalık performans grafiğiyle momentum değişimini karşılaştır.');
     }
 
-    if (profitPercent >= 3 && dominantRatio <= .60) {
+    if (safeScore >= 75 && !portfolio.hasDominantType && profitPercent >= -4) {
       return _SmartInsightData(
         title: 'AI görünümü pozitif',
         message: 'Portföy hem performans hem dağılım açısından sağlıklı sinyal üretiyor.',
@@ -1962,7 +1984,7 @@ class _SmartInsightData {
       );
     }
 
-    if (profitPercent <= -4 || dominantRatio > .70) {
+    if (safeScore < 60 || profitPercent <= -4 || portfolio.hasDominantType) {
       return _SmartInsightData(
         title: 'AI dikkat uyarısı',
         message: '$dominantLabel tarafındaki yoğunluk ve performans birlikte izlenmeli.',

@@ -2,6 +2,11 @@ import 'package:myfin_mobile/services/ai/ai_service.dart';
 import 'package:myfin_mobile/services/ai/conversation_memory.dart';
 import 'package:myfin_mobile/services/ai/openai_provider.dart';
 import 'package:myfin_mobile/services/ai/portfolio_context_builder.dart';
+import 'package:myfin_mobile/models/ai/ai_intelligence.dart';
+import 'package:myfin_mobile/models/portfolio_item.dart';
+import 'package:myfin_mobile/services/ai_advisor_service.dart';
+import 'package:myfin_mobile/services/ai_analysis_service.dart';
+import 'package:myfin_mobile/services/ai_simulation_service.dart';
 
 /// Single entry point for MyFin AI features.
 ///
@@ -16,11 +21,17 @@ class AIOrchestrator {
     AIProvider? provider,
     ConversationMemory? memory,
     PortfolioContextBuilder? portfolioContextBuilder,
+    AIAnalysisService? analysisService,
+    AIAdvisorService? advisorService,
+    AISimulationService? simulationService,
     UserFinancialContext? userContext,
     List<IntelligenceSignal> initialSignals = const <IntelligenceSignal>[],
     bool useOpenAIProvider = true,
   })  : _portfolioContextBuilder =
             portfolioContextBuilder ?? const PortfolioContextBuilder(),
+        _analysisService = analysisService ?? const AIAnalysisService(),
+        _advisorService = advisorService ?? const AIAdvisorService(),
+        _simulationService = simulationService ?? const AISimulationService(),
         _userContext = userContext,
         _signals = List<IntelligenceSignal>.of(initialSignals),
         _service = service ??
@@ -34,6 +45,9 @@ class AIOrchestrator {
 
   final AIService _service;
   final PortfolioContextBuilder _portfolioContextBuilder;
+  final AIAnalysisService _analysisService;
+  final AIAdvisorService _advisorService;
+  final AISimulationService _simulationService;
 
   UserFinancialContext? _userContext;
   PortfolioContext? _portfolioContext;
@@ -80,6 +94,25 @@ class AIOrchestrator {
       portfolioContext: resolvedPortfolioContext,
       userContext: _userContext,
       signals: _signals,
+    );
+  }
+
+  /// Builds all local dashboard intelligence from portfolio items.
+  ///
+  /// This method does not call the remote AI provider. It aggregates the local
+  /// score, analysis, advisor, and simulation layers into a single object so
+  /// dashboard screens can depend on one stable model.
+  AIIntelligence buildIntelligence(List<PortfolioItem> items) {
+    final analysis = _analysisService.analyze(items);
+    final advisor = _advisorService.advise(items);
+    final simulation = _simulationService.simulate(items);
+
+    return AIIntelligence(
+      score: analysis.score,
+      analysis: analysis,
+      advisor: advisor,
+      simulation: simulation,
+      generatedAt: DateTime.now(),
     );
   }
 

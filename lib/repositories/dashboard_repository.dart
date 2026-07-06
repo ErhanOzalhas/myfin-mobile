@@ -1,7 +1,7 @@
 import '../models/dashboard_summary.dart';
-import '../models/market_quote.dart';
+
 import '../models/portfolio_item.dart';
-import 'market_repository.dart';
+
 
 class DashboardRepository {
   DashboardRepository._();
@@ -19,13 +19,10 @@ class DashboardRepository {
     double worstPercent = 999999;
 
     for (final item in items) {
-      final MarketQuote quote = await MarketRepository.instance.getQuote(
-        symbol: item.symbol,
-        type: item.type,
-      );
+      
 
       final double cost = item.totalCost;
-      final double value = quote.currentPrice * item.quantity;
+      final double value = cost;
 
       totalCost += cost;
       currentValue += value;
