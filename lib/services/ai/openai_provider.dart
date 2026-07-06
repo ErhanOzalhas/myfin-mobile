@@ -1,154 +1,309 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-import 'ai_provider.dart';
+import 'package:myfin_mobile/services/ai/ai_service.dart';
 
-class OpenAIProvider extends AIProvider {
-  OpenAIProvider();
+/// OpenAI implementation of the MyFin AI provider layer.
+///
+/// Place this file at:
+/// lib/services/ai/openai_provider.dart
+///
+/// Required .env value:
+/// OPENAI_API_KEY=...
+///
+/// Optional .env values:
+/// OPENAI_MODEL=gpt-5-mini
+/// OPENAI_RESPONSES_ENDPOINT=https://api.openai.com/v1/responses
+class OpenAIProvider implements AIProvider {
+  OpenAIProvider({
+    http.Client? client,
+    String? apiKey,
+    String? model,
+    Uri? endpoint,
+    Duration timeout = const Duration(seconds: 45),
+    int maxRetries = 2,
+  })  : _client = client ?? http.Client(),
+        _apiKeyOverride = apiKey,
+        _modelOverride = model,
+        _endpointOverride = endpoint,
+        _timeout = timeout,
+        _maxRetries = maxRetries < 0 ? 0 : maxRetries;
 
-  static const _endpoint = 'https://api.openai.com/v1/responses';
+  static const String _defaultEndpoint = 'https://api.openai.com/v1/responses';
+  static const String _defaultModel = 'gpt-5-mini';
+
+  final http.Client _client;
+  final String? _apiKeyOverride;
+  final String? _modelOverride;
+  final Uri? _endpointOverride;
+  final Duration _timeout;
+  final int _maxRetries;
+
+  String get _apiKey =>
+      (_apiKeyOverride ?? dotenv.env['OPENAI_API_KEY'] ?? '').trim();
+
+  String get _model =>
+      (_modelOverride ?? dotenv.env['OPENAI_MODEL'] ?? _defaultModel).trim();
+
+  Uri get _endpoint => _endpointOverride ??
+      Uri.parse(
+        (dotenv.env['OPENAI_RESPONSES_ENDPOINT'] ?? _defaultEndpoint).trim(),
+      );
 
   @override
-  Future<String> ask({
-    required String context,
-    required String question,
-  }) async {
-    final apiKey = dotenv.env['OPENAI_API_KEY'];
+  Future<AIResponse> complete(AIPrompt prompt) async {
+    _validateConfiguration();
 
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('OPENAI_API_KEY bulunamadı.');
-    }
+    final Map<String, dynamic> payload = <String, dynamic>{
+      'model': _model,
+      'instructions': _buildInstructions(prompt.systemPrompt),
+      'input': prompt.fullPrompt,
+    };
 
-    final prompt = '''
-You are MyFin AI.
+    final http.Response response = await _sendWithRetry(payload);
+    final String content = _extractText(response.body).trim();
 
-You are an experienced financial assistant.
-
-Answer only according to the portfolio analysis below.
-
-If you don't know something, say so.
-
-Portfolio Analysis:
-
-$context
-
-User Question:
-
-$question
-''';
-
-    final response = await http
-    .post(
-      Uri.parse(_endpoint),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      },
-      body: jsonEncode({
-        "model": "gpt-5-mini",
-        "instructions": """
-Start analytical responses naturally.
-
-Instead of generic headings like:
-
-"Portföyünüzün güçlü yönleri"
-
-prefer sentences such as:
-
-"Portföyünü inceledim. İlk dikkatimi çeken üç güçlü yön şunlar:"
-
-or
-
-"İlk dikkatimi çeken üç güçlü nokta şunlar:"
-You are MyFin AI, a professional financial portfolio assistant.
-
-Your mission is to help users make better long-term investment decisions.
-
-Always respond in Turkish unless the user explicitly requests another language.
-
-Never use English financial terminology.
-
-Keep responses concise.
-
-Default response length:
-- Maximum 150-200 words.
-- Maximum 5 bullet points.
-
-Only provide a long detailed report if the user explicitly asks for:
-- detaylı analiz
-- ayrıntılı rapor
-- kapsamlı inceleme
-
-Always explain recommendations briefly.
-
-Avoid repeating portfolio information.
-
-Avoid unnecessary disclaimers.
-
-Never fabricate portfolio information.
-
-If information is missing, mention it briefly in one sentence only.
-When listing strengths or risks,
-show at most the top 3 items ranked by importance.
-End every answer with one practical next step or one follow-up question.
-Always finish with a practical next step.
-
-Instead of asking generic questions, suggest the most useful information the user can provide next.
-Speak like MyFin AI, the user's personal investment assistant.
-
-Be warm, confident and professional.
-
-Avoid sounding like a generic AI chatbot.
-Address the user naturally.
-When appropriate, begin analytical responses with a short natural sentence such as:
-"Portföyünü inceledim."
-or
-"İlk dikkatimi çeken nokta şu..."
-Avoid repeating the exact same opening in every response.
-Prefer:
-
-"Portföyün"
-
-instead of
-
-"Portföyünüz"
-
-unless a formal tone is required.
-Example:
-
-"Bir sonraki adım: Hisse, ETF, altın ve nakit oranlarını paylaşırsan sana daha net iyileştirme önerileri hazırlayabilirim.""",
-        "input": prompt,
-      }),
-    )
-    .timeout(const Duration(seconds: 60));
-
-debugPrint('========== OPENAI ==========');
-debugPrint('STATUS: ${response.statusCode}');
-debugPrint(response.body);
-debugPrint('============================');
-    if (response.statusCode != 200) {
-      throw Exception(
-        'OpenAI Error (${response.statusCode})\n${response.body}',
+    if (content.isEmpty) {
+      throw const OpenAIProviderException(
+        message: 'OpenAI empty response.',
+        userMessage:
+            'AI boş yanıt döndürdü. Soruyu tekrar göndermeyi deneyebilirsin.',
       );
     }
-        final data = jsonDecode(response.body);
 
-    final outputs = data['output'] as List;
+    return AIResponse.success(
+      content,
+      providerName: 'openai:$_model',
+      prompt: prompt,
+    );
+  }
 
-    for (final item in outputs) {
-      if (item['type'] == 'message') {
-        final content = item['content'] as List;
+  Future<http.Response> _sendWithRetry(Map<String, dynamic> payload) async {
+    Object? lastError;
 
-        for (final c in content) {
-          if (c['type'] == 'output_text') {
-            return c['text'] as String;
-          }
+    for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+      try {
+        final http.Response response = await _client
+            .post(
+              _endpoint,
+              headers: <String, String>{
+                HttpHeaders.contentTypeHeader: 'application/json',
+                HttpHeaders.authorizationHeader: 'Bearer $_apiKey',
+              },
+              body: jsonEncode(payload),
+            )
+            .timeout(_timeout);
+
+        _debugResponse(response, attempt);
+
+        if (_isRetryableStatus(response.statusCode) && attempt < _maxRetries) {
+          await _backoff(attempt);
+          continue;
         }
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw _mapHttpError(response);
+        }
+
+        return response;
+      } on TimeoutException catch (error) {
+        lastError = error;
+        if (attempt >= _maxRetries) break;
+        await _backoff(attempt);
+      } on SocketException catch (error) {
+        lastError = error;
+        if (attempt >= _maxRetries) break;
+        await _backoff(attempt);
+      } on OpenAIProviderException {
+        rethrow;
+      } catch (error) {
+        lastError = error;
+        if (attempt >= _maxRetries) break;
+        await _backoff(attempt);
       }
     }
 
-    throw Exception('No assistant message found.');
+    throw OpenAIProviderException(
+      message: 'OpenAI request failed: $lastError',
+      userMessage:
+          'AI servisine bağlanırken sorun oluştu. İnternet bağlantısı veya servis ayarlarını kontrol edebilirsin.',
+    );
   }
+
+  String _buildInstructions(String systemPrompt) {
+    return '''
+$systemPrompt
+
+You are MyFin AI, the user's personal finance assistant.
+Always respond in Turkish unless the user clearly asks for another language.
+Be concise, practical, warm, and professional.
+Do not fabricate portfolio values, prices, performance, or market data.
+If context is missing, say what is missing briefly.
+Do not present investment ideas as guaranteed outcomes.
+Prefer action-oriented answers with one clear next step.
+'''
+        .trim();
+  }
+
+  String _extractText(String responseBody) {
+    try {
+      final dynamic decoded = jsonDecode(responseBody);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Response root is not a JSON object.');
+      }
+
+      final dynamic outputText = decoded['output_text'];
+      if (outputText is String && outputText.trim().isNotEmpty) {
+        return outputText;
+      }
+
+      final dynamic output = decoded['output'];
+      if (output is List) {
+        final StringBuffer buffer = StringBuffer();
+
+        for (final dynamic item in output) {
+          if (item is! Map<String, dynamic>) continue;
+
+          final dynamic content = item['content'];
+          if (content is! List) continue;
+
+          for (final dynamic contentItem in content) {
+            if (contentItem is! Map<String, dynamic>) continue;
+
+            final dynamic text = contentItem['text'];
+            if (text is String && text.trim().isNotEmpty) {
+              buffer.writeln(text.trim());
+              continue;
+            }
+
+            final dynamic nestedText = contentItem['output_text'];
+            if (nestedText is String && nestedText.trim().isNotEmpty) {
+              buffer.writeln(nestedText.trim());
+            }
+          }
+        }
+
+        final String value = buffer.toString().trim();
+        if (value.isNotEmpty) return value;
+      }
+
+      throw const FormatException('Assistant text could not be found.');
+    } on FormatException catch (error) {
+      throw OpenAIProviderException(
+        message: 'OpenAI JSON parse error: $error',
+        userMessage:
+            'AI yanıtı okunamadı. Servis yanıt formatı kontrol edilmeli.',
+      );
+    }
+  }
+
+  OpenAIProviderException _mapHttpError(http.Response response) {
+    String details = response.body;
+    String? openAIMessage;
+
+    try {
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final dynamic error = decoded['error'];
+        if (error is Map<String, dynamic>) {
+          final dynamic message = error['message'];
+          if (message is String && message.trim().isNotEmpty) {
+            openAIMessage = message.trim();
+          }
+        }
+      }
+    } catch (_) {
+      // Keep raw body as details.
+    }
+
+    final String userMessage;
+    switch (response.statusCode) {
+      case 400:
+        userMessage =
+            'AI isteği geçersiz görünüyor. Prompt veya model ayarını kontrol etmek gerekiyor.';
+        break;
+      case 401:
+        userMessage = 'OpenAI API anahtarı geçersiz veya eksik.';
+        break;
+      case 403:
+        userMessage =
+            'OpenAI erişimi reddedildi. API hesabı ve model yetkilerini kontrol etmek gerekiyor.';
+        break;
+      case 404:
+        userMessage =
+            'OpenAI endpoint veya model bulunamadı. Model adını kontrol etmek gerekiyor.';
+        break;
+      case 429:
+        userMessage =
+            'OpenAI kullanım limiti dolmuş olabilir. Biraz sonra tekrar denenebilir.';
+        break;
+      default:
+        userMessage = response.statusCode >= 500
+            ? 'OpenAI tarafında geçici bir servis sorunu var gibi görünüyor.'
+            : 'AI servisi beklenmeyen bir hata döndürdü.';
+    }
+
+    if (openAIMessage != null) {
+      details = '$details\nOpenAI message: $openAIMessage';
+    }
+
+    return OpenAIProviderException(
+      message: 'OpenAI HTTP ${response.statusCode}: $details',
+      userMessage: userMessage,
+      statusCode: response.statusCode,
+    );
+  }
+
+  bool _isRetryableStatus(int statusCode) {
+    return statusCode == 408 || statusCode == 409 || statusCode == 429 || statusCode >= 500;
+  }
+
+  Future<void> _backoff(int attempt) async {
+    final int milliseconds = 400 * (attempt + 1) * (attempt + 1);
+    await Future<void>.delayed(Duration(milliseconds: milliseconds));
+  }
+
+  void _validateConfiguration() {
+    if (_apiKey.isEmpty) {
+      throw const OpenAIProviderException(
+        message: 'OPENAI_API_KEY is missing.',
+        userMessage:
+            'OpenAI API anahtarı eksik. .env içinde OPENAI_API_KEY tanımlanmalı.',
+      );
+    }
+
+    if (_model.isEmpty) {
+      throw const OpenAIProviderException(
+        message: 'OPENAI_MODEL is empty.',
+        userMessage: 'OpenAI model adı boş. OPENAI_MODEL ayarını kontrol et.',
+      );
+    }
+  }
+
+  void _debugResponse(http.Response response, int attempt) {
+    if (!kDebugMode) return;
+
+    debugPrint(
+      '[OpenAIProvider] attempt=$attempt status=${response.statusCode} bodyLength=${response.body.length}',
+    );
+  }
+}
+
+class OpenAIProviderException implements Exception {
+  const OpenAIProviderException({
+    required this.message,
+    required this.userMessage,
+    this.statusCode,
+  });
+
+  final String message;
+  final String userMessage;
+  final int? statusCode;
+
+  @override
+  String toString() => 'OpenAIProviderException($statusCode): $message';
 }

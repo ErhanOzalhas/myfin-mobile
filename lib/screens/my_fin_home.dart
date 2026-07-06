@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import '../widgets/dashboard/weekly_performance_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 import 'package:myfin_mobile/services/recommendation_engine.dart';
 import 'package:myfin_mobile/services/portfolio_summary_service.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +25,12 @@ import '../widgets/dashboard/portfolio_list.dart';
 import '../widgets/dashboard/smart_insights_panel.dart';
 import 'add_portfolio_item_page.dart';
 import '../../models/portfolio_item.dart';
+import 'intelligence/ai_chat_page.dart';
+import 'package:myfin_mobile/widgets/home/ai_score_section.dart';
+import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
+import 'package:myfin_mobile/services/ai/portfolio_analysis_mapper.dart';
+import 'package:myfin_mobile/screens/intelligence/analysis_page.dart';
+import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 class MyFinHome extends StatefulWidget {
   const MyFinHome({super.key});
 
@@ -73,7 +78,7 @@ class _MyFinHomeState extends State<MyFinHome> {
               const SizedBox(height: 14),
               _DashboardFadeIn(
                 delay: 60,
-                child: const _AIScoreSection(),
+                child:  const AIScoreSection(),
               ),
               const SizedBox(height: 14),
               _KpiGrid(refreshTick: _refreshTick),
@@ -131,28 +136,28 @@ class _MyFinHomeState extends State<MyFinHome> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
-onDestinationSelected: (index) {
-  if (index == 0) return;
+        onDestinationSelected: (index) {
+          if (index == 0) return;
 
-  if (index == 1) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const PortfolioPage(),
-      ),
-    );
-    return;
-  }
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const PortfolioPage(),
+              ),
+            );
+            return;
+          }
 
-  if (index == 2) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AddPortfolioItemPage(),
-      ),
-    );
-    return;
-  }
+          if (index == 2) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const AddPortfolioItemPage(),
+              ),
+            );
+            return;
+          }
 
-  if (index == 3) {
+          if (index == 3) {
 
   Navigator.of(context).push(
 
@@ -167,24 +172,20 @@ onDestinationSelected: (index) {
   return;
 
 }
-if (index == 3) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => const IntelligencePage(),
-    ),
-  );
-  return;
-}
 
-  final label = switch (index) {
-    4 => 'Ayarlar ekranı yakında aktif olacak.',
-    _ => 'Bu bölüm yakında aktif olacak.',
-  };
+          if (index == 4) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const SettingsPage(),
+              ),
+            );
+            return;
+          }
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(label)),
-  );
-},
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bu bölüm yakında aktif olacak.')),
+          );
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Ana Sayfa'),
           NavigationDestination(icon: Icon(Icons.pie_chart_rounded), label: 'Portföy'),
@@ -192,7 +193,7 @@ if (index == 3) {
           NavigationDestination(icon: Icon(Icons.show_chart_rounded), label: 'Analiz'),
           NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Ayarlar'),
         ],
-      ),
+      )
     );
   }
 }
@@ -797,14 +798,17 @@ class _AIScoreSection extends StatelessWidget {
 
         return InkWell(
           borderRadius: BorderRadius.circular(24),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-              builder: (_) => const IntelligencePage(),  
-              ),
-            );
-          },
+         onTap: () {
+  final portfolioAnalysis = mapToPortfolioAnalysis(analysis);
+
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => AiChatPage(
+        analysis: portfolioAnalysis,
+      ),
+    ),
+  );
+}, 
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -813,7 +817,7 @@ class _AIScoreSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -2396,8 +2400,30 @@ class _QuickActions extends StatelessWidget {
             );
           },
         ),
-        const _QuickAction(icon: Icons.swap_vert_rounded, title: 'İşlem Gir', color: Color(0xFFF97316)),
-        const _QuickAction(icon: Icons.notifications_active_rounded, title: 'Alarm Kur', color: Color(0xFF7C3AED)),
+        _QuickAction(
+          icon: Icons.swap_vert_rounded,
+          title: 'İşlem Gir',
+          color: const Color(0xFFF97316),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const TransactionEntryPage(),
+              ),
+            );
+          },
+        ),
+        _QuickAction(
+          icon: Icons.notifications_active_rounded,
+          title: 'Alarm Kur',
+          color: const Color(0xFF7C3AED),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const PriceAlertPage(),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
@@ -2863,8 +2889,442 @@ class PortfolioPage extends StatelessWidget {
   }
 }
 
+class TransactionEntryPage extends StatefulWidget {
+  const TransactionEntryPage({super.key});
 
+  @override
+  State<TransactionEntryPage> createState() => _TransactionEntryPageState();
+}
 
+class _TransactionEntryPageState extends State<TransactionEntryPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _symbolController = TextEditingController();
+  final _quantityController = TextEditingController();
+  final _priceController = TextEditingController();
+  String _transactionType = 'Alış';
 
+  @override
+  void dispose() {
+    _symbolController.dispose();
+    _quantityController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
 
+  void _saveTransaction() {
+    if (!_formKey.currentState!.validate()) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${_symbolController.text.toUpperCase()} için $_transactionType işlemi kaydedildi.',
+        ),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('İşlem Gir'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            const _SectionTitle(title: 'Yeni İşlem'),
+            const SizedBox(height: 12),
+            _SurfaceCard(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Alış veya satış işlemini hızlıca gir. Bu ekran Sprint 7 kapsamında portföy hareketleri için hazırlandı.',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'Alış', label: Text('Alış')),
+                        ButtonSegment(value: 'Satış', label: Text('Satış')),
+                      ],
+                      selected: {_transactionType},
+                      onSelectionChanged: (value) {
+                        setState(() => _transactionType = value.first);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _symbolController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Sembol / Varlık',
+                        hintText: 'Örn: ASELS, THYAO, AAPL',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Varlık adı gerekli.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _quantityController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Adet / Lot',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
+                        if (parsed == null || parsed <= 0) {
+                          return 'Geçerli bir adet gir.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _priceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Birim Fiyat',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
+                        if (parsed == null || parsed <= 0) {
+                          return 'Geçerli bir fiyat gir.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saveTransaction,
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('İşlemi Kaydet'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PriceAlertPage extends StatefulWidget {
+  const PriceAlertPage({super.key});
+
+  @override
+  State<PriceAlertPage> createState() => _PriceAlertPageState();
+}
+
+class _PriceAlertPageState extends State<PriceAlertPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _symbolController = TextEditingController();
+  final _targetController = TextEditingController();
+  String _direction = 'Üstüne çıkarsa';
+
+  @override
+  void dispose() {
+    _symbolController.dispose();
+    _targetController.dispose();
+    super.dispose();
+  }
+
+  void _saveAlert() {
+    if (!_formKey.currentState!.validate()) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${_symbolController.text.toUpperCase()} alarmı oluşturuldu.',
+        ),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Alarm Kur'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            const _SectionTitle(title: 'Fiyat Alarmı'),
+            const SizedBox(height: 12),
+            _SurfaceCard(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Takip etmek istediğin fiyat seviyesini belirle. Bildirim altyapısı bağlandığında bu ekran canlı alarma dönüşecek.',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _symbolController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Sembol / Varlık',
+                        hintText: 'Örn: GARAN, BTC, AAPL',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Varlık adı gerekli.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _direction,
+                      decoration: const InputDecoration(
+                        labelText: 'Koşul',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'Üstüne çıkarsa', child: Text('Üstüne çıkarsa')),
+                        DropdownMenuItem(value: 'Altına inerse', child: Text('Altına inerse')),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _direction = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _targetController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Hedef Fiyat',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
+                        if (parsed == null || parsed <= 0) {
+                          return 'Geçerli bir hedef fiyat gir.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saveAlert,
+                        icon: const Icon(Icons.notifications_active_rounded),
+                        label: const Text('Alarmı Kaydet'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ayarlar'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            const _SectionTitle(title: 'Hesap'),
+            const SizedBox(height: 12),
+            _SurfaceCard(
+              child: Row(
+                children: [
+                  const _IconBox(
+                    icon: Icons.person_rounded,
+                    color: Color(0xFF008DB9),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.displayName?.isNotEmpty == true ? user!.displayName! : 'MyFin kullanıcısı',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user?.email ?? 'E-posta bağlı değil',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            const _SectionTitle(title: 'Uygulama'),
+            const SizedBox(height: 12),
+            _SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsRow(
+                    icon: Icons.auto_awesome_rounded,
+                    title: 'MyFin Intelligence',
+                    subtitle: 'AI analiz ve sohbet merkezi',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const IntelligencePage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const _ThinDivider(),
+                  _SettingsRow(
+                    icon: Icons.security_rounded,
+                    title: 'Gizlilik ve güvenlik',
+                    subtitle: 'Yakında aktif olacak',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Gizlilik ayarları sonraki sprintte bağlanacak.')),
+                      );
+                    },
+                  ),
+                  const _ThinDivider(),
+                  _SettingsRow(
+                    icon: Icons.palette_rounded,
+                    title: 'Görünüm',
+                    subtitle: 'Premium açık tema aktif',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Tema ayarları sonraki sprintte genişletilecek.')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                },
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Çıkış Yap'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF008DB9)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.black38),
+          ],
+        ),
+      ),
+    );
+  }
+}
 

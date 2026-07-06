@@ -44,8 +44,8 @@ class _AiChatPageState extends State<AiChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final AIChatService _chatService = AIChatService(
-  provider: OpenAIProvider(),
-);
+    provider: OpenAIProvider(),
+  );
   final FocusNode _inputFocusNode = FocusNode();
 
   final List<_ChatMessage> _messages = <_ChatMessage>[
@@ -122,10 +122,11 @@ class _AiChatPageState extends State<AiChatPage> {
         );
       });
     } finally {
-      if (!mounted) return;
-      setState(() => _isSending = false);
-      _scrollToBottom();
-      _inputFocusNode.requestFocus();
+      if (mounted) {
+        setState(() => _isSending = false);
+        _scrollToBottom();
+        _inputFocusNode.requestFocus();
+      }
     }
   }
 
