@@ -1,40 +1,30 @@
 import 'dart:async';
 import 'dart:math' as math;
-import '../widgets/dashboard/weekly_performance_card.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:myfin_mobile/services/recommendation_engine.dart';
-import 'package:myfin_mobile/services/portfolio_summary_service.dart';
 import 'package:flutter/material.dart';
-import '../services/ai_analysis_service.dart';
-import '../services/ai_advisor_service.dart';
-import '../services/ai_simulation_service.dart';
-import '../services/portfolio_intelligence_service.dart';
+import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
+import 'package:myfin_mobile/services/portfolio_summary_service.dart';
+import 'package:myfin_mobile/widgets/home/ai_score_section.dart';
+
 import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
-import 'package:myfin_mobile/models/ai_portfolio_score.dart';
 import '../models/portfolio_item.dart';
 import '../repositories/dashboard_repository.dart';
 import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
-import '../widgets/dashboard/ai_analysis_card.dart';
-import '../widgets/dashboard/ai_advisor_card.dart';
-import '../widgets/dashboard/ai_simulation_card.dart';
-import '../widgets/dashboard/ai_score_card.dart';
+import '../services/ai_analysis_service.dart';
+import '../services/portfolio_intelligence_service.dart';
 import '../widgets/dashboard/dashboard_header.dart';
 import '../widgets/dashboard/distribution_card.dart';
 import '../widgets/dashboard/market_ticker.dart';
-import '../widgets/dashboard/watchlist_panel.dart';
-import '../widgets/dashboard/portfolio_pulse_panel.dart';
 import '../widgets/dashboard/portfolio_list.dart';
+import '../widgets/dashboard/portfolio_pulse_panel.dart';
 import '../widgets/dashboard/smart_insights_panel.dart';
+import '../widgets/dashboard/watchlist_panel.dart';
+import '../widgets/dashboard/weekly_performance_card.dart';
 import 'add_portfolio_item_page.dart';
-import '../../models/portfolio_item.dart';
-import 'intelligence/ai_chat_page.dart';
-import 'package:myfin_mobile/widgets/home/ai_score_section.dart';
-import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
-import 'package:myfin_mobile/services/ai/portfolio_analysis_mapper.dart';
-import 'package:myfin_mobile/screens/intelligence/analysis_page.dart';
-import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
+
 class MyFinHome extends StatefulWidget {
   const MyFinHome({super.key});
 
@@ -82,7 +72,7 @@ class _MyFinHomeState extends State<MyFinHome> {
               const SizedBox(height: 14),
               _DashboardFadeIn(
                 delay: 60,
-                child:  const AIScoreSection(),
+                child: const AIScoreSection(),
               ),
               const SizedBox(height: 14),
               _KpiGrid(refreshTick: _refreshTick),
@@ -162,20 +152,13 @@ class _MyFinHomeState extends State<MyFinHome> {
           }
 
           if (index == 3) {
-
-  Navigator.of(context).push(
-
-    MaterialPageRoute(
-
-      builder: (_) => const IntelligencePage(),
-
-    ),
-
-  );
-
-  return;
-
-}
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const IntelligencePage(),
+              ),
+            );
+            return;
+          }
 
           if (index == 4) {
             Navigator.of(context).push(
@@ -624,7 +607,7 @@ class _ScorePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF7C3AED).withOpacity(.1),
+        color: const Color(0xFF7C3AED).withValues(alpha: .1),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -795,110 +778,6 @@ class _HeroPortfolioCard extends StatelessWidget {
     );
   }
 }
-class _AIScoreSection extends StatelessWidget {
-  const _AIScoreSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<PortfolioItem>>(
-      stream: PortfolioRepository.instance.watchPortfolio(),
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
-        final analysis = const AIAnalysisService().analyze(items);
-        final intelligence = _buildPortfolioIntelligence(items);
-
-        return InkWell(
-          borderRadius: BorderRadius.circular(24),
-         onTap: () {
-  final portfolioAnalysis = mapToPortfolioAnalysis(analysis);
-
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => AiChatPage(
-        analysis: portfolioAnalysis,
-      ),
-    ),
-  );
-}, 
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF6D5DF6),
-                        Color(0xFF00A3FF),
-                      ],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'MyFin Intelligence',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        analysis.resultSummary,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontSize: 13,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Score ${intelligence.overallScore} • View insights',
-                        style: const TextStyle(
-                          color: Color(0xFF1D9BF0),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _KpiGrid extends StatelessWidget {
   final int refreshTick;
 
@@ -1643,25 +1522,7 @@ class _PulseData {
   }
 
 
-  factory _PulseData.fromCost(List<PortfolioItem> items) {
-    final valuesByType = <String, double>{};
-    double totalCost = 0;
-
-    for (final item in items) {
-      valuesByType[item.type] = (valuesByType[item.type] ?? 0) + item.totalCost;
-      totalCost += item.totalCost;
-    }
-
-    return _PulseData.fromValues(
-      items: items,
-      valuesByType: valuesByType,
-      totalValue: totalCost,
-      totalCost: totalCost,
-      totalProfit: 0,
-    );
-  }
-
-  factory _PulseData.fromValues({
+factory _PulseData.fromValues({
     required List<PortfolioItem> items,
     required Map<String, double> valuesByType,
     required double totalValue,
@@ -1729,21 +1590,6 @@ Future<_DistributionSnapshot> _loadDistributionSnapshot(
   // portfolio intelligence today. Using live market quotes here caused the
   // allocation card to show a different dominant weight for the same portfolio.
   return _DistributionSnapshot.fromCost(items);
-}
-
-String _dominantAssetType(List<PortfolioItem> items) {
-  final totals = <String, double>{};
-  for (final item in items) {
-    totals[item.type] = (totals[item.type] ?? 0) + item.totalCost;
-  }
-
-  if (totals.isEmpty) return 'Veri yok';
-
-  final winner = totals.entries.reduce(
-    (a, b) => a.value >= b.value ? a : b,
-  );
-
-  return _assetTypeLabel(winner.key);
 }
 
 String _assetTypeLabel(String type) {
@@ -2254,7 +2100,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF008DB9).withOpacity(.10),
+                  color: const Color(0xFF008DB9).withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -2292,7 +2138,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: profitColor.withOpacity(.10),
+              color: profitColor.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -2530,7 +2376,7 @@ class _TransactionRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: color.withOpacity(.12),
+            backgroundColor: color.withValues(alpha: .12),
             child: Text(symbol.characters.first,
                 style: TextStyle(color: color, fontWeight: FontWeight.w500)),
           ),
@@ -2602,7 +2448,7 @@ class _SurfaceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.045),
+            color: Colors.black.withValues(alpha: .045),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -2626,7 +2472,7 @@ class _IconBox extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(.12),
+        color: color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Icon(icon, color: color, size: size * .56),
@@ -2652,7 +2498,6 @@ class AssetDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalCost = item.totalCost;
-    final currentPrice = item.averagePrice;
     final currentValue = totalCost;
     final profitLoss = currentValue - totalCost;
     final profitPercent = totalCost <= 0 ? 0.0 : (profitLoss / totalCost) * 100;
@@ -2740,7 +2585,7 @@ class AssetDetailPage extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: profitColor.withOpacity(.10),
+                      color: profitColor.withValues(alpha: .10),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -3130,7 +2975,7 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _direction,
+                      initialValue: _direction,
                       decoration: const InputDecoration(
                         labelText: 'Koşul',
                         border: OutlineInputBorder(),
