@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../screens/intelligence/intelligence_page.dart';
 import '../../screens/my_fin_home.dart';
-
+import '../../screens/portfolio/portfolio_page.dart';
 class MyFinBottomNav extends StatelessWidget {
   final int selectedIndex;
 
