@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../services/ai/ai_history_service.dart';
+
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
+import '../../services/ai/ai_advisor_service.dart';
+import '../../services/ai/ai_history_service.dart';
+import '../../services/ai/ai_trend_service.dart';
 import '../../services/ai/portfolio_analyzer.dart';
+import '../../services/ai/recommendation_engine_v2.dart';
+import '../../services/ai/timeline_engine.dart';
+import '../../widgets/intelligence/intelligence_ai_decision_card.dart';
 import '../../widgets/intelligence/intelligence_recommendation_card.dart';
 import '../../widgets/intelligence/intelligence_score_card.dart';
-import '../../widgets/intelligence_market_mood_card.dart';
-import '../../services/ai/recommendation_engine_v2.dart';
-import '../../services/ai/ai_trend_service.dart';
-import '../../services/ai/timeline_engine.dart';
 import '../../widgets/intelligence/intelligence_timeline_card.dart';
-import '../../services/ai/ai_advisor_service.dart';
-import '../../widgets/intelligence/intelligence_ai_decision_card.dart';
-import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
+import '../../widgets/intelligence_market_mood_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
+import 'ai_chat_page.dart';
+
 class IntelligencePage extends StatelessWidget {
   const IntelligencePage({super.key});
 
@@ -24,125 +26,98 @@ class IntelligencePage extends StatelessWidget {
     return 'Veri Yok';
   }
 
+  String _moodForRisk(int risk) {
+    if (risk <= 35) return 'Olumlu';
+    if (risk <= 65) return 'Nötr';
+    return 'Temkinli';
+  }
+
   @override
   Widget build(BuildContext context) {
-  return Scaffold(
-  appBar: AppBar(
-    title: const Text('MyFin Intelligence'),
-  ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('MyFin Intelligence'),
+        centerTitle: false,
+      ),
+      body: StreamBuilder<List<PortfolioItem>>(
+        stream: PortfolioRepository.instance.watchPortfolio(),
+        builder: (context, snapshot) {
+          final items = snapshot.data ?? <PortfolioItem>[];
+          final analysis = PortfolioAnalyzer.analyze(items);
 
-  body: StreamBuilder<List<PortfolioItem>>(
-    stream: PortfolioRepository.instance.watchPortfolio(),
-    builder: (context, snapshot) {
-      final items = snapshot.data ?? [];
-      final analysis = PortfolioAnalyzer.analyze(items);
+          final historyService = AIHistoryService();
+          if (items.isNotEmpty) {
+            historyService.saveIfChanged(analysis);
+          }
 
-      final historyService = AIHistoryService();
+          final history = historyService.history;
+          final trend = const AITrendService().build(history);
+          final timelineEvents = const TimelineEngine().build(
+            analysis: analysis,
+            trend: trend,
+            history: history,
+          );
 
-      if (items.isNotEmpty) {
-        historyService.saveIfChanged(analysis);
-      }
+          final recommendationInsights =
+              const RecommendationEngineV2().generate(analysis);
+          final recommendations =
+              recommendationInsights.map((item) => item.action).toList();
+          final advisorRecommendations =
+              const AIAdvisorService().generate(analysis);
 
-      final history = historyService.history;
-
-      debugPrint('History length: ${history.length}');
-      for (final h in history) {
-        debugPrint('AI Score: ${h.aiScore}');
-      }
-
-      final latest = historyService.latest;
-      final previous = historyService.previous;
-
-      final trend = const AITrendService().build(history);
-
-      final timelineEvents = const TimelineEngine().build(
-        analysis: analysis,
-        trend: trend,
-        history: history,
-      );
-
-      final recommendationInsights =
-          const RecommendationEngineV2().generate(analysis);
-
-      final recommendations =
-          recommendationInsights.map((e) => e.action).toList();
-
-      final advisorRecommendations =
-          const AIAdvisorService().generate(analysis);
-
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            IntelligenceScoreCard(
-              score: analysis.aiScore,
-              status: _statusForScore(analysis.aiScore),
-            ),
-
-            const SizedBox(height: 16),
-
-            IntelligenceMarketMoodCard(
-              mood: analysis.risk <= 35
-                  ? 'Olumlu'
-                  : analysis.risk <= 65
-                      ? 'Nötr'
-                      : 'Temkinli',
-            ),
-
-            const SizedBox(height: 16),
-
-            IntelligenceRecommendationCard(
-              recommendations: [
-                ...advisorRecommendations,
-                ...recommendations,
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IntelligenceScoreCard(
+                  score: analysis.aiScore,
+                  status: _statusForScore(analysis.aiScore),
+                ),
+                const SizedBox(height: 16),
+                IntelligenceMarketMoodCard(
+                  mood: _moodForRisk(analysis.risk),
+                ),
+                const SizedBox(height: 16),
+                IntelligenceRecommendationCard(
+                  recommendations: [
+                    ...advisorRecommendations,
+                    ...recommendations,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                IntelligenceAIDecisionCard(
+                  strengths: analysis.strengths,
+                  warnings: analysis.warnings,
+                  riskLevel: analysis.riskLevel,
+                  investmentStyle: analysis.investmentStyle,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AiChatPage(
+                            analysis: analysis,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat_bubble_rounded),
+                    label: const Text('MyFin ile Konuş'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                IntelligenceTimelineCard(events: timelineEvents),
               ],
             ),
-
-            const SizedBox(height: 16),
-
-            IntelligenceAIDecisionCard(
-              strengths: analysis.strengths,
-              warnings: analysis.warnings,
-              riskLevel: analysis.riskLevel,
-              investmentStyle: analysis.investmentStyle,
-            ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AiChatPage(
-                        analysis: analysis,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.chat_bubble_rounded),
-                label: const Text('MyFin ile Konuş'),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            IntelligenceTimelineCard(
-              events: timelineEvents,
-            ),
-          ],
-        ),
-      );
-    },
-  ),
-
-  bottomNavigationBar: const MyFinBottomNav(
-    selectedIndex: 3,
-  ),
-);  
-}
-
+          );
+        },
+      ),
+      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 3),
+    );
+  }
 }
