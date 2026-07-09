@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_rebuild_service.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
-import '../my_fin_home.dart';
+import 'transaction_entry_page.dart';
 
 class TransactionHistoryPage extends StatelessWidget {
   const TransactionHistoryPage({super.key});

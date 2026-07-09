@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../transactions/transaction_entry_page.dart';
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_summary_service.dart';
@@ -14,8 +14,9 @@ import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../my_fin_home.dart' as legacy;
 
 class PortfolioPage extends StatelessWidget {
-  const PortfolioPage({super.key});
 
+  const PortfolioPage({super.key});
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,7 +80,7 @@ class PortfolioPage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const legacy.TransactionEntryPage(),
+   builder: (_) => const TransactionEntryPage(),
             ),
           );
         },
