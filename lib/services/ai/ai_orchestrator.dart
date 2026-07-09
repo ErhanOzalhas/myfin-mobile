@@ -97,6 +97,40 @@ class AIOrchestrator {
     );
   }
 
+
+  /// Streaming method for chat screens.
+  Stream<String> askStream({
+    required String message,
+    PortfolioContext? portfolioContext,
+    PortfolioContextInput? portfolioInput,
+    UserFinancialContext? userContext,
+    List<IntelligenceSignal>? signals,
+  }) async* {
+    if (_disposed) {
+      yield 'AI servisi kapalı görünüyor. Lütfen ekranı yenileyip tekrar dene.';
+      return;
+    }
+
+    final PortfolioContext? resolvedPortfolioContext = _resolvePortfolioContext(
+      portfolioContext: portfolioContext,
+      portfolioInput: portfolioInput,
+    );
+
+    if (userContext != null) {
+      _userContext = userContext;
+    }
+    if (signals != null) {
+      _signals = List<IntelligenceSignal>.of(signals);
+    }
+
+    yield* _service.generateResponseStream(
+      userMessage: message,
+      portfolioContext: resolvedPortfolioContext,
+      userContext: _userContext,
+      signals: _signals,
+    );
+  }
+
   /// Builds all local dashboard intelligence from portfolio items.
   ///
   /// This method does not call the remote AI provider. It aggregates the local

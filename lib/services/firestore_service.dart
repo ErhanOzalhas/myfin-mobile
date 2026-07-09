@@ -35,6 +35,10 @@ class FirestoreService {
     return _userSubCollection('portfolioItems');
   }
 
+  CollectionReference<Map<String, dynamic>> get _transactionsCollection {
+    return _userSubCollection('transactions');
+  }
+
   Future<void> createOrUpdateUserProfile({
     required String email,
     String? displayName,
@@ -156,5 +160,34 @@ class FirestoreService {
 
   Future<void> deletePortfolioItem(String id) async {
     await _portfolioItemsCollection.doc(id).delete();
+  }
+
+  Future<DocumentReference<Map<String, dynamic>>> addTransaction(
+    Map<String, dynamic> data,
+  ) async {
+    return _transactionsCollection.add({
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateTransaction(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    await _transactionsCollection.doc(id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> deleteTransaction(String id) async {
+    await _transactionsCollection.doc(id).delete();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchTransactions() {
+    return _transactionsCollection
+        .orderBy('transactionDate', descending: true)
+        .snapshots();
   }
 }

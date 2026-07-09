@@ -27,7 +27,7 @@ class WatchlistPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Watchlist Pro',
+            'Takip Listesi',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w900,

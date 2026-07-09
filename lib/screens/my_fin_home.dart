@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
-
+import '../services/market_asset_catalog_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 import 'package:myfin_mobile/services/portfolio_summary_service.dart';
-import 'package:myfin_mobile/widgets/home/ai_score_section.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
 import '../models/portfolio_item.dart';
@@ -15,7 +14,6 @@ import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
 import '../services/ai_analysis_service.dart';
 import '../services/portfolio_intelligence_service.dart';
-import '../widgets/dashboard/dashboard_header.dart';
 import '../widgets/dashboard/distribution_card.dart';
 import '../widgets/dashboard/market_ticker.dart';
 import '../widgets/dashboard/portfolio_list.dart';
@@ -24,6 +22,41 @@ import '../widgets/dashboard/smart_insights_panel.dart';
 import '../widgets/dashboard/watchlist_panel.dart';
 import '../widgets/dashboard/weekly_performance_card.dart';
 import 'add_portfolio_item_page.dart';
+import 'package:myfin_mobile/auth/login_page.dart';
+import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
+import 'package:myfin_mobile/services/ai/portfolio_analyzer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/portfolio_rebuild_service.dart';
+import '../widgets/navigation/myfin_bottom_nav.dart';
+void _openPortfolioPage(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const PortfolioPage()),
+  );
+}
+
+void _openIntelligencePage(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const IntelligencePage()),
+  );
+}
+
+void _openPerformanceReportPage(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const PerformanceReportPage()),
+  );
+}
+
+void _openLiveMarketPage(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const LiveMarketPage()),
+  );
+}
+
+void _openTransactionHistoryPage(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const TransactionHistoryPage()),
+  );
+}
 
 class MyFinHome extends StatefulWidget {
   const MyFinHome({super.key});
@@ -33,21 +66,17 @@ class MyFinHome extends StatefulWidget {
 }
 
 class _MyFinHomeState extends State<MyFinHome> {
-  Timer? _refreshTimer;
+ 
   int _refreshTick = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (!mounted) return;
-      setState(() => _refreshTick++);
-    });
-  }
+void initState() {
+  super.initState();
+}
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
+   
     super.dispose();
   }
 
@@ -66,126 +95,87 @@ class _MyFinHomeState extends State<MyFinHome> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
             children: [
-              const _Header(),
+             const _Header(),
+        const SizedBox(height: 24),
+_HeroPortfolioCard(refreshTick: _refreshTick),
+
+const SizedBox(height: 16),
+
+const _RowQuickActions(),
+
+const SizedBox(height: 16),
+
+
+_DashboardFadeIn(
+  delay: 40,
+  child: _MyFinIntelligenceHero(
+
+    refreshTick: _refreshTick,
+
+  ),
+
+),
+
+const SizedBox(height: 16),
+_KpiGrid(refreshTick: _refreshTick),
+              const SizedBox(height: 14),
+              
               const SizedBox(height: 24),
-              _HeroPortfolioCard(refreshTick: _refreshTick),
-              const SizedBox(height: 14),
-              _DashboardFadeIn(
-                delay: 60,
-                child: const AIScoreSection(),
-              ),
-              const SizedBox(height: 14),
-              _KpiGrid(refreshTick: _refreshTick),
-              const SizedBox(height: 14),
-              _DashboardFadeIn(
-                delay: 80,
-                child: _PerformanceHighlights(refreshTick: _refreshTick),
-              ),
-              const SizedBox(height: 24),
-              const _SectionTitle(title: 'Son 7 Gün Performansı', action: 'Trend'),
+              _SectionTitle(title: 'Son 7 Gün Performansı', action: 'Trend', onActionTap: () => _openPerformanceReportPage(context)),
               _WeeklyPerformanceCard(refreshTick: _refreshTick),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Canlı Piyasa', action: 'Tümü'),
+              _SectionTitle(title: 'Canlı Piyasa', action: 'Tümü', onActionTap: () => _openLiveMarketPage(context)),
               _DashboardFadeIn(
                 delay: 140,
                 child: _MarketTicker(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Portföy Dağılımı', action: 'Detay'),
+              _SectionTitle(title: 'Portföy Dağılımı', action: 'Detay', onActionTap: () => _openPortfolioPage(context)),
               _DashboardFadeIn(
                 delay: 200,
                 child: _DistributionCard(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 14),
-              _DashboardInsightPanel(refreshTick: _refreshTick),
+             
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Portföy Nabzı', action: 'Yeni'),
+              const _SectionTitle(title: 'Portföy Nabzı'),
               _DashboardFadeIn(
                 delay: 260,
                 child: _PortfolioPulsePanel(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Akıllı İçgörüler', action: 'AI'),
-              _DashboardFadeIn(
-                delay: 320,
-                child: _SmartInsightsPanel(refreshTick: _refreshTick),
-              ),
+              _SectionTitle(
+  title: 'Akıllı İçgörüler',
+  action: 'AI',
+  onActionTap: () => _openIntelligencePage(context),
+),
+_DashboardFadeIn(
+  delay: 320,
+  child: _SmartInsightsPanel(refreshTick: _refreshTick),
+),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Takip Listesi', action: 'İzle'),
+              _SectionTitle(title: 'Takip Listesi', action: 'İzle', onActionTap: () => _openLiveMarketPage(context)),
               _DashboardFadeIn(
                 delay: 360,
                 child: _WatchlistSection(refreshTick: _refreshTick),
               ),
-              const SizedBox(height: 20),
-              _PortfolioList(refreshTick: _refreshTick),
               const SizedBox(height: 24),
               const _SectionTitle(title: 'Hızlı İşlemler'),
               const _QuickActions(),
               const SizedBox(height: 24),
-              const _SectionTitle(title: 'Son İşlemler', action: 'Tümü'),
+              _SectionTitle(title: 'İşlemler', action: 'Tümü', onActionTap: () => _openTransactionHistoryPage(context)),
               const _RecentTransactions(),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          if (index == 0) return;
-
-          if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const PortfolioPage(),
-              ),
-            );
-            return;
-          }
-
-          if (index == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AddPortfolioItemPage(),
-              ),
-            );
-            return;
-          }
-
-          if (index == 3) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const IntelligencePage(),
-              ),
-            );
-            return;
-          }
-
-          if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const SettingsPage(),
-              ),
-            );
-            return;
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Bu bölüm yakında aktif olacak.')),
-          );
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Ana Sayfa'),
-          NavigationDestination(icon: Icon(Icons.pie_chart_rounded), label: 'Portföy'),
-          NavigationDestination(icon: Icon(Icons.add_circle_rounded), label: 'Ekle'),
-          NavigationDestination(icon: Icon(Icons.show_chart_rounded), label: 'Analiz'),
-          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Ayarlar'),
-        ],
-      )
+    
+   bottomNavigationBar: const MyFinBottomNav(selectedIndex: 0),
     );
   }
 }
 
-Future<DashboardSummary> _loadDashboardSummary(
+Future<DashboardSummary> _loadDashboardSummary(         
   List<PortfolioItem> items,
 ) {
   return DashboardRepository.instance.calculate(items);
@@ -210,16 +200,52 @@ DashboardSummary _fallbackSummary(List<PortfolioItem> items) {
 }
 
 String _formatCurrency(double value, [String currency = 'TRY']) {
-  final symbol = currency == 'TRY' ? '₺' : '$currency ';
-  return '$symbol${value.toStringAsFixed(2).replaceAll('.', ',')}';
-}
+  final normalizedCurrency =
+      currency.trim().isEmpty ? 'TRY' : currency.trim().toUpperCase();
+  final formattedValue = _formatTurkishDecimal(value);
 
+  if (normalizedCurrency == 'TRY') {
+    return '$formattedValue TL';
+  }
+
+  return '$formattedValue $normalizedCurrency';
+}
 String _formatPercent(double value) {
+
   final prefix = value >= 0 ? '+' : '';
+
   return '$prefix${value.toStringAsFixed(2).replaceAll('.', ',')}%';
+
+}
+String _formatTurkishDecimal(double value) {
+  final isNegative = value < 0;
+  final fixed = value.abs().toStringAsFixed(2);
+  final parts = fixed.split('.');
+  final whole = parts.first;
+  final decimal = parts.length > 1 ? parts.last : '00';
+
+  final buffer = StringBuffer();
+  for (var i = 0; i < whole.length; i++) {
+    final remaining = whole.length - i;
+    buffer.write(whole[i]);
+    if (remaining > 1 && remaining % 3 == 1) {
+      buffer.write('.');
+    }
+  }
+
+  return '${isNegative ? '-' : ''}${buffer.toString()},$decimal';
 }
 
+String _formatQuantity(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
 
+  return value
+      .toStringAsFixed(4)
+      .replaceAll(RegExp(r'0+$'), '')
+      .replaceAll('.', ',');
+}
 
 class _PortfolioIntelligence {
   final int overallScore;
@@ -327,7 +353,7 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
 
   final concentrationPenalty = (biggestPosition.value * 58).round();
   final sectorPenalty = (topSector.value * 24).round();
-  final currencyPenalty = (topCurrency.value * 18).round();
+  
   final itemBonus = (items.length * 6).clamp(0, 24).round();
 
   final diversificationScore =
@@ -474,6 +500,41 @@ String _inferCountry(PortfolioItem item) {
   return 'Türkiye';
 }
 
+class _HomeAIScoreSection extends StatelessWidget {
+  final int refreshTick;
+
+  const _HomeAIScoreSection({required this.refreshTick});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PortfolioItem>>(
+      stream: PortfolioRepository.instance.watchPortfolio(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _SurfaceCard(
+            child: SizedBox(
+              height: 124,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const _SurfaceCard(
+            child: Text(
+              'AI skoru hesaplanırken bir hata oluştu.',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          );
+        }
+
+        final intelligence = _buildPortfolioIntelligence(snapshot.data ?? []);
+        return _PortfolioIntelligenceCard(intelligence: intelligence);
+      },
+    );
+  }
+}
+
 class _PortfolioIntelligenceCard extends StatelessWidget {
   final _PortfolioIntelligence intelligence;
 
@@ -490,6 +551,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
               _IconBox(
                 icon: Icons.auto_awesome_rounded,
                 color: const Color(0xFF7C3AED),
+          
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -497,7 +559,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Portfolio Intelligence',
+                      'Portföy AI Skoru',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -506,7 +568,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'Sprint 4.1 analiz motoru',
+                      'Genel portföy skoru',
                       style: TextStyle(fontSize: 12, color: Colors.black45),
                     ),
                   ],
@@ -596,7 +658,97 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
     );
   }
 }
+class _RowQuickActions extends StatelessWidget {
+  const _RowQuickActions();
 
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _QuickMiniAction(
+            icon: Icons.add_circle_outline_rounded,
+            title: 'Yeni İşlem',
+            subtitle: '',
+            color: const Color(0xFF008DB9),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const TransactionEntryPage(),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickMiniAction(
+            icon: Icons.receipt_long_rounded,
+            title: 'İşlemler',
+            subtitle: '',
+            color: const Color(0xFFF97316),
+            onTap: () => _openTransactionHistoryPage(context),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickMiniAction extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickMiniAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: _SurfaceCard(
+        child: SizedBox(
+          height: 46,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _IconBox(
+                icon: icon,
+                color: color,
+                size: 36,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 class _ScorePill extends StatelessWidget {
   final int score;
 
@@ -635,12 +787,18 @@ class _MiniScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scoreColor = value <= 40
+        ? const Color(0xFFDC2626)
+        : value <= 70
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFF16A34A);
+
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: scoreColor.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: scoreColor.withValues(alpha: .24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,8 +814,8 @@ class _MiniScoreTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '$value',
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
+            style: TextStyle(
+              color: scoreColor,
               fontSize: 24,
               fontWeight: FontWeight.w800,
             ),
@@ -678,12 +836,18 @@ class _MiniScoreTile extends StatelessWidget {
   }
 }
 
-
 class _Header extends StatelessWidget {
   const _Header();
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isLoggedIn = user != null;
+    final displayName = user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!.trim()
+        : 'MyFin kullanıcısı';
+    final email = user?.email ?? 'Giriş yapılmadı';
+
     return Row(
       children: [
         Container(
@@ -716,12 +880,82 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Çıkış yap',
-          onPressed: () async {
-            await FirebaseAuth.instance.signOut();
+        PopupMenuButton<String>(
+          tooltip: 'Hesap',
+          offset: const Offset(0, 52),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          onSelected: (value) async {
+            if (value == 'settings') {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            }
+
+            if (value == 'login') {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            }
+
+            if (value == 'logout') {
+              await FirebaseAuth.instance.signOut();
+            }
           },
-          icon: const Icon(Icons.logout_rounded, color: Color(0xFF0F172A)),
+          itemBuilder: (context) => [
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLoggedIn ? displayName : 'Misafir kullanıcı',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    email,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'settings',
+              child: Row(
+                children: [
+                  Icon(Icons.manage_accounts_rounded, size: 20),
+                  SizedBox(width: 10),
+                  Text('Hesap ayarlarım'),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: isLoggedIn ? 'logout' : 'login',
+              child: Row(
+                children: [
+                  Icon(isLoggedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
+                  const SizedBox(width: 10),
+                  Text(isLoggedIn ? 'Çıkış yap' : 'Giriş yap'),
+                ],
+              ),
+            ),
+          ],
+          child: CircleAvatar(
+            radius: 24,
+            backgroundColor: const Color(0xFF0F172A),
+            child: Icon(
+              isLoggedIn ? Icons.person_rounded : Icons.person_outline_rounded,
+              color: Colors.white,
+            ),
+          ),
         ),
       ],
     );
@@ -738,16 +972,16 @@ class _HeroPortfolioCard extends StatelessWidget {
     return StreamBuilder<List<PortfolioItem>>(
       stream: PortfolioRepository.instance.watchPortfolio(),
       builder: (context, snapshot) {
-  if (snapshot.connectionState == ConnectionState.waiting) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-  final items = snapshot.data ?? [];
+        final items = snapshot.data ?? [];
 
         return FutureBuilder<DashboardSummary>(
           key: ValueKey('hero-summary-$refreshTick-${items.length}'),
@@ -755,22 +989,16 @@ class _HeroPortfolioCard extends StatelessWidget {
           builder: (context, summarySnapshot) {
             final summary = summarySnapshot.data ?? _fallbackSummary(items);
             final isPositive = summary.profitLoss >= 0;
-            return InkWell(
-              borderRadius: BorderRadius.circular(28),
+
+            return _PrimaryDashboardCard(
+              totalValueText: _formatCurrency(summary.currentValue),
+              profitText:
+                  '${isPositive ? '+' : ''}${_formatCurrency(summary.profitLoss)}',
+              profitPercentText: _formatPercent(summary.profitPercent),
+              isProfit: isPositive,
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const PortfolioPage(),
-                  ),
-                );
+                _openPortfolioPage(context);
               },
-              child: DashboardHeader(
-                totalValueText: _formatCurrency(summary.currentValue),
-                profitText: '${isPositive ? '+' : ''}${_formatCurrency(summary.profitLoss)}',
-                profitPercentText: _formatPercent(summary.profitPercent),
-                isProfit: isPositive,
-                onRefresh: () {},
-              ),
             );
           },
         );
@@ -778,10 +1006,162 @@ class _HeroPortfolioCard extends StatelessWidget {
     );
   }
 }
+
+class _PrimaryDashboardCard extends StatelessWidget {
+  final String totalValueText;
+  final String profitText;
+  final String profitPercentText;
+  final bool isProfit;
+  final VoidCallback onTap;
+
+  const _PrimaryDashboardCard({
+    required this.totalValueText,
+    required this.profitText,
+    required this.profitPercentText,
+    required this.isProfit,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final trendColor = isProfit
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFDC2626);
+    final trendIcon = isProfit
+        ? Icons.trending_up_rounded
+        : Icons.trending_down_rounded;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(30),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0F172A),
+                Color(0xFF008DB9),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF008DB9).withValues(alpha: .24),
+                blurRadius: 28,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Portföy Özeti',
+                         style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.6,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .18),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  'Toplam Portföy',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .74),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      totalValueText,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1.6,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(trendIcon, color: trendColor, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$profitText ($profitPercentText)',
+                        style: TextStyle(
+                          color: trendColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _KpiGrid extends StatelessWidget {
   final int refreshTick;
 
   const _KpiGrid({required this.refreshTick});
+
+  void _openPortfolio(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const PortfolioPage(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -802,28 +1182,32 @@ class _KpiGrid extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MetricCard(
-                    title: 'Maliyet',
-                    value: _formatCurrency(summary.totalCost),
-                    subtitle: '${items.length} varlık',
+                    title: 'Güncel Değer',
+                    value: _formatCurrency(summary.currentValue),
+                    subtitle: 'Maliyet: ${_formatCurrency(summary.totalCost)}',
                     icon: Icons.account_balance_wallet_rounded,
                     color: const Color(0xFF2563EB),
+                  onTap: () => _openPortfolio(context),
+
+),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    title: 'Kâr / Zarar',
-                    value:
-                        '${isPositive ? '+' : ''}${_formatCurrency(summary.profitLoss)}',
-                    subtitle: _formatPercent(summary.profitPercent),
-                    icon: isPositive
-                        ? Icons.north_east_rounded
-                        : Icons.south_east_rounded,
-                    color: isPositive
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFDC2626),
-                  ),
-                ),
+                
+             const SizedBox(width: 12),
+Expanded(
+  child: _MetricCard(
+    title: 'Kâr / Zarar',
+    value:
+        '${isPositive ? '+' : ''}${_formatCurrency(summary.profitLoss)}',
+    subtitle: '${_formatPercent(summary.profitPercent)} • Detay',
+    icon: isPositive
+        ? Icons.north_east_rounded
+        : Icons.south_east_rounded,
+    color: isPositive
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFDC2626),
+        onTap: () => _openPortfolio(context),
+  ),
+),
               ],
             );
           },
@@ -890,6 +1274,7 @@ class _MetricCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _MetricCard({
     required this.title,
@@ -897,44 +1282,78 @@ class _MetricCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconBox(icon: icon, color: color),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-              fontWeight: FontWeight.w400,
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(26),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _IconBox(icon: icon, color: color),
+                    if (onTap != null) ...[
+                      const Spacer(),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.black.withValues(alpha: .24),
+                        size: 24,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1060,7 +1479,7 @@ class _WeeklyTrendData {
     return _WeeklyTrendData(
       values: values,
       totalChange: change,
-      title: change >= 0 ? 'Momentum yukarı' : 'Momentum zayıflıyor',
+      title: change >= 0 ? 'Gidişat olumlu' : 'Gidişat zayıflıyor',
       subtitle: 'Son 7 gün görünümü portföy performansından türetildi.',
       momentumLabel: change >= 0 ? 'Pozitif' : 'Negatif',
       riskLabel: riskLabel,
@@ -1124,7 +1543,7 @@ class _MarketTicker extends StatelessWidget {
         MarketTickerRowData(
           flag: '🥇',
           name: 'Gram Altın',
-          value: '₺4.851',
+          value: '4.851,00 TL',
           change: '-0,12%',
           positive: false,
         ),
@@ -1228,15 +1647,19 @@ class _DashboardInsightPanel extends StatelessWidget {
                     ? (needsAttention ? 'Dikkat gerekli' : 'Pozitif seyir')
                     : 'Hazır',
                 subtitle: hasItems
-                    ? (portfolio.hasDominantType
-                        ? '$dominantType ağırlığı %${(portfolio.dominantTypeWeight * 100).round()}'
-                        : (portfolio.profitLossPercent < 0
-                            ? 'Risk seviyesi yüksek'
-                            : 'Risk seviyesi dengeli'))
+                    ? 'AI Puanı ${_buildPortfolioIntelligence(items).overallScore}/100'
                     : 'İlk varlığı ekleyerek başla',
                 color: needsAttention
                     ? const Color(0xFFDC2626)
                     : const Color(0xFF16A34A),
+                onTap: () {
+  final analysis = PortfolioAnalyzer.analyze(items);
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => AiChatPage(analysis: analysis),
+    ),
+  );
+},
               ),
             ),
             const SizedBox(width: 12),
@@ -1247,6 +1670,7 @@ class _DashboardInsightPanel extends StatelessWidget {
                 value: dominantType,
                 subtitle: hasItems ? '${items.length} varlık izleniyor' : 'Veri yok',
                 color: const Color(0xFF7C3AED),
+                onTap: () => _openPortfolioPage(context),
               ),
             ),
           ],
@@ -1262,6 +1686,7 @@ class _MiniInsightCard extends StatelessWidget {
   final String value;
   final String subtitle;
   final Color color;
+  final VoidCallback? onTap;
 
   const _MiniInsightCard({
     required this.icon,
@@ -1269,54 +1694,76 @@ class _MiniInsightCard extends StatelessWidget {
     required this.value,
     required this.subtitle,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          _IconBox(icon: icon, color: color, size: 40),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 4,
+  ),
+  child: Row(
+    children: [
+      _IconBox(
+        icon: icon,
+        color: color,
+        size: 34,
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: .55)),
+                ],
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1354,11 +1801,11 @@ class _PortfolioPulsePanel extends StatelessWidget {
           );
         }
 
+        final intelligence = _buildPortfolioIntelligence(items);
         final portfolio = const PortfolioIntelligenceService().build(items);
-        final analysis = const AIAnalysisService().analyze(items);
         final pulse = _PulseData.fromIntelligence(
           portfolio: portfolio,
-          score: analysis.score.overallScore,
+         score: PortfolioAnalyzer.analyze(items).aiScore,
         );
 
         return PortfolioPulsePanel(
@@ -1750,11 +2197,11 @@ class _SmartInsightsPanel extends StatelessWidget {
 
 Future<_SmartInsightData> _loadSmartInsightData(List<PortfolioItem> items) async {
   final portfolio = const PortfolioIntelligenceService().build(items);
-  final analysis = const AIAnalysisService().analyze(items);
+  final intelligence = _buildPortfolioIntelligence(items);
 
   return _SmartInsightData.fromPortfolio(
     portfolio: portfolio,
-    score: analysis.score.overallScore,
+    score: intelligence.overallScore,
   );
 }
 
@@ -1777,11 +2224,11 @@ class _SmartInsightData {
 
   factory _SmartInsightData.fromCost(List<PortfolioItem> items) {
     final portfolio = const PortfolioIntelligenceService().build(items);
-    final analysis = const AIAnalysisService().analyze(items);
+    final intelligence = _buildPortfolioIntelligence(items);
 
     return _SmartInsightData.fromPortfolio(
       portfolio: portfolio,
-      score: analysis.score.overallScore,
+      score: intelligence.overallScore,
     );
   }
 
@@ -1816,7 +2263,7 @@ class _SmartInsightData {
     if (assetCount < 3) {
       actions.add('Portföyde az sayıda varlık var. Takip listesine yeni alternatifler eklemek riski azaltabilir.');
     } else {
-      actions.add('$assetCount varlık izleniyor. Haftalık performans grafiğiyle momentum değişimini karşılaştır.');
+      actions.add('$assetCount varlık izleniyor. Haftalık performans grafiğiyle gidişat değişimini karşılaştır.');
     }
 
     if (safeScore >= 75 && !portfolio.hasDominantType && profitPercent >= -4) {
@@ -1867,19 +2314,19 @@ class _WatchlistSection extends StatelessWidget {
         WatchlistItem(
           symbol: 'ASELS',
           name: 'Aselsan',
-          price: '₺145,80',
+          price: '145,80 TL',
           changePercent: 2.14,
         ),
         WatchlistItem(
           symbol: 'THYAO',
           name: 'Türk Hava Yolları',
-          price: '₺318,40',
+          price: '318,40 TL',
           changePercent: -0.86,
         ),
         WatchlistItem(
           symbol: 'XAU',
           name: 'Gram Altın',
-          price: '₺4.851',
+          price: '4.851,00 TL',
           changePercent: 1.22,
         ),
       ],
@@ -1973,18 +2420,18 @@ class _PortfolioAssetTile extends StatelessWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 26,
+              radius: 22,
               backgroundColor: const Color(0xFFBAE6FD),
               child: Text(
                 item.symbol.isNotEmpty ? item.symbol.characters.first : '?',
                 style: const TextStyle(
                   color: Color(0xFF075985),
                   fontWeight: FontWeight.w800,
-                  fontSize: 20,
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -1999,17 +2446,30 @@ class _PortfolioAssetTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 18,
+                      fontSize: 14,
                       color: Color(0xFF111827),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${item.quantity} adet • ${item.type}',
+                    '${_formatQuantity(item.quantity)} adet • ${item.type}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.black54,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Alış: ${_formatCurrency(item.averagePrice, item.currency)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10.5,
                     ),
                   ),
                 ],
@@ -2028,11 +2488,11 @@ class _PortfolioAssetTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Alış Birim: ${_formatCurrency(item.averagePrice, item.currency)}',
+                  'Maliyet',
                   style: const TextStyle(
                     color: Color(0xFF16A34A),
                     fontWeight: FontWeight.w700,
-                    fontSize: 12,
+                    fontSize: 10.5,
                   ),
                 ),
               ],
@@ -2258,12 +2718,12 @@ class _QuickActions extends StatelessWidget {
       children: [
         _QuickAction(
           icon: Icons.add_circle_rounded,
-          title: 'Varlık Ekle',
+          title: 'Yeni İşlem',
           color: const Color(0xFF008DB9),
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const AddPortfolioItemPage(),
+                builder: (_) => const TransactionEntryPage(),
               ),
             );
           },
@@ -2337,17 +2797,118 @@ class _RecentTransactions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SurfaceCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: const [
-          _TransactionRow(symbol: 'ASELS', type: 'Alış', amount: '₺4.586', detail: '10 lot'),
-          _ThinDivider(),
-          _TransactionRow(symbol: 'THYAO', type: 'Satış', amount: '₺1.562', detail: '5 lot'),
-          _ThinDivider(),
-          _TransactionRow(symbol: 'Gram Altın', type: 'Alış', amount: '₺4.851', detail: '2 adet'),
-        ],
-      ),
+    return StreamBuilder<List<PortfolioItem>>(
+      stream: PortfolioRepository.instance.watchPortfolio(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _SurfaceCard(
+            padding: EdgeInsets.all(18),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const _SurfaceCard(
+            padding: EdgeInsets.all(18),
+            child: Text(
+              'Son işlemler alınırken bir sorun oluştu.',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          );
+        }
+
+        final List<PortfolioItem> items = snapshot.data ?? <PortfolioItem>[];
+
+        if (items.isEmpty) {
+          return _SurfaceCard(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF008DB9).withValues(alpha: .10),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_rounded,
+                        color: Color(0xFF008DB9),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Henüz işlem yok',
+                            style: TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'İlk varlığını eklediğinde burada görünecek.',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TransactionEntryPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Yeni İşlem'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final List<PortfolioItem> recentItems = items.reversed.take(3).toList();
+        final List<Widget> rows = <Widget>[];
+
+        for (int index = 0; index < recentItems.length; index++) {
+          final PortfolioItem item = recentItems[index];
+          rows.add(
+            _TransactionRow(
+              symbol: item.symbol.trim().isEmpty ? item.name : item.symbol.trim().toUpperCase(),
+              type: 'Portföy Girişi',
+              amount: _formatCurrency(item.totalCost, item.currency),
+              detail: '${_formatQuantity(item.quantity)} adet • ${item.type}',
+            ),
+          );
+
+          if (index != recentItems.length - 1) {
+            rows.add(const _ThinDivider());
+          }
+        }
+
+        return _SurfaceCard(
+          padding: EdgeInsets.zero,
+          child: Column(children: rows),
+        );
+      },
     );
   }
 }
@@ -2367,8 +2928,8 @@ class _TransactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final positive = type == 'Alış';
-    final color = positive ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    const Color color = Color(0xFF008DB9);
+    final String avatarText = symbol.trim().isEmpty ? '?' : symbol.characters.first;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -2377,31 +2938,62 @@ class _TransactionRow extends StatelessWidget {
           CircleAvatar(
             radius: 20,
             backgroundColor: color.withValues(alpha: .12),
-            child: Text(symbol.characters.first,
-                style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+            child: Text(
+              avatarText,
+              style: const TextStyle(
+                color: color,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(symbol,
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                Text(
+                  symbol,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(type,
-                    style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 12)),
+                Text(
+                  type,
+                  style: const TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(amount,
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+              Text(
+                amount,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
               const SizedBox(height: 3),
-              Text(detail,
-                  style: const TextStyle(
-                      color: Colors.black45, fontWeight: FontWeight.w600, fontSize: 12)),
+              Text(
+                detail,
+                style: const TextStyle(
+                  color: Colors.black45,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ],
@@ -2413,20 +3005,52 @@ class _TransactionRow extends StatelessWidget {
 class _SectionTitle extends StatelessWidget {
   final String title;
   final String? action;
+  final VoidCallback? onActionTap;
 
-  const _SectionTitle({required this.title, this.action});
+  const _SectionTitle({
+    required this.title,
+    this.action,
+    this.onActionTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-            child: Text(title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500))),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+          ),
+        ),
         if (action != null)
-          Text(action!,
-              style: const TextStyle(
-                  color: Color(0xFF2563EB), fontWeight: FontWeight.w500)),
+          InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: onActionTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    action!,
+                    style: const TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (onActionTap != null) ...[
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -2515,7 +3139,7 @@ class AssetDetailPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
           children: [
             _SurfaceCard(
               padding: const EdgeInsets.all(22),
@@ -2591,7 +3215,9 @@ class AssetDetailPage extends StatelessWidget {
                     child: Row(
                       children: [
                         Icon(
-                          isProfit ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                          isProfit
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
                           color: profitColor,
                         ),
                         const SizedBox(width: 10),
@@ -2626,20 +3252,39 @@ class AssetDetailPage extends StatelessWidget {
                 children: [
                   _AssetDetailRow(label: 'Kategori', value: item.type),
                   const _ThinDivider(),
-                  _AssetDetailRow(label: 'Miktar / Adet', value: item.quantity.toString()),
+                  _AssetDetailRow(
+                    label: 'Miktar / Adet',
+                    value: item.quantity.toString(),
+                  ),
                   const _ThinDivider(),
-                  _AssetDetailRow(label: 'Alış birim fiyatı', value: _formatCurrency(item.averagePrice, item.currency)),
+                  _AssetDetailRow(
+                    label: 'Alış birim fiyatı',
+                    value: _formatCurrency(item.averagePrice, item.currency),
+                  ),
                   const _ThinDivider(),
-                  _AssetDetailRow(label: 'Toplam maliyet', value: _formatCurrency(totalCost, item.currency)),
+                  _AssetDetailRow(
+                    label: 'Toplam maliyet',
+                    value: _formatCurrency(totalCost, item.currency),
+                  ),
                   const _ThinDivider(),
-                  _AssetDetailRow(label: 'Güncel canlı fiyat', value: 'Piyasa verisi bekleniyor'),
+                  _AssetDetailRow(
+                    label: 'Güncel canlı fiyat',
+                    value: 'Piyasa verisi bekleniyor',
+                  ),
                   const _ThinDivider(),
-                  _AssetDetailRow(label: 'Kâr / Zarar', value: '${isProfit ? '+' : ''}${_formatCurrency(profitLoss, item.currency)}'),
+                  _AssetDetailRow(
+                    label: 'Kâr / Zarar',
+                    value:
+                        '${isProfit ? '+' : ''}${_formatCurrency(profitLoss, item.currency)}',
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 1,
       ),
     );
   }
@@ -2718,7 +3363,9 @@ class PortfolioPage extends StatelessWidget {
             final items = snapshot.data ?? [];
 
             return FutureBuilder<PortfolioSummary>(
-              key: ValueKey('portfolio-summary-${items.length}-${items.fold<double>(0, (sum, item) => sum + item.totalCost)}'),
+              key: ValueKey(
+                'portfolio-summary-${items.length}-${items.fold<double>(0, (sum, item) => sum + item.totalCost)}',
+              ),
               future: PortfolioSummaryService.calculate(items),
               builder: (context, summarySnapshot) {
                 final summary = summarySnapshot.data ??
@@ -2729,6 +3376,8 @@ class PortfolioPage extends StatelessWidget {
                   children: [
                     const _SectionTitle(title: 'Portföyüm'),
                     const SizedBox(height: 12),
+                    _DistributionCard(refreshTick: items.length),
+                    const SizedBox(height: 14),
                     _PortfolioSummaryCard(summary: summary),
                     const SizedBox(height: 18),
                     const _SectionTitle(title: 'Varlıklar'),
@@ -2745,19 +3394,711 @@ class PortfolioPage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const AddPortfolioItemPage(),
+              builder: (_) => const TransactionEntryPage(),
             ),
           );
         },
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Yeni Varlık'),
+        label: const Text('Yeni İşlem'),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 1,
+      ),
+    );
+  }
+}
+
+class PerformanceReportPage extends StatefulWidget {
+  const PerformanceReportPage({super.key});
+
+  @override
+  State<PerformanceReportPage> createState() =>
+      _PerformanceReportPageState();
+}
+
+class _PerformanceReportPageState
+    extends State<PerformanceReportPage> {
+  String _range = '7 Gün';
+
+  static const List<String> _ranges = [
+    'Bugün',
+    '3 Gün',
+    '7 Gün',
+    '1 Ay',
+    'Özel',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Performans Raporu'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: StreamBuilder<List<PortfolioItem>>(
+          stream: PortfolioRepository.instance.watchPortfolio(),
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? <PortfolioItem>[];
+
+            return FutureBuilder<DashboardSummary>(
+              future: _loadDashboardSummary(items),
+              builder: (context, summarySnapshot) {
+                final summary =
+                    summarySnapshot.data ?? _fallbackSummary(items);
+
+                final trend =
+                    _WeeklyTrendData.fromSummary(summary, items.length);
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+                  children: [
+                    const _SectionTitle(title: 'Performans'),
+                    const SizedBox(height: 12),
+
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _ranges.map((range) {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(range),
+                              selected: range == _range,
+                              onSelected: (_) {
+                                setState(() => _range = range);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    WeeklyPerformanceCard(
+                      title: '$_range performansı',
+                      subtitle:
+                          'Seçili tarih aralığı için portföy görünümü.',
+                      changeText:
+                          _formatPercent(trend.totalChange),
+                      values: trend.values,
+                      isPositive: trend.isPositive,
+                      color: trend.isPositive
+                          ? const Color(0xFF16A34A)
+                          : const Color(0xFFDC2626),
+                      momentumLabel: trend.momentumLabel,
+                      riskLabel: trend.riskLabel,
+                      riskColor: trend.riskColor,
+                      dailyLabel: trend.dailyLabel,
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    _SurfaceCard(
+                      child: Column(
+                        children: [
+                          _ReportRow(
+                            label: 'Toplam Portföy',
+                            value: _formatCurrency(
+                              summary.currentValue,
+                            ),
+                          ),
+                          _ReportRow(
+                            label: 'Toplam Kâr / Zarar',
+                            value:
+                                '${summary.profitLoss >= 0 ? '+' : ''}${_formatCurrency(summary.profitLoss)}',
+                          ),
+                          _ReportRow(
+                            label: 'Getiri Oranı',
+                            value: _formatPercent(
+                              summary.profitPercent,
+                            ),
+                          ),
+                          _ReportRow(
+                            label: 'İzlenen Varlık',
+                            value: '${items.length}',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 0,
+      ),
+    );
+  }
+}
+
+class LiveMarketPage extends StatefulWidget {
+  const LiveMarketPage({super.key});
+
+  @override
+  State<LiveMarketPage> createState() => _LiveMarketPageState();
+}
+
+class _LiveMarketPageState extends State<LiveMarketPage> {
+  final Set<String> _favorites = <String>{'XAU'};
+  String _category = 'Tümü';
+
+  static const List<String> _categories = ['Tümü', 'Altın', 'Döviz', 'BIST'];
+
+  static const List<_MarketAsset> _assets = [
+    _MarketAsset(
+      category: 'Döviz',
+      symbol: 'USDTRY',
+      name: 'USD / TRY',
+      price: '39,82',
+      change: '+0,18%',
+      positive: true,
+    ),
+    _MarketAsset(
+      category: 'Döviz',
+      symbol: 'EURTRY',
+      name: 'EUR / TRY',
+      price: '46,73',
+      change: '+0,09%',
+      positive: true,
+    ),
+    _MarketAsset(
+      category: 'Altın',
+      symbol: 'XAU',
+      name: 'Gram Altın',
+      price: '4.851,00 TL',
+      change: '-0,12%',
+      positive: false,
+    ),
+    _MarketAsset(
+      category: 'BIST',
+      symbol: 'XU100',
+      name: 'BIST 100',
+      price: '10.421',
+      change: '+1,34%',
+      positive: true,
+    ),
+    _MarketAsset(
+      category: 'BIST',
+      symbol: 'ASELS',
+      name: 'Aselsan',
+      price: '145,80 TL',
+      change: '+2,14%',
+      positive: true,
+    ),
+    _MarketAsset(
+      category: 'BIST',
+      symbol: 'THYAO',
+      name: 'Türk Hava Yolları',
+      price: '318,40 TL',
+      change: '-0,86%',
+      positive: false,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final assets = _category == 'Tümü'
+        ? _assets
+        : _assets.where((asset) => asset.category == _category).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Canlı Piyasa'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+          children: [
+            const _SectionTitle(title: 'Piyasa'),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _categories.map((category) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(category),
+                      selected: category == _category,
+                      onSelected: (_) => setState(() => _category = category),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (int i = 0; i < assets.length; i++) ...[
+                    _MarketAssetRow(
+                      asset: assets[i],
+                      favorite: _favorites.contains(assets[i].symbol),
+                      onFavorite: () {
+                        setState(() {
+                          if (!_favorites.add(assets[i].symbol)) {
+                            _favorites.remove(assets[i].symbol);
+                          }
+                        });
+                      },
+                    ),
+                    if (i != assets.length - 1)
+                      const Divider(height: 1),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 0,
+      ),
+    );
+  }
+}
+class TransactionHistoryPage extends StatelessWidget {
+  const TransactionHistoryPage({super.key});
+
+  String _formatDate(dynamic value) {
+    if (value is Timestamp) {
+      final date = value.toDate();
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      return '$day.$month.${date.year}';
+    }
+    return '-';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('İşlemler'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: PortfolioRepository.instance.watchTransactions(),
+          builder: (context, snapshot) {
+            final docs = snapshot.data?.docs ?? [];
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+              children: [
+                const _SectionTitle(title: 'İşlem Geçmişi'),
+                const SizedBox(height: 12),
+                _SurfaceCard(
+                  child: Text(
+                    docs.isEmpty
+                        ? 'Henüz işlem kaydı yok. Alış veya satış işlemi girdiğinde burada görünecek.'
+                        : '${docs.length} işlem kaydı bulundu.',
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                for (final doc in docs)
+                  _TransactionHistoryTile(
+                    transactionId: doc.id,
+                    data: doc.data(),
+                    formattedDate: _formatDate(
+                      doc.data()['transactionDate'] ?? doc.data()['createdAt'],
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 2,
+      ),
+    );
+  }
+}
+
+class _TransactionHistoryTile extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String formattedDate;
+  final String transactionId;
+
+  const _TransactionHistoryTile({
+    required this.data,
+    required this.formattedDate,
+    required this.transactionId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final symbol = (data['symbol'] ?? '-').toString();
+    final assetName = (data['assetName'] ?? '').toString();
+    final type = (data['type'] ?? '-').toString();
+    final quantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+    final price = (data['price'] as num?)?.toDouble() ?? 0;
+    final total = (data['total'] as num?)?.toDouble() ?? 0;
+    final currency = (data['currency'] ?? 'TRY').toString();
+
+    final isSell = type == 'Satış';
+    final color = isSell ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
+    final icon = isSell ? Icons.south_west_rounded : Icons.north_east_rounded;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TransactionDetailPage(
+                transactionId: transactionId,
+                data: data,
+                formattedDate: formattedDate,
+              ),
+            ),
+          );
+        },
+        child: _SurfaceCard(
+          child: Row(
+            children: [
+              _IconBox(icon: icon, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      assetName.isEmpty || assetName == symbol
+                          ? symbol
+                          : '$symbol • $assetName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$type • ${_formatQuantity(quantity)} adet • Birim: ${_formatCurrency(price, currency)} • $formattedDate',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatCurrency(total, currency),
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'İşlem Tutarı',
+                    style: TextStyle(
+                      color: Colors.black45,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+class TransactionDetailPage extends StatelessWidget {
+  final String transactionId;
+  final Map<String, dynamic> data;
+  final String formattedDate;
+
+  const TransactionDetailPage({
+    super.key,
+    required this.transactionId,
+    required this.data,
+    required this.formattedDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final symbol = (data['symbol'] ?? '-').toString();
+    final assetName = (data['assetName'] ?? '').toString();
+    final type = (data['type'] ?? '-').toString();
+    final quantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+    final price = (data['price'] as num?)?.toDouble() ?? 0;
+    final total = (data['total'] as num?)?.toDouble() ?? 0;
+    final currency = (data['currency'] ?? 'TRY').toString();
+    final note = (data['note'] ?? '').toString();
+
+    final isSell = type == 'Satış';
+    final color = isSell ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('İşlem Detayı'),
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+          children: [
+            _SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    assetName.isEmpty || assetName == symbol
+                        ? symbol
+                        : '$symbol • $assetName',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    type,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _ReportRow(
+                    label: 'Adet / Miktar',
+                    value: _formatQuantity(quantity),
+                  ),
+                  _ReportRow(
+                    label: 'Birim Fiyat',
+                    value: _formatCurrency(price, currency),
+                  ),
+                  _ReportRow(
+                    label: 'İşlem Tutarı',
+                    value: _formatCurrency(total, currency),
+                  ),
+                  _ReportRow(label: 'Para Birimi', value: currency),
+                  _ReportRow(label: 'İşlem Tarihi', value: formattedDate),
+                  if (note.isNotEmpty)
+                    _ReportRow(label: 'Not', value: note),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TransactionEntryPage(
+                      transactionId: transactionId,
+                      transactionData: data,
+                      formattedDate: formattedDate,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit_rounded),
+              label: const Text('İşlemi Düzenle'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('İşlemi Sil'),
+                    content: const Text(
+                      'Bu işlem kalıcı olarak silinecek.\n\nDevam etmek istiyor musun?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Vazgeç'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Sil'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (result != true) return;
+
+                await PortfolioRepository.instance
+                    .deleteTransaction(transactionId);
+
+                await PortfolioRebuildService()
+                    .rebuildFromTransactions();
+
+                if (!context.mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('İşlem silindi.'),
+                  ),
+                );
+
+                Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('İşlemi Sil'),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 2,
+      ),
+    );
+  }
+}
+
+class _ReportRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ReportRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+class _MarketAsset {
+  final String category;
+  final String symbol;
+  final String name;
+  final String price;
+  final String change;
+  final bool positive;
+
+  const _MarketAsset({
+    required this.category,
+    required this.symbol,
+    required this.name,
+    required this.price,
+    required this.change,
+    required this.positive,
+  });
+}
+
+class _MarketAssetRow extends StatelessWidget {
+  final _MarketAsset asset;
+  final bool favorite;
+  final VoidCallback onFavorite;
+
+  const _MarketAssetRow({
+    required this.asset,
+    required this.favorite,
+    required this.onFavorite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = asset.positive ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onFavorite,
+            icon: Icon(
+              favorite ? Icons.star_rounded : Icons.star_border_rounded,
+              color: favorite ? const Color(0xFFF59E0B) : Colors.black26,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(asset.symbol, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                const SizedBox(height: 3),
+                Text(asset.name, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(asset.price, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+              const SizedBox(height: 3),
+              Text(asset.change, style: TextStyle(color: color, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
 class TransactionEntryPage extends StatefulWidget {
-  const TransactionEntryPage({super.key});
+  final String? transactionId;
+  final Map<String, dynamic>? transactionData;
+  final String? formattedDate;
+
+  const TransactionEntryPage({
+    super.key,
+    this.transactionId,
+    this.transactionData,
+    this.formattedDate,
+  });
+
+  bool get isEdit => transactionId != null && transactionData != null;
 
   @override
   State<TransactionEntryPage> createState() => _TransactionEntryPageState();
@@ -2768,50 +4109,352 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final _symbolController = TextEditingController();
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
-  String _transactionType = 'Alış';
+  final _assetSearchController = TextEditingController();
+final _catalogService = const MarketAssetCatalogService();
 
+List<MarketAsset> _suggestions = const [];
+bool _isSearching = false;
+
+String _assetName = '';
+String _assetType = 'Hisse';
+  final _noteController = TextEditingController();
+
+  String _transactionType = 'Alış';
+  String _currency = 'TRY';
+  DateTime _transactionDate = DateTime.now();
   @override
-  void dispose() {
-    _symbolController.dispose();
-    _quantityController.dispose();
-    _priceController.dispose();
-    super.dispose();
+
+void initState() {
+
+  super.initState();
+
+  final data = widget.transactionData;
+
+  if (data == null) return;
+
+  final symbol = (data['symbol'] ?? '').toString();
+
+  final assetName = (data['assetName'] ?? '').toString();
+
+  final type = (data['type'] ?? 'Alış').toString();
+
+  final quantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+
+  final price = (data['price'] as num?)?.toDouble() ?? 0;
+
+  final currency = (data['currency'] ?? 'TRY').toString();
+
+  final note = (data['note'] ?? '').toString();
+
+  _transactionType = type;
+
+  _currency = currency;
+
+  _assetName = assetName;
+_assetType = (data['assetType'] ?? _assetType).toString();
+  _symbolController.text = symbol;
+
+  _assetSearchController.text =
+
+      assetName.isEmpty || assetName == symbol ? symbol : '$symbol • $assetName';
+
+  _quantityController.text = _formatQuantity(quantity);
+
+  _priceController.text = price.toString().replaceAll('.', ',');
+
+  _noteController.text = note;
+
+  final rawDate = data['transactionDate'];
+
+  if (rawDate is Timestamp) {
+
+    _transactionDate = rawDate.toDate();
+
   }
 
-  void _saveTransaction() {
+}
+  @override
+void dispose() {
+  _assetSearchController.dispose(); 
+
+  _symbolController.dispose();
+  _quantityController.dispose();
+  _priceController.dispose();
+  _noteController.dispose();
+
+  super.dispose();
+}
+Future<void> _searchAssets(String value) async {
+  final query = value.trim();
+
+  if (query.length < 2) {
+    setState(() => _suggestions = const []);
+    return;
+  }
+
+  setState(() => _isSearching = true);
+
+  final results = await _catalogService.search(
+  query: query,
+);
+
+  if (!mounted) return;
+
+  setState(() {
+    _suggestions = results;
+    _isSearching = false;
+  });
+}
+
+void _selectAsset(MarketAsset asset) {
+  setState(() {
+    _symbolController.text = asset.symbol;
+    _assetSearchController.text = '${asset.symbol} • ${asset.name}';
+    _assetName = asset.name;
+    _assetType = asset.type;
+    _currency = asset.currency;
+    _suggestions = const [];
+  });
+
+  FocusScope.of(context).unfocus();
+}
+  double _parseDouble(String value) {
+    return double.tryParse(value.trim().replaceAll(',', '.')) ?? 0;
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _transactionDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+
+    if (picked == null) return;
+
+    setState(() => _transactionDate = picked);
+  }
+
+  Future<void> _saveTransaction() async {
     if (!_formKey.currentState!.validate()) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${_symbolController.text.toUpperCase()} için $_transactionType işlemi kaydedildi.',
+    final symbol = _symbolController.text.trim().toUpperCase();
+    final quantity = _parseDouble(_quantityController.text);
+    final price = _parseDouble(_priceController.text);
+final resolvedAssetType = _resolveAssetType(symbol, _assetType);
+final resolvedAssetName =
+    _assetName.trim().isEmpty ? _resolveAssetName(symbol) : _assetName.trim();
+    try {
+      final items = await PortfolioRepository.instance.watchPortfolio().first;
+      if (widget.isEdit) {
+  await PortfolioRepository.instance.updateTransaction(
+  widget.transactionId!,
+  {
+    'symbol': symbol,
+    'assetName': _assetName.isEmpty ? symbol : _assetName,
+    'assetType': _assetType,
+    'type': _transactionType,
+    'quantity': quantity,
+    'price': price,
+    'total': quantity * price,
+    'currency': _currency,
+    'transactionDate': Timestamp.fromDate(_transactionDate),
+    'note': _noteController.text.trim(),
+  },
+);
+
+await PortfolioRebuildService().rebuildFromTransactions();
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('İşlem güncellendi.')),
+  );
+
+  Navigator.of(context).pop();
+  Navigator.of(context).pop();
+  return;
+}
+      PortfolioItem? existingItem;
+      for (final item in items) {
+       final itemSymbol = item.symbol.trim().toUpperCase();
+final itemName = item.name.trim().toUpperCase();
+
+if (itemSymbol == symbol || itemName == symbol || itemName == _assetName.trim().toUpperCase()) {
+  existingItem = item;
+  break;
+} 
+      }
+
+      if (_transactionType == 'Alış') {
+        if (existingItem == null) {
+          await PortfolioRepository.instance.addPortfolioItem(
+         PortfolioItem(
+  id: '',
+  name: resolvedAssetName,
+  symbol: symbol,
+  type: resolvedAssetType,  
+
+  quantity: quantity,
+
+  averagePrice: price,
+
+  currency: _currency,
+
+),
+          );
+        } else {
+          final oldTotalCost = existingItem.totalCost;
+          final newTotalCost = quantity * price;
+          final newQuantity = existingItem.quantity + quantity;
+          final newAveragePrice = (oldTotalCost + newTotalCost) / newQuantity;
+
+          await PortfolioRepository.instance.updatePortfolioItem(
+          existingItem.copyWith(
+  quantity: newQuantity,
+  averagePrice: newAveragePrice,
+  currency: _currency,
+  type: resolvedAssetType,
+),  
+          );
+        }
+      } else {
+        if (existingItem == null) {
+          throw Exception('Bu varlık portföyde bulunamadı.');
+        }
+
+        if (quantity > existingItem.quantity) {
+          throw Exception('Satış adedi portföydeki adetten büyük olamaz.');
+        }
+
+        final remainingQuantity = existingItem.quantity - quantity;
+
+        if (remainingQuantity <= 0) {
+          await PortfolioRepository.instance.deletePortfolioItem(existingItem.id);
+        } else {
+          await PortfolioRepository.instance.updatePortfolioItem(
+            existingItem.copyWith(quantity: remainingQuantity),
+          );
+        }
+      }
+
+      await PortfolioRepository.instance.addTransaction({
+        'symbol': symbol,
+        'assetName': resolvedAssetName,
+'assetType': resolvedAssetType,
+        'type': _transactionType,
+        'quantity': quantity,
+        'price': price,
+        'total': quantity * price,
+        'currency': _currency,
+        'transactionDate': Timestamp.fromDate(_transactionDate),
+        'note': _noteController.text.trim(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$symbol için $_transactionType işlemi kaydedildi.'),
         ),
-      ),
-    );
-    Navigator.of(context).pop();
+      );
+
+      Navigator.of(context).pop();
+    } catch (error, stackTrace) {
+      debugPrint('TRANSACTION ERROR: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('İşlem kaydedilemedi: $error')),
+      );
+    }
+  }
+String _resolveAssetType(String symbol, String currentType) {
+  switch (symbol) {
+    case 'USD':
+    case 'EUR':
+    case 'GBP':
+    case 'CHF':
+      return 'Döviz';
+    case 'XAU':
+    case 'ALTIN':
+    case 'GAU':
+    case 'XAUUSD':
+      return 'Altın';
+    case 'BTC':
+    case 'ETH':
+    case 'SOL':
+      return 'Kripto';
+    default:
+      return currentType.trim().isEmpty ? 'Hisse' : currentType;
+  }
+}
+
+String _resolveAssetName(String symbol) {
+  switch (symbol) {
+    case 'USD':
+      return 'Amerikan Doları';
+    case 'EUR':
+      return 'Euro';
+    case 'GBP':
+      return 'İngiliz Sterlini';
+    case 'CHF':
+      return 'İsviçre Frangı';
+    case 'XAU':
+    case 'ALTIN':
+    case 'GAU':
+      return 'Gram Altın';
+    case 'BTC':
+      return 'Bitcoin';
+    case 'ETH':
+      return 'Ethereum';
+    case 'SOL':
+      return 'Solana';
+    default:
+      return symbol;
+  }
+}
+  String? _requiredText(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Bu alan zorunlu.';
+    return null;
+  }
+
+  String? _requiredNumber(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Bu alan zorunlu.';
+    final parsed = _parseDouble(value);
+    if (parsed <= 0) return 'Geçerli bir sayı gir.';
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('İşlem Gir'),
+        title: const Text('Yeni İşlem'),
         centerTitle: false,
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          children: [
-            const _SectionTitle(title: 'Yeni İşlem'),
-            const SizedBox(height: 12),
-            _SurfaceCard(
-              child: Form(
-                key: _formKey,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            children: [
+              const _SectionTitle(title: 'İşlem'),
+              const SizedBox(height: 12),
+              _SurfaceCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Alış veya satış işlemini hızlıca gir. Bu ekran Sprint 7 kapsamında portföy hareketleri için hazırlandı.',
+                      'Portföyüne alış veya satış işlemi ekle. İşlem geçmişin otomatik güncellenir.',
                       style: TextStyle(
                         color: Colors.black54,
                         fontWeight: FontWeight.w600,
@@ -2831,67 +4474,111 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _symbolController,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
-                        labelText: 'Sembol / Varlık',
-                        hintText: 'Örn: ASELS, THYAO, AAPL',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Varlık adı gerekli.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
+  controller: _assetSearchController,
+  decoration: const InputDecoration(
+    labelText: 'Varlık Ara',
+    hintText: 'ASELS, THYAO, AAPL, BTC...',
+    prefixIcon: Icon(Icons.search_rounded),
+    border: OutlineInputBorder(),
+  ),
+  validator: _requiredText,
+  onChanged: _searchAssets,
+),
+const SizedBox(height: 8),
+if (_isSearching) const LinearProgressIndicator(),
+if (_suggestions.isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: _SuggestionPanel(
+      suggestions: _suggestions,
+      onSelected: _selectAsset,
+    ),
+  ),
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: _quantityController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Adet / Lot',
+                        labelText: 'Adet / Miktar',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) {
-                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
-                        if (parsed == null || parsed <= 0) {
-                          return 'Geçerli bir adet gir.';
-                        }
-                        return null;
-                      },
+                      keyboardType: TextInputType.number,
+                      validator: _requiredNumber,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     TextFormField(
                       controller: _priceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Birim Fiyat',
+                        labelText: 'Birim fiyat',
                         border: OutlineInputBorder(),
                       ),
-                      validator: (value) {
-                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
-                        if (parsed == null || parsed <= 0) {
-                          return 'Geçerli bir fiyat gir.';
-                        }
-                        return null;
+                      keyboardType: TextInputType.number,
+                      validator: _requiredNumber,
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      value: _currency,
+                      decoration: const InputDecoration(
+                        labelText: 'Para birimi',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'TRY', child: Text('TRY')),
+                        DropdownMenuItem(value: 'USD', child: Text('USD')),
+                        DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                        DropdownMenuItem(value: 'GBP', child: Text('GBP')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) setState(() => _currency = value);
                       },
+                    ),
+                    const SizedBox(height: 14),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _pickDate,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'İşlem tarihi',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_month_rounded),
+                        ),
+                        child: Text(_formatDate(_transactionDate)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Not',
+                        hintText: 'Opsiyonel',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
                     ),
                     const SizedBox(height: 18),
                     SizedBox(
                       width: double.infinity,
+                      height: 52,
                       child: FilledButton.icon(
                         onPressed: _saveTransaction,
                         icon: const Icon(Icons.check_rounded),
-                        label: const Text('İşlemi Kaydet'),
+                        label: Text(
+  widget.isEdit
+      ? 'Değişiklikleri Kaydet'
+      : 'İşlemi Kaydet',
+),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+      bottomNavigationBar: const MyFinBottomNav(
+
+        selectedIndex: 2,
+
       ),
     );
   }
@@ -3039,7 +4726,7 @@ class SettingsPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
           children: [
             const _SectionTitle(title: 'Hesap'),
             const SizedBox(height: 12),
@@ -3056,7 +4743,9 @@ class SettingsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user?.displayName?.isNotEmpty == true ? user!.displayName! : 'MyFin kullanıcısı',
+                          user?.displayName?.isNotEmpty == true
+                              ? user!.displayName!
+                              : 'MyFin kullanıcısı',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -3102,7 +4791,11 @@ class SettingsPage extends StatelessWidget {
                     subtitle: 'Yakında aktif olacak',
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Gizlilik ayarları sonraki sprintte bağlanacak.')),
+                        const SnackBar(
+                          content: Text(
+                            'Gizlilik ayarları sonraki sprintte bağlanacak.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -3113,7 +4806,11 @@ class SettingsPage extends StatelessWidget {
                     subtitle: 'Premium açık tema aktif',
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Tema ayarları sonraki sprintte genişletilecek.')),
+                        const SnackBar(
+                          content: Text(
+                            'Tema ayarları sonraki sprintte genişletilecek.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -3137,10 +4834,12 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 4,
+      ),
     );
   }
 }
-
 class _SettingsRow extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -3194,4 +4893,247 @@ class _SettingsRow extends StatelessWidget {
     );
   }
 }
+class _MyFinIntelligenceHero extends StatefulWidget {
+  final int refreshTick;
 
+  const _MyFinIntelligenceHero({required this.refreshTick});
+
+  @override
+  State<_MyFinIntelligenceHero> createState() => _MyFinIntelligenceHeroState();
+}
+
+class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+  );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Color _scoreColor(int score) {
+    if (score <= 40) return const Color(0xFFDC2626);
+    if (score <= 70) return const Color(0xFFF59E0B);
+    return const Color(0xFF16A34A);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PortfolioItem>>(
+      stream: PortfolioRepository.instance.watchPortfolio(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        final intelligence = _buildPortfolioIntelligence(items);
+final analysis = PortfolioAnalyzer.analyze(items);
+final aiScore = analysis.aiScore;
+final scoreColor = _scoreColor(aiScore);
+
+        final summary = items.isEmpty
+            ? 'İlk varlığını eklediğinde MyFin portföyünü analiz etmeye başlayacak.'
+            : intelligence.summary;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => AiChatPage(analysis: analysis),
+    ),
+  );
+},
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .055),
+                    blurRadius: 26,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _controller,
+                        builder: (context, child) {
+                          final glow = .12 + (_controller.value * .18);
+                          return Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF7C3AED),
+                                  Color(0xFF0EA5E9),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF7C3AED)
+                                      .withValues(alpha: glow),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'MyFin Intelligence',
+                              style: TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -.3,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'AI destekli portföy merkezi',
+                              style: TextStyle(
+                                color: Colors.black45,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withValues(alpha: .10),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                         '$aiScore/100',
+                          style: TextStyle(
+                            color: scoreColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    summary,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF334155),
+                      fontSize: 15,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      
+                      FilledButton.icon(
+                       onPressed: () {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => AiChatPage(analysis: analysis),
+    ),
+  );
+},
+                        icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                        label: const Text("MyFin AI'ye Sor"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+class _SuggestionPanel extends StatelessWidget {
+  final List<MarketAsset> suggestions;
+  final ValueChanged<MarketAsset> onSelected;
+
+  const _SuggestionPanel({
+    required this.suggestions,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .045),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: suggestions.map((item) {
+          return ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFF008DB9).withValues(alpha: .12),
+              child: Text(
+                item.symbol.characters.first,
+                style: const TextStyle(
+                  color: Color(0xFF008DB9),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            title: Text(
+              '${item.symbol} • ${item.name}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text('${item.market} • ${item.currency}'),
+            onTap: () => onSelected(item),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}

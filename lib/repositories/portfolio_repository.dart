@@ -1,5 +1,6 @@
 import '../models/portfolio_item.dart';
 import '../services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PortfolioRepository {
   PortfolioRepository._();
@@ -32,4 +33,22 @@ class PortfolioRepository {
   Future<void> deletePortfolioItem(String id) async {
     await _firestore.deletePortfolioItem(id);
   }
+Future<void> addTransaction(Map<String, dynamic> data) async {
+  await _firestore.addTransaction(data);
+}
+
+Future<void> updateTransaction(
+  String id,
+  Map<String, dynamic> data,
+) async {
+  await _firestore.updateTransaction(id, data);
+}
+
+Future<void> deleteTransaction(String id) async {
+  await _firestore.deleteTransaction(id);
+}
+
+Stream<QuerySnapshot<Map<String, dynamic>>> watchTransactions() {
+  return _firestore.watchTransactions();
+}
 }

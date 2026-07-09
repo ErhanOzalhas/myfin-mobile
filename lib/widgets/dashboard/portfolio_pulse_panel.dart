@@ -79,7 +79,7 @@ class PortfolioPulsePanel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: Text(
-                        "Skor ${score.toStringAsFixed(0)}",
+  dominantLabel,
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.bold,
@@ -89,7 +89,7 @@ class PortfolioPulsePanel extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        "$dominantLabel • $assetCount varlık",
+                        "$assetCount varlık • Dağılım izleniyor",
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF64748B),

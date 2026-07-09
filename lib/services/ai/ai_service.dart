@@ -77,6 +77,66 @@ class AIService {
     }
   }
 
+
+  /// Streaming entry point used by chat screens.
+  ///
+  /// It yields text chunks as the provider receives them. Conversation memory is
+  /// updated only after the full assistant answer is completed.
+  Stream<String> generateResponseStream({
+    required String userMessage,
+    PortfolioContext? portfolioContext,
+    UserFinancialContext? userContext,
+    List<IntelligenceSignal> signals = const <IntelligenceSignal>[],
+  }) async* {
+    final PromptValidation validation = validatePrompt(userMessage);
+    if (!validation.isValid) {
+      yield validation.message;
+      return;
+    }
+
+    final String trimmedMessage = userMessage.trim();
+    memory.addUser(trimmedMessage);
+
+    final AIPrompt prompt = buildPrompt(
+      userMessage: trimmedMessage,
+      portfolioContext: portfolioContext,
+      userContext: userContext,
+      signals: signals,
+    );
+
+    final StringBuffer answerBuffer = StringBuffer();
+
+    try {
+      await for (final String chunk in provider.stream(prompt)) {
+        if (chunk.isEmpty) continue;
+        answerBuffer.write(chunk);
+        yield chunk;
+      }
+
+      final String answer = answerBuffer.toString().trim();
+      if (answer.isEmpty) {
+        const String fallbackMessage =
+            'Şu anda net bir cevap üretemedim. Lütfen sorunu biraz daha açık yazar mısın?';
+        memory.addAssistant(fallbackMessage);
+        yield fallbackMessage;
+        return;
+      }
+
+      memory.addAssistant(answer);
+    } catch (error) {
+      final String partialAnswer = answerBuffer.toString().trim();
+      if (partialAnswer.isNotEmpty) {
+        memory.addAssistant(partialAnswer);
+        return;
+      }
+
+      const String fallbackMessage =
+          'AI yanıtı oluşturulurken bir sorun oluştu. Bağlantı veya servis yapılandırması kontrol edildikten sonra tekrar deneyebilirsin.';
+      memory.addAssistant(fallbackMessage);
+      yield fallbackMessage;
+    }
+  }
+
   AIPrompt buildPrompt({
     required String userMessage,
     PortfolioContext? portfolioContext,
@@ -224,6 +284,8 @@ class AIService {
 
 abstract class AIProvider {
   Future<AIResponse> complete(AIPrompt prompt);
+
+  Stream<String> stream(AIPrompt prompt);
 }
 
 /// Temporary local provider until a real LLM backend is connected.
@@ -254,6 +316,17 @@ class LocalMyFinAIProvider implements AIProvider {
       providerName: 'local-myfin-provider',
       prompt: prompt,
     );
+  }
+
+
+  @override
+  Stream<String> stream(AIPrompt prompt) async* {
+    final AIResponse response = await complete(prompt);
+
+    for (final int codeUnit in response.content.codeUnits) {
+      yield String.fromCharCode(codeUnit);
+      await Future<void>.delayed(const Duration(milliseconds: 8));
+    }
   }
 
   String _portfolioAnswer(PortfolioContext? portfolio) {

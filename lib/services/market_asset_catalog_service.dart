@@ -55,21 +55,16 @@ class MarketAssetCatalogService {
   ];
 
   Future<List<MarketAsset>> search({
-    required String query,
-    required String type,
-    int limit = 8,
-  }) async {
-    final normalizedQuery = query.trim().toUpperCase();
-    if (normalizedQuery.length < 2) return const [];
+  required String query,
+  int limit = 8,
+}) async {
+  final normalizedQuery = query.trim().toUpperCase();
 
-    final matches = _assets.where((asset) {
-      final typeMatches = asset.type == type;
-      final textMatches = asset.symbol.contains(normalizedQuery) ||
-          asset.name.toUpperCase().contains(normalizedQuery) ||
-          asset.market.toUpperCase().contains(normalizedQuery);
-      return typeMatches && textMatches;
-    }).take(limit).toList();
+  if (normalizedQuery.length < 2) return const [];
 
-    return matches;
-  }
-}
+  return _assets.where((asset) {
+    return asset.symbol.contains(normalizedQuery) ||
+        asset.name.toUpperCase().contains(normalizedQuery) ||
+        asset.market.toUpperCase().contains(normalizedQuery);
+  }).take(limit).toList();
+}}

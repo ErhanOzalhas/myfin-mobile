@@ -82,6 +82,73 @@ class OpenAIProvider implements AIProvider {
     );
   }
 
+
+  @override
+  Stream<String> stream(AIPrompt prompt) async* {
+    _validateConfiguration();
+
+    final Map<String, dynamic> payload = <String, dynamic>{
+      'model': _model,
+      'instructions': _buildInstructions(prompt.systemPrompt),
+      'input': prompt.fullPrompt,
+      'stream': true,
+    };
+
+    final http.Request request = http.Request('POST', _endpoint)
+      ..headers.addAll(<String, String>{
+        HttpHeaders.contentTypeHeader: 'application/json',
+        HttpHeaders.authorizationHeader: 'Bearer $_apiKey',
+        HttpHeaders.acceptHeader: 'text/event-stream',
+      })
+      ..body = jsonEncode(payload);
+
+    final http.StreamedResponse response;
+    try {
+      response = await _client.send(request).timeout(_timeout);
+    } on TimeoutException catch (error) {
+      throw OpenAIProviderException(
+        message: 'OpenAI stream request timed out: $error',
+        userMessage:
+            'AI servisine bağlanırken zaman aşımı oluştu. Lütfen tekrar dene.',
+      );
+    } on SocketException catch (error) {
+      throw OpenAIProviderException(
+        message: 'OpenAI stream socket error: $error',
+        userMessage:
+            'AI servisine bağlanırken ağ sorunu oluştu. İnternet bağlantını kontrol edebilirsin.',
+      );
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final String body = await response.stream.bytesToString();
+      throw _mapHttpError(
+        http.Response(
+          body,
+          response.statusCode,
+          headers: response.headers,
+          request: request,
+        ),
+      );
+    }
+
+    await for (final String line in response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())) {
+      final String trimmed = line.trim();
+      if (trimmed.isEmpty || trimmed.startsWith(':')) continue;
+      if (!trimmed.startsWith('data:')) continue;
+
+      final String data = trimmed.substring(5).trim();
+      if (data.isEmpty || data == '[DONE]') continue;
+
+      final String delta = _extractStreamDelta(data);
+     if (delta.isNotEmpty) {
+  debugPrint('OPENAI STREAM CHUNK: "$delta"');
+  yield delta;
+} 
+    }
+  }
+
   Future<http.Response> _sendWithRetry(Map<String, dynamic> payload) async {
     Object? lastError;
 
@@ -172,6 +239,38 @@ Sound like a premium finance coach rather than a textbook.
 '''
       .trim();
 }
+
+
+  String _extractStreamDelta(String data) {
+    try {
+      final dynamic decoded = jsonDecode(data);
+      if (decoded is! Map<String, dynamic>) return '';
+
+      final dynamic type = decoded['type'];
+      if (type is String &&
+          type != 'response.output_text.delta' &&
+          type != 'response.refusal.delta' &&
+          type != 'response.message.delta') {
+        return '';
+      }
+
+      final dynamic delta = decoded['delta'];
+      if (delta is String) return delta;
+
+      final dynamic text = decoded['text'];
+      if (text is String) return text;
+
+      final dynamic outputText = decoded['output_text'];
+      if (outputText is String) return outputText;
+
+      final dynamic content = decoded['content'];
+      if (content is String) return content;
+
+      return '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   String _extractText(String responseBody) {
     try {

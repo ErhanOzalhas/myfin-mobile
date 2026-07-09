@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:myfin_mobile/services/ai/ai_chat_service.dart';
 import 'package:myfin_mobile/services/ai/openai_provider.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
+import '../../widgets/navigation/myfin_bottom_nav.dart';
 /// MyFin AI Chat Page
 ///
 /// Production-ready, dependency-free Flutter screen for the Intelligence area.
@@ -94,34 +95,125 @@ class _AiChatPageState extends State<AiChatPage> {
 
     HapticFeedback.selectionClick();
 
+    final _ChatMessage assistantMessage = _ChatMessage.assistant(
+      text: '',
+      isStreaming: true,
+    );
+
     setState(() {
       _messages.add(_ChatMessage.user(text: text));
+      _messages.add(assistantMessage);
       _isSending = true;
     });
 
     _messageController.clear();
     _scrollToBottom();
 
+    final StringBuffer streamBuffer = StringBuffer();
+    Timer? flushTimer;
+    bool didShowFirstChunk = false;
+
+    const Duration flushInterval = Duration(milliseconds: 72);
+    const Duration finalCursorHold = Duration(milliseconds: 180);
+
+    int nextVisibleLength(String value) {
+      if (value.isEmpty) return 0;
+
+      // Kısa parçalar doğal aksın.
+      if (value.length <= 8) return value.length;
+
+      // Çok küçük kelime kırılmaları yerine mümkünse kısa kelime grupları göster.
+      final int searchLimit = value.length < 14 ? value.length : 14;
+      for (int i = 5; i < searchLimit; i++) {
+        final String char = value[i];
+        if (char == ' ' || char == '\n' || char == '\t') {
+          return i + 1;
+        }
+      }
+
+      // Uzun kelimelerde ekrana bir anda çok metin basma.
+      return 8;
+    }
+
+    void flushBufferedChunks() {
+      if (!mounted || streamBuffer.isEmpty) return;
+
+      final String current = streamBuffer.toString();
+      final int take = nextVisibleLength(current);
+      if (take <= 0) return;
+
+      final String nextText = current.substring(0, take);
+
+      streamBuffer
+        ..clear()
+        ..write(current.substring(take));
+
+      setState(() {
+        assistantMessage.text += nextText;
+      });
+
+      _scrollToBottom();
+    }
+
+    Future<void> drainBufferedChunks() async {
+      while (mounted && streamBuffer.isNotEmpty) {
+        flushBufferedChunks();
+
+        if (streamBuffer.isNotEmpty) {
+          await Future<void>.delayed(flushInterval);
+        }
+      }
+    }
+
+    flushTimer = Timer.periodic(
+      flushInterval,
+      (_) => flushBufferedChunks(),
+    );
+
     try {
-      final String answer = await _chatService.ask(
-  analysis: widget.analysis,
-  question: text,
-);
+      await for (final String chunk in _chatService.askStream(
+        analysis: widget.analysis,
+        question: text,
+      )) {
+        if (chunk.isEmpty) continue;
+
+        streamBuffer.write(chunk);
+
+        // İlk gerçek token bekletilmesin; kullanıcı hemen yazma hissini görsün.
+        if (!didShowFirstChunk) {
+          didShowFirstChunk = true;
+          flushBufferedChunks();
+        }
+      }
+
+      flushTimer.cancel();
+
+      // Stream bitince buffer'da kalan son parçaları kaybetmeden yazdır.
+      await drainBufferedChunks();
+
+      // İmleç cevap bittikten sonra çok kısa süre daha kalsın.
+      await Future<void>.delayed(finalCursorHold);
+
       if (!mounted) return;
       setState(() {
-        _messages.add(_ChatMessage.assistant(text: answer));
+        assistantMessage.isStreaming = false;
+        if (assistantMessage.text.trim().isEmpty) {
+          assistantMessage.text =
+              'Şu anda net bir yanıt üretemedim. Sorunu biraz daha açık yazar mısın?';
+        }
       });
     } catch (_) {
+      flushTimer.cancel();
+
       if (!mounted) return;
       setState(() {
-        _messages.add(
-          _ChatMessage.assistant(
-            text:
-                'Şu anda yanıt üretirken bir sorun oluştu. Lütfen biraz sonra tekrar dene.',
-          ),
-        );
+        assistantMessage
+          ..isStreaming = false
+          ..text =
+              'Şu anda yanıt üretirken bir sorun oluştu. Lütfen biraz sonra tekrar dene.';
       });
     } finally {
+      flushTimer.cancel();
       if (mounted) {
         setState(() => _isSending = false);
         _scrollToBottom();
@@ -170,7 +262,7 @@ class _AiChatPageState extends State<AiChatPage> {
         titleSpacing: 0,
         title: const _AppBarTitle(),
       ),
-      body: SafeArea(
+           body: SafeArea(
         child: Column(
           children: <Widget>[
             Expanded(
@@ -209,11 +301,6 @@ class _AiChatPageState extends State<AiChatPage> {
                       },
                     ),
                   ),
-                  if (_isSending)
-                    const SliverPadding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
-                      sliver: SliverToBoxAdapter(child: _TypingBubble()),
-                    ),
                 ],
               ),
             ),
@@ -227,7 +314,10 @@ class _AiChatPageState extends State<AiChatPage> {
           ],
         ),
       ),
-    );
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 3,
+      ),
+    ); 
   }
 }
 
@@ -501,8 +591,7 @@ class _MessageBubble extends StatelessWidget {
         ),
       )
     : GptMarkdown(
-        message.text,
-        
+        _assistantDisplayText(message),
       ), 
                     
                 const SizedBox(height: 8),
@@ -544,77 +633,17 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
+
+  static String _assistantDisplayText(_ChatMessage message) {
+    if (!message.isStreaming) return message.text;
+    if (message.text.trim().isEmpty) return 'MyFin AI düşünüyor...';
+    return '${message.text}▌';
+  }
+
   static String _formatTime(DateTime value) {
     final String hour = value.hour.toString().padLeft(2, '0');
     final String minute = value.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
-  }
-}
-
-class _TypingBubble extends StatelessWidget {
-  const _TypingBubble();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(top: 4),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-          ),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              offset: Offset(0, 3),
-              color: Color(0x11000000),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-          const SizedBox(
-  width: 18,
-  height: 18,
-  child: CircularProgressIndicator(
-    strokeWidth: 2.2,
-    color: Color(0xFF008DB9),
-  ),
-),
-            SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  ' MyFin AI',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Yanıt hazırlanıyor...',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -720,19 +749,28 @@ class _ChatMessage {
     required this.role,
     required this.text,
     DateTime? createdAt,
+    this.isStreaming = false,
   }) : createdAt = createdAt ?? DateTime.now();
 
   factory _ChatMessage.user({required String text}) {
     return _ChatMessage(role: _MessageRole.user, text: text);
   }
 
-  factory _ChatMessage.assistant({required String text}) {
-    return _ChatMessage(role: _MessageRole.assistant, text: text);
+  factory _ChatMessage.assistant({
+    required String text,
+    bool isStreaming = false,
+  }) {
+    return _ChatMessage(
+      role: _MessageRole.assistant,
+      text: text,
+      isStreaming: isStreaming,
+    );
   }
 
   final _MessageRole role;
-  final String text;
+  String text;
   final DateTime createdAt;
+  bool isStreaming;
 }
 
 enum _MessageRole { user, assistant }
@@ -749,57 +787,3 @@ class _SuggestedPrompt {
   final String prompt;
 }
 
-class _LocalMyFinAiResponder {
-  const _LocalMyFinAiResponder._();
-
-  static Future<String> generate(String input) async {
-    await Future<void>.delayed(const Duration(milliseconds: 850));
-
-    final String message = input.toLowerCase();
-
-    if (_containsAny(message, <String>['risk', 'riskler', 'riskli'])) {
-      return 'Risk tarafında ilk bakacağım 4 başlık var:\n\n'
-          '1. Tek hisseye veya tek sektöre aşırı yüklenme\n'
-          '2. Döviz, faiz ve enflasyon etkisi\n'
-          '3. Kısa vadeli nakit ihtiyacı ile uzun vadeli yatırımın karışması\n'
-          '4. Zarar kes veya yeniden dengeleme planının olmaması\n\n'
-          'Bana portföy dağılımını yüzde olarak yazarsan daha net bir risk yorumu çıkarabilirim.';
-    }
-
-    if (_containsAny(message, <String>['portföy', 'portfolio', 'dağılım'])) {
-      return 'Portföy sağlığı için sade kontrol listem şöyle:\n\n'
-          '• Varlıklar farklı sektörlere yayılmış mı?\n'
-          '• Tek bir pozisyon toplam portföyün büyük kısmını oluşturuyor mu?\n'
-          '• TL / USD / nakit dengesi hedefinle uyumlu mu?\n'
-          '• Kısa vadede ihtiyacın olan para riskli varlıklarda mı?\n\n'
-          'İstersen bana hisse/varlık isimlerini ve yaklaşık yüzdelerini yaz; sana daha net bir denge yorumu yapayım.';
-    }
-
-    if (_containsAny(message, <String>['nakit', 'cash', 'likidite'])) {
-      return 'Nakit oranı kişiye göre değişir ama MyFin bakışıyla mantıklı yaklaşım şu:\n\n'
-          '• Acil durum parası ayrı tutulmalı.\n'
-          '• Yakın zamanda kullanılacak para yüksek riskli varlıklara bağlanmamalı.\n'
-          '• Piyasa düşüşlerinde fırsat değerlendirmek için küçük bir nakit payı rahatlık sağlar.\n\n'
-          'Gelir düzenin, aylık giderin ve yatırım vaden olursa nakit planını daha iyi modelleyebilirim.';
-    }
-
-    if (_containsAny(message, <String>['piyasa', 'borsa', 'market'])) {
-      return 'Piyasa yorumunda üç katmana bakmak iyi olur:\n\n'
-          '1. Makro: faiz, enflasyon, büyüme, kur\n'
-          '2. Sektör: hangi alanlara para girişi/çıkışı var\n'
-          '3. Portföy etkisi: bu hareketler senin varlıklarını nasıl etkiliyor\n\n'
-          'Canlı veri bağlantısı eklendiğinde MyFin AI bu bölümü güncel fiyat ve haberlerle destekleyebilir.';
-    }
-
-    return 'Bunu finansal karar kalitesi açısından şöyle ele alabiliriz:\n\n'
-        '• Hedefin ne? Kısa vade mi, uzun vade mi?\n'
-        '• Risk toleransın ne kadar?\n'
-        '• Bu karar portföy dengesini bozuyor mu?\n'
-        '• Alternatif senaryoda ne olur?\n\n'
-        'Bana biraz daha detay verirsen MyFin AI bunu daha net bir analiz formatına çevirebilir.';
-  }
-
-  static bool _containsAny(String source, List<String> keywords) {
-    return keywords.any(source.contains);
-  }
-}

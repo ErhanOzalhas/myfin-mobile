@@ -34,7 +34,9 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
     }
 
     setState(() => _isSearching = true);
-    final results = await _catalogService.search(query: query, type: _type);
+    final results = await _catalogService.search(
+  query: query,
+);
     if (!mounted) return;
     setState(() {
       _suggestions = results;
@@ -162,8 +164,8 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 child: TextFormField(
                   controller: _symbolController,
                   decoration: const InputDecoration(
-                    labelText: 'Sembol',
-                    hintText: '2-3 harf yaz: ASE, ISC, USD, ALT...',
+                    labelText: 'Varlık ara',
+                    hintText: '2-3 harf yaz: ASE, USD, ALT, AAPL...',
                     border: InputBorder.none,
                   ),
                   textCapitalization: TextCapitalization.characters,
@@ -197,10 +199,11 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 child: TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Varlık adı',
-                    hintText: 'Örn: Aselsan, Apple, Gram Altın',
+                    labelText: 'Seçilen varlık',
+                    hintText: 'Listeden seçince otomatik dolar',
                     border: InputBorder.none,
                   ),
+                  readOnly: true,
                   validator: _requiredText,
                 ),
               ),
@@ -266,7 +269,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_rounded),
-                  label: Text(_isSaving ? 'Kaydediliyor...' : 'Firestore’a Kaydet'),
+                  label: Text(_isSaving ? 'Kaydediliyor...' : 'Varlık Ekle'),
                 ),
               ),
             ],
@@ -315,10 +318,10 @@ class _SuggestionPanel extends StatelessWidget {
               ),
             ),
             title: Text(
-              item.symbol,
+              '${item.symbol} • ${item.name}',
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            subtitle: Text('${item.name} • ${item.market} • ${item.currency}'),
+            subtitle: Text('${item.market} • ${item.currency}'),
             onTap: () => onSelected(item),
           );
         }).toList(),
