@@ -38,6 +38,9 @@ import '../widgets/common/empty_state_line.dart';
 import '../utils/myfin_formatters.dart';
 import 'portfolio/portfolio_page.dart';
 import 'performance/performance_report_page.dart';
+import 'market/live_market_page.dart';
+import 'settings/settings_page.dart';
+import 'transactions/transaction_entry_page.dart';
 void _openPortfolioPage(BuildContext context) {
   Navigator.of(context).push(
     MaterialPageRoute(builder: (_) => const PortfolioPage()),
