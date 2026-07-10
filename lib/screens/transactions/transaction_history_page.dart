@@ -8,9 +8,15 @@ import '../../widgets/common/section_title.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import 'transaction_detail_page.dart';
+import '../../utils/no_animation_route.dart';
 
 class TransactionHistoryPage extends StatelessWidget {
-  const TransactionHistoryPage({super.key});
+  final bool showBottomNav;
+
+  const TransactionHistoryPage({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   String _formatDate(dynamic value) {
     if (value is Timestamp) {
@@ -66,7 +72,8 @@ class TransactionHistoryPage extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 2),
+      bottomNavigationBar:
+          showBottomNav ? const MyFinBottomNav(selectedIndex: 2) : null,
     );
   }
 }
@@ -102,7 +109,7 @@ class _TransactionHistoryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
+            noAnimationRoute(
               builder: (_) => TransactionDetailPage(
                 transactionId: transactionId,
                 data: data,
