@@ -12,11 +12,15 @@ import '../../widgets/common/thin_divider.dart';
 import '../../widgets/dashboard/distribution_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../my_fin_home.dart' as legacy;
-
+import '../../utils/no_animation_route.dart';
 class PortfolioPage extends StatelessWidget {
+  final bool showBottomNav;
 
-  const PortfolioPage({super.key});
-  
+  const PortfolioPage({
+    super.key,
+    this.showBottomNav = true,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,7 +83,7 @@ class PortfolioPage extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
+            noAnimationRoute(
    builder: (_) => const TransactionEntryPage(),
             ),
           );
@@ -87,9 +91,9 @@ class PortfolioPage extends StatelessWidget {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Yeni İşlem'),
       ),
-      bottomNavigationBar: const MyFinBottomNav(
-        selectedIndex: 1,
-      ),
+     bottomNavigationBar: showBottomNav
+    ? const MyFinBottomNav(selectedIndex: 1)
+    : null, 
     );
   }
 }
@@ -608,7 +612,7 @@ class _PortfolioAssetTile extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
+          noAnimationRoute(
             builder: (_) => AssetDetailPage(item: item),
           ),
         );

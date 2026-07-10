@@ -6,7 +6,7 @@ import 'package:myfin_mobile/services/ai_analysis_service.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis_mapper.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
 import 'package:myfin_mobile/repositories/portfolio_repository.dart';
-
+import '../../utils/no_animation_route.dart';
 class AIScoreSection extends StatelessWidget {
   const AIScoreSection({super.key});
 
@@ -27,7 +27,7 @@ class AIScoreSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
+              noAnimationRoute(
                 builder: (_) => AiChatPage(
                   analysis: portfolioAnalysis,
                 ),

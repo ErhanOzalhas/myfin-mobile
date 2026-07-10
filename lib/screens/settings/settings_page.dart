@@ -7,9 +7,14 @@ import '../../widgets/common/surface_card.dart';
 import '../../widgets/common/thin_divider.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../intelligence/intelligence_page.dart';
-
+import '../../utils/no_animation_route.dart';
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final bool showBottomNav;
+
+  const SettingsPage({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +79,7 @@ class SettingsPage extends StatelessWidget {
                     subtitle: 'AI analiz ve sohbet merkezi',
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        noAnimationRoute(
                           builder: (_) => const IntelligencePage(),
                         ),
                       );
@@ -130,7 +135,9 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 4),
+    bottomNavigationBar: showBottomNav
+    ? const MyFinBottomNav(selectedIndex: 4)
+    : null,
     );
   }
 }

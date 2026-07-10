@@ -7,7 +7,7 @@ import '../../widgets/common/report_row.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import 'transaction_entry_page.dart';
-
+import '../../utils/no_animation_route.dart';
 class TransactionDetailPage extends StatelessWidget {
   final String transactionId;
   final Map<String, dynamic> data;
@@ -89,7 +89,7 @@ class TransactionDetailPage extends StatelessWidget {
             FilledButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
+                  noAnimationRoute(
                     builder: (_) => TransactionEntryPage(
                       transactionId: transactionId,
                       transactionData: data,

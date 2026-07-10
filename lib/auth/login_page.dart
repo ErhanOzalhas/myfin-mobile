@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_widgets.dart';
 import 'register_page.dart';
-
+import '../utils/no_animation_route.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -131,7 +131,7 @@ class _LoginPageState extends State<LoginPage> {
               ? null
               : () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
+                    noAnimationRoute(
                       builder: (_) => const RegisterPage(),
                     ),
                   );

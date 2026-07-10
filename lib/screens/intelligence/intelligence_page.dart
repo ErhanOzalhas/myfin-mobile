@@ -15,9 +15,15 @@ import '../../widgets/intelligence/intelligence_timeline_card.dart';
 import '../../widgets/intelligence_market_mood_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import 'ai_chat_page.dart';
+import '../../utils/no_animation_route.dart';
 
 class IntelligencePage extends StatelessWidget {
-  const IntelligencePage({super.key});
+  final bool showBottomNav;
+
+  const IntelligencePage({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   String _statusForScore(int score) {
     if (score >= 80) return 'Güçlü';
@@ -99,7 +105,7 @@ class IntelligencePage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        noAnimationRoute(
                           builder: (_) => AiChatPage(
                             analysis: analysis,
                           ),
@@ -117,7 +123,9 @@ class IntelligencePage extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 3),
+     bottomNavigationBar: showBottomNav
+    ? const MyFinBottomNav(selectedIndex: 3)
+    : null,
     );
   }
 }

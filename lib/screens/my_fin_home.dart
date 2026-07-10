@@ -35,39 +35,48 @@ import 'market/live_market_page.dart';
 import 'settings/settings_page.dart';
 import 'transactions/transaction_entry_page.dart';
 import '../services/portfolio_summary_service.dart';
-
+import '../utils/no_animation_route.dart';
 void _openPortfolioPage(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const PortfolioPage()),
+    noAnimationRoute(builder: (_) => const PortfolioPage()),
   );
 }
 
 void _openIntelligencePage(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const IntelligencePage()),
+    noAnimationRoute(builder: (_) => const IntelligencePage()),
   );
 }
 
 void _openPerformanceReportPage(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const PerformanceReportPage()),
+    noAnimationRoute(builder: (_) => const PerformanceReportPage()),
   );
 }
 
 void _openLiveMarketPage(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const LiveMarketPage()),
+    noAnimationRoute(builder: (_) => const LiveMarketPage()),
   );
 }
 
 void _openTransactionHistoryPage(BuildContext context) {
   Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const TransactionHistoryPage()),
+    noAnimationRoute(builder: (_) => const TransactionHistoryPage()),
   );
 }
 
 class MyFinHome extends StatefulWidget {
-  const MyFinHome({super.key});
+
+  final bool showBottomNav;
+
+  const MyFinHome({
+
+    super.key,
+
+    this.showBottomNav = true,
+
+  });
 
   @override
   State<MyFinHome> createState() => _MyFinHomeState();
@@ -178,7 +187,11 @@ _DashboardFadeIn(
         ),
       ),
     
-   bottomNavigationBar: const MyFinBottomNav(selectedIndex: 0),
+   bottomNavigationBar: widget.showBottomNav
+
+    ? const MyFinBottomNav(selectedIndex: 0)
+
+    : null,
     );
   }
 }
@@ -637,7 +650,7 @@ class _RowQuickActions extends StatelessWidget {
             color: const Color(0xFF008DB9),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
+                noAnimationRoute(
                   builder: (_) => const TransactionEntryPage(),
                 ),
               );
@@ -851,13 +864,13 @@ class _Header extends StatelessWidget {
           onSelected: (value) async {
             if (value == 'settings') {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsPage()),
+                noAnimationRoute(builder: (_) => const SettingsPage()),
               );
             }
 
             if (value == 'login') {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LoginPage()),
+                noAnimationRoute(builder: (_) => const LoginPage()),
               );
             }
 
@@ -1121,7 +1134,7 @@ class _KpiGrid extends StatelessWidget {
 
   void _openPortfolio(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(
+      noAnimationRoute(
         builder: (_) => const PortfolioPage(),
       ),
     );
@@ -1619,7 +1632,7 @@ class _DashboardInsightPanel extends StatelessWidget {
                 onTap: () {
   final analysis = PortfolioAnalyzer.analyze(items);
   Navigator.of(context).push(
-    MaterialPageRoute(
+    noAnimationRoute(
       builder: (_) => AiChatPage(analysis: analysis),
     ),
   );
@@ -2252,375 +2265,6 @@ class _WatchlistSection extends StatelessWidget {
   }
 }
 
-
-class _PortfolioList extends StatelessWidget {
-  final int refreshTick;
-  final List<PortfolioItem>? items;
-
-  const _PortfolioList({required this.refreshTick, this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final providedItems = items;
-    if (providedItems != null) {
-      return _PortfolioListContent(items: providedItems);
-    }
-
-    return StreamBuilder<List<PortfolioItem>>(
-      stream: PortfolioRepository.instance.watchPortfolio(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SurfaceCard(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return const SurfaceCard(
-            child: Text(
-              'Portföy verisi alınırken bir hata oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-          );
-        }
-
-        return _PortfolioListContent(items: snapshot.data ?? []);
-      },
-    );
-  }
-}
-
-class _PortfolioListContent extends StatelessWidget {
-  final List<PortfolioItem> items;
-
-  const _PortfolioListContent({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const SurfaceCard(
-        child: Text(
-          'Henüz portföy varlığı yok. Yeni Varlık butonuyla ilk varlığını ekleyebilirsin.',
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
-      );
-    }
-
-    return SurfaceCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          for (int index = 0; index < items.length; index++) ...[
-            _PortfolioAssetTile(item: items[index]),
-            if (index != items.length - 1) const ThinDivider(),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PortfolioAssetTile extends StatelessWidget {
-  final PortfolioItem item;
-
-  const _PortfolioAssetTile({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = item.name.isNotEmpty ? item.name : item.symbol;
-
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AssetDetailPage(item: item),
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: const Color(0xFFBAE6FD),
-              child: Text(
-                item.symbol.isNotEmpty ? item.symbol.characters.first : '?',
-                style: const TextStyle(
-                  color: Color(0xFF075985),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${formatQuantity(item.quantity)} adet • ${item.type}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Alış: ${formatCurrency(item.averagePrice, item.currency)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatCurrency(item.totalCost, item.currency),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Maliyet',
-                  style: const TextStyle(
-                    color: Color(0xFF16A34A),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 10.5,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, color: Colors.black38),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
-class _PortfolioSummaryCard extends StatelessWidget {
-  final PortfolioSummary summary;
-
-  const _PortfolioSummaryCard({required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    final profitPositive = summary.totalProfit >= 0;
-    final profitColor = profitPositive
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFDC2626);
-    final profitPrefix = profitPositive ? '+' : '';
-
-    return SurfaceCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const IconBox(
-                icon: Icons.account_balance_wallet_rounded,
-                color: Color(0xFF008DB9),
-                size: 46,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Portföy Özeti',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Canlı fiyat bağlanınca K/Z güncellenecek',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF008DB9).withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${summary.assetCount} varlık',
-                  style: const TextStyle(
-                    color: Color(0xFF008DB9),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Text(
-            formatCurrency(summary.totalValue, summary.primaryCurrency),
-            style: const TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-              letterSpacing: -.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Toplam Yatırım',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: profitColor.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  profitPositive
-                      ? Icons.trending_up_rounded
-                      : Icons.trending_down_rounded,
-                  color: profitColor,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '$profitPrefix${formatCurrency(summary.totalProfit.abs(), summary.primaryCurrency)}',
-                    style: TextStyle(
-                      color: profitColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Text(
-                  formatPercent(summary.profitPercent),
-                  style: TextStyle(
-                    color: profitColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _PortfolioSummaryMetric(
-                  label: 'Toplam Maliyet',
-                  value: formatCurrency(summary.totalCost, summary.primaryCurrency),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PortfolioSummaryMetric(
-                  label: 'Beklenen Getiri',
-                  value: formatPercent(summary.profitPercent),
-                  valueColor: profitColor,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PortfolioSummaryMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  const _PortfolioSummaryMetric({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.black54,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              color: valueColor ?? const Color(0xFF0F172A),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
@@ -2640,7 +2284,7 @@ class _QuickActions extends StatelessWidget {
           color: const Color(0xFF008DB9),
           onTap: () async {
             await Navigator.of(context).push(
-              MaterialPageRoute(
+              noAnimationRoute(
                 builder: (_) => const TransactionEntryPage(),
               ),
             );
@@ -2652,7 +2296,7 @@ class _QuickActions extends StatelessWidget {
           color: const Color(0xFFF97316),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
+              noAnimationRoute(
                 builder: (_) => const TransactionEntryPage(),
               ),
             );
@@ -2664,7 +2308,7 @@ class _QuickActions extends StatelessWidget {
           color: const Color(0xFF7C3AED),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
+              noAnimationRoute(
                 builder: (_) => const PriceAlertPage(),
               ),
             );
@@ -2789,7 +2433,7 @@ class _RecentTransactions extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
+                        noAnimationRoute(
                           builder: (_) => const TransactionEntryPage(),
                         ),
                       );
@@ -2919,58 +2563,6 @@ class _TransactionRow extends StatelessWidget {
     );
   }
 }
-
-class _AssetDetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _AssetDetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class PriceAlertPage extends StatefulWidget {
   const PriceAlertPage({super.key});
@@ -3157,7 +2749,7 @@ final scoreColor = _scoreColor(aiScore);
             borderRadius: BorderRadius.circular(28),
             onTap: () {
   Navigator.of(context).push(
-    MaterialPageRoute(
+    noAnimationRoute(
       builder: (_) => AiChatPage(analysis: analysis),
     ),
   );
@@ -3278,7 +2870,7 @@ final scoreColor = _scoreColor(aiScore);
                       FilledButton.icon(
                        onPressed: () {
   Navigator.of(context).push(
-    MaterialPageRoute(
+    noAnimationRoute(
       builder: (_) => AiChatPage(analysis: analysis),
     ),
   );

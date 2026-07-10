@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/my_fin_home.dart';
 import '../services/user_cloud_service.dart';
 import 'login_page.dart';
+import '../screens/main_shell.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -30,7 +31,7 @@ class AuthGate extends StatelessWidget {
               return const _AuthLoadingPage();
             }
 
-            return const MyFinHome();
+            return const MainShell();
           },
         );
       },
