@@ -178,23 +178,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   }
 
   String _formatQuantityText(String value) {
-    final formatted = const _TurkishDecimalTextInputFormatter(
-      decimalDigits: 8,
-      dotAsDecimal: true,
-      trimTrailingZeroDecimals: true,
-    ).formatString(value);
-
-    if (formatted.isEmpty) return '';
-    final separatorIndex = formatted.indexOf(',');
-
-    if (separatorIndex == -1) return '$formatted,00';
-
-    final integer = formatted.substring(0, separatorIndex);
-    final decimal = formatted.substring(separatorIndex + 1);
-    if (decimal.isEmpty) return '$integer,00';
-
-    if (decimal.length == 1) return '$integer,${decimal}0';
-    return '$integer,$decimal';
+    return _formatCurrencyText(value);
   }
 
   String _formatCurrencyText(String value) {
@@ -227,9 +211,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (!widget.isEdit) {
       _resetForm();
     }
-    Navigator.of(context).pop();
-    if (popTwice && mounted) {
-      Navigator.of(context).pop();
+    final navigator = Navigator.of(context);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+
+    if (popTwice && mounted && navigator.canPop()) {
+      navigator.pop();
     }
   }
 
@@ -721,7 +710,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       focusNode: _quantityFocusNode,
                       decoration: _fieldDecoration(
                         labelText: 'Adet / Miktar',
-                        hintText: 'Örn: 0,34567',
+                        hintText: 'Örn: 10.000,00',
                         suffixIcon: Icons.trending_up_rounded,
                       ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
