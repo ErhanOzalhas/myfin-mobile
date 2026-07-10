@@ -64,8 +64,6 @@ class PortfolioPage extends StatelessWidget {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
                   children: [
-                    const SectionTitle(title: 'Portföyüm'),
-                    const SizedBox(height: 12),
                     _DistributionCard(refreshTick: items.length),
                     const SizedBox(height: 14),
                     _PortfolioSummaryCard(summary: summary),

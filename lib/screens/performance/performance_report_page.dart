@@ -81,8 +81,6 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
                   children: [
-                    const SectionTitle(title: 'Performans'),
-                    const SizedBox(height: 12),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(

@@ -83,8 +83,6 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
           children: [
-            const SectionTitle(title: 'Piyasa'),
-            const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(

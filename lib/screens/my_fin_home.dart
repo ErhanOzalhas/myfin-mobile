@@ -651,7 +651,7 @@ class _RowQuickActions extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 noAnimationRoute(
-                  builder: (_) => const TransactionEntryPage(),
+                  builder: (_) => const TransactionEntryPage(showBottomNav: false),
                 ),
               );
             },
@@ -2285,7 +2285,7 @@ class _QuickActions extends StatelessWidget {
           onTap: () async {
             await Navigator.of(context).push(
               noAnimationRoute(
-                builder: (_) => const TransactionEntryPage(),
+                builder: (_) => const TransactionEntryPage(showBottomNav: false),
               ),
             );
           },
@@ -2297,7 +2297,7 @@ class _QuickActions extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               noAnimationRoute(
-                builder: (_) => const TransactionEntryPage(),
+                builder: (_) => const TransactionEntryPage(showBottomNav: false),
               ),
             );
           },
@@ -2434,7 +2434,7 @@ class _RecentTransactions extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         noAnimationRoute(
-                          builder: (_) => const TransactionEntryPage(),
+                          builder: (_) => const TransactionEntryPage(showBottomNav: false),
                         ),
                       );
                     },

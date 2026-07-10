@@ -17,7 +17,7 @@ class _MyFinLaunchAppState extends State<MyFinLaunchApp> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 2600), () {
+    Timer(const Duration(milliseconds: 3600), () {
       if (!mounted) return;
       setState(() => _showApp = true);
     });

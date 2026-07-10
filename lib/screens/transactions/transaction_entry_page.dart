@@ -577,51 +577,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     );
   }
 
-  Widget _sectionHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
-                color: _softBlue,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.receipt_long_rounded,
-                color: _brandBlue,
-                size: 21,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'İşlem',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-                letterSpacing: -.4,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Alış veya satış işlemini ekle. Portföy ve işlem geçmişi otomatik güncellenir.',
-          style: TextStyle(
-            color: Color(0xFF596273),
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            height: 1.35,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSaveButton() {
     final isEnabled = _isFormReady && !_isSaving;
     final label = _isSaving
@@ -678,10 +633,13 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: _goBack,
-        ),
+        automaticallyImplyLeading: false,
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: _goBack,
+              )
+            : null,
         title: Text(widget.isEdit ? 'İşlemi Düzenle' : 'Yeni İşlem'),
         centerTitle: false,
         actions: [
@@ -714,8 +672,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(16, 8, 16, keyboardInset > 0 ? 92 : 20),
             children: [
-              _sectionHeader(),
-              const SizedBox(height: 18),
               SurfaceCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
