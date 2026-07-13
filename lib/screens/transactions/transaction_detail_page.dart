@@ -143,7 +143,11 @@ class TransactionDetailPage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 2),
+      
+      bottomNavigationBar: const MyFinBottomNav(
+        selectedIndex: 2,
+        allowSelectedDestinationNavigation: true,
+      ),
     );
   }
 }

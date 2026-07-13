@@ -81,9 +81,120 @@ class IntelligencePage extends StatelessWidget {
                   status: _statusForScore(analysis.aiScore),
                 ),
                 const SizedBox(height: 16),
-                IntelligenceMarketMoodCard(
-                  mood: _moodForRisk(analysis.risk),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    
+                    gradient: const LinearGradient(
+
+  begin: Alignment.topLeft,
+
+  end: Alignment.bottomRight,
+
+  colors: [
+
+    Color(0xFF0F172A),
+
+    Color(0xFF008DB9),
+
+  ],
+
+),
+                   boxShadow: [
+  BoxShadow(
+    color: const Color(0xFF008DB9).withOpacity(.24),
+    blurRadius: 90,
+    offset: const Offset(0, 14),
+  ),
+], 
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -40,
+                          top: -35,
+                          child: IgnorePointer(
+                            child: Container(
+                              width: 170,
+                              height: 170,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF6FD8FF)
+                                    .withValues(alpha: 0.10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF6FD8FF)
+                                        .withValues(alpha: 0.18),
+                                    blurRadius: 90,
+                                    spreadRadius: 28,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              noAnimationRoute(
+                                builder: (_) => AiChatPage(
+                                  analysis: analysis,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                const _PulsingAiGlowIcon(),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'MyFin AI’ye Sor',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Portföyünü birlikte değerlendirelim',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 16),
+                
                 const SizedBox(height: 16),
                 IntelligenceRecommendationCard(
                   recommendations: [
@@ -99,22 +210,8 @@ class IntelligencePage extends StatelessWidget {
                   investmentStyle: analysis.investmentStyle,
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        noAnimationRoute(
-                          builder: (_) => AiChatPage(
-                            analysis: analysis,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.chat_bubble_rounded),
-                    label: const Text('MyFin ile Konuş'),
-                  ),
+                IntelligenceMarketMoodCard(
+                  mood: _moodForRisk(analysis.risk),
                 ),
                 const SizedBox(height: 16),
                 IntelligenceTimelineCard(events: timelineEvents),
@@ -129,3 +226,60 @@ class IntelligencePage extends StatelessWidget {
     );
   }
 }
+
+/// "MyFin AI'ye Sor" butonundaki yıldız ikonunun etrafında yumuşak,
+/// nabız gibi atan (pulsing) sarı bir AI ışıltısı oluşturan widget.
+class _PulsingAiGlowIcon extends StatefulWidget {
+  const _PulsingAiGlowIcon();
+
+  @override
+  State<_PulsingAiGlowIcon> createState() => _PulsingAiGlowIconState();
+}
+
+class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double glowStrength = 0.30 + (_controller.value * 0.35);
+        final double scale = 1.0 + (_controller.value * 0.10);
+
+        return Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFF5A623).withOpacity(glowStrength),
+                blurRadius: 22,
+                spreadRadius: 3,
+              ),
+            ],
+          ),
+          child: Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+        );
+      },
+      child: const Icon(
+        Icons.auto_awesome_rounded,
+        color: Color(0xFFF5A623),
+        size: 24,
+      ),
+    );
+  }
+}
+

@@ -1,6 +1,8 @@
 // lib/services/portfolio_analyzer.dart
 
 import '../models/portfolio_analysis.dart';
+import '../models/portfolio_item.dart';
+import 'ai_score_engine.dart';
 
 /// PortfolioItem sınıfı mevcut projedeki modele göre çalışır.
 /// Beklenen alanlar:
@@ -50,12 +52,9 @@ class PortfolioAnalyzer {
     final risk =
         _calculateRisk(normalizedAllocation);
 
-    final health =
-        _calculateHealth(
-      diversification,
-      risk,
-      profitPercent,
-    );
+    final typedItems = items.cast<PortfolioItem>();
+    final scoreBreakdown = const AIScoreEngine().calculate(typedItems);
+    final health = scoreBreakdown.overallScore.toDouble();
 
     return PortfolioAnalysis(
       totalValue: totalValue,
@@ -114,22 +113,5 @@ class PortfolioAnalyzer {
     return risk.clamp(0.0, 100.0);
   }
 
-  static double _calculateHealth(
-    double diversification,
-    double risk,
-    double profit,
-  ) {
-    double score = 50;
 
-    score += diversification * 0.30;
-    score += (100 - risk) * 0.25;
-
-    if (profit > 0) {
-      score += (profit.clamp(0.0, 20.0)) * 1.2;
-    } else {
-      score -= ((-profit).clamp(0.0, 20.0));
-    }
-
-    return score.clamp(0.0, 100.0);
-  }
 }

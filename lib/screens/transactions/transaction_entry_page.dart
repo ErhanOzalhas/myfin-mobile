@@ -1,14 +1,22 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
-import '../../services/market_asset_catalog_service.dart';
+import '../../services/market/models/asset_category.dart';
+import '../../services/market/registry/asset_info.dart';
+import '../../services/market/market_service.dart';
+import '../../services/market/registry/asset_registry.dart';
+import '../../services/market/search/coingecko_coin_index.dart';
+import '../../services/market/search/unified_asset_search_service.dart';
 import '../../services/portfolio_rebuild_service.dart';
 import '../../utils/myfin_formatters.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
+import '../../utils/no_animation_route.dart';
 
 import 'transaction_history_page.dart';
 
@@ -39,11 +47,16 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final _priceController = TextEditingController();
   final _assetSearchController = TextEditingController();
   final _noteController = TextEditingController();
+  final _assetSearchFocusNode = FocusNode();
   final _quantityFocusNode = FocusNode();
   final _priceFocusNode = FocusNode();
-  final _catalogService = const MarketAssetCatalogService();
-
-  List<MarketAsset> _suggestions = const [];
+  final _remoteAssetSearch = UnifiedAssetSearchService();
+  List<AssetInfo> _suggestions = const [];
+  AssetInfo? _selectedAsset;
+  bool _isLoadingLivePrice = false;
+  String? _livePriceMessage;
+  int _searchRequestId = 0;
+  Timer? _searchDebounce;
   bool _isSearching = false;
   bool _isSaving = false;
   bool _isSaved = false;
@@ -61,6 +74,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _assetSearchController.addListener(_handleFormChanged);
     _quantityController.addListener(_handleFormChanged);
     _priceController.addListener(_handleFormChanged);
+    _assetSearchFocusNode.addListener(_handleAssetSearchFocusChanged);
     _quantityFocusNode.addListener(_handleQuantityFocusChanged);
     _priceFocusNode.addListener(_handlePriceFocusChanged);
 
@@ -80,6 +94,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _assetName = assetName;
     _assetType = (data['assetType'] ?? _assetType).toString();
     _symbolController.text = symbol;
+    _selectedAsset = AssetRegistry.find(symbol);
     _assetSearchController.text = assetName.isEmpty || assetName == symbol
         ? symbol
         : '$symbol • $assetName';
@@ -98,8 +113,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _assetSearchController.removeListener(_handleFormChanged);
     _quantityController.removeListener(_handleFormChanged);
     _priceController.removeListener(_handleFormChanged);
+    _searchDebounce?.cancel();
+    _assetSearchFocusNode.removeListener(_handleAssetSearchFocusChanged);
     _quantityFocusNode.removeListener(_handleQuantityFocusChanged);
     _priceFocusNode.removeListener(_handlePriceFocusChanged);
+    _assetSearchFocusNode.dispose();
     _quantityFocusNode.dispose();
     _priceFocusNode.dispose();
     _assetSearchController.dispose();
@@ -107,12 +125,18 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _quantityController.dispose();
     _priceController.dispose();
     _noteController.dispose();
+    _remoteAssetSearch.close();
     super.dispose();
   }
 
   void _handleFormChanged() {
     if (!mounted) return;
     setState(() {});
+  }
+
+  void _handleAssetSearchFocusChanged() {
+    if (!_assetSearchFocusNode.hasFocus || _selectedAsset == null) return;
+    _clearSelectedAsset(keepFocus: true);
   }
 
   void _handleQuantityFocusChanged() {
@@ -140,6 +164,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
     setState(() {
       _suggestions = const [];
+      _selectedAsset = null;
       _isSearching = false;
       _isSaving = false;
       _isSaved = false;
@@ -178,8 +203,25 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   }
 
   String _formatQuantityText(String value) {
-    return _formatCurrencyText(value);
-  }
+  final formatted = const _TurkishDecimalTextInputFormatter(
+    decimalDigits: 8,
+    dotAsDecimal: false,
+  ).formatString(value);
+
+  if (formatted.isEmpty) return '';
+
+  final separatorIndex = formatted.indexOf(',');
+  if (separatorIndex == -1) return formatted;
+
+  final integerPart = formatted.substring(0, separatorIndex);
+  var decimalPart = formatted.substring(separatorIndex + 1);
+
+  decimalPart = decimalPart.replaceFirst(RegExp(r'0+$'), '');
+
+  if (decimalPart.isEmpty) return integerPart;
+
+  return '$integerPart,$decimalPart';
+}
 
   String _formatCurrencyText(String value) {
     final formatted = const _TurkishDecimalTextInputFormatter(
@@ -222,19 +264,79 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     }
   }
 
-  Future<void> _searchAssets(String value) async {
-    final query = value.trim();
+  void _onAssetSearchChanged(String value) {
+    _searchDebounce?.cancel();
 
+    final query = value.trim();
     if (query.length < 2) {
-      setState(() => _suggestions = const []);
+      _searchRequestId++;
+      if (!mounted) return;
+      setState(() {
+        _suggestions = const [];
+        _isSearching = false;
+        _livePriceMessage = null;
+      });
       return;
     }
 
-    setState(() => _isSearching = true);
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 220),
+      () => _searchAssets(query),
+    );
+  }
 
-    final results = await _catalogService.search(query: query);
+  void _clearSelectedAsset({bool keepFocus = false}) {
+    _searchDebounce?.cancel();
+    _searchRequestId++;
+    _symbolController.clear();
+    _assetSearchController.clear();
+    _quantityController.clear();
+    _priceController.clear();
 
-    if (!mounted) return;
+    setState(() {
+      _selectedAsset = null;
+      _suggestions = const [];
+      _assetName = '';
+      _assetType = 'Hisse';
+      _currency = 'TRY';
+      _isSearching = false;
+      _isLoadingLivePrice = false;
+      _livePriceMessage = null;
+    });
+
+    if (keepFocus) {
+      _assetSearchFocusNode.requestFocus();
+    }
+  }
+
+  Future<void> _searchAssets(String value) async {
+    final query = value.trim();
+    final requestId = ++_searchRequestId;
+
+    if (query.length < 2) {
+      setState(() {
+        _suggestions = const [];
+        _selectedAsset = null;
+        _livePriceMessage = null;
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _selectedAsset = null;
+      _livePriceMessage = null;
+    });
+
+    final results = await _remoteAssetSearch.search(
+      query,
+      limit: 18,
+    );
+
+    if (!mounted || requestId != _searchRequestId) {
+      return;
+    }
 
     setState(() {
       _suggestions = results;
@@ -242,17 +344,93 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     });
   }
 
-  void _selectAsset(MarketAsset asset) {
+  Future<void> _selectAsset(AssetInfo asset) async {
     setState(() {
+      _selectedAsset = asset;
       _symbolController.text = asset.symbol;
       _assetSearchController.text = '${asset.symbol} • ${asset.name}';
       _assetName = asset.name;
-      _assetType = asset.type;
+      _assetType = _assetTypeFor(asset);
       _currency = asset.currency;
       _suggestions = const [];
+      _isSearching = false;
+      _isLoadingLivePrice = true;
+      _livePriceMessage = 'Canlı fiyat alınıyor...';
     });
 
     FocusScope.of(context).unfocus();
+
+    if (asset.provider == 'CoinGecko' &&
+        asset.providerAssetId != null) {
+      CoinGeckoCoinIndex.instance.rememberPreferred(
+        symbol: asset.symbol,
+        coinId: asset.providerAssetId!,
+      );
+    }
+
+    try {
+      final quote = await MarketService.instance.getQuote(
+        asset.symbol,
+        exchange: asset.exchange,
+        forceRefresh: true,
+      );
+
+      if (!mounted || _selectedAsset?.symbol != asset.symbol) return;
+
+      setState(() {
+        _currency = quote.currency;
+        _priceController.text = _formatPriceInput(quote.price);
+        _isLoadingLivePrice = false;
+        _livePriceMessage =
+            'Canlı fiyat: ${formatCurrency(quote.price, quote.currency)}';
+      });
+    } catch (error) {
+      if (!mounted || _selectedAsset?.symbol != asset.symbol) return;
+
+      setState(() {
+        _isLoadingLivePrice = false;
+        _livePriceMessage =
+            'Canlı fiyat alınamadı. Fiyatı elle girebilirsin.';
+      });
+
+      debugPrint('AUTO PRICE ERROR (${asset.symbol}): $error');
+    }
+  }
+
+  String _assetTypeFor(AssetInfo asset) {
+    final category = asset.category;
+
+    if (category == AssetCategory.crypto) {
+      return 'Kripto';
+    }
+
+    if (category == AssetCategory.currency) {
+      return 'Döviz';
+    }
+
+    if (category == AssetCategory.commodity) {
+      final normalized = '${asset.symbol} ${asset.name}'.toUpperCase();
+      if (normalized.contains('ALTIN') ||
+          normalized.contains('XAU') ||
+          normalized.contains('GOLD')) {
+        return 'Altın';
+      }
+      return 'Emtia';
+    }
+
+    if (category == AssetCategory.etf) {
+      return 'ETF';
+    }
+
+    if (category == AssetCategory.marketIndex) {
+      return 'Endeks';
+    }
+
+    if (category == AssetCategory.fund) {
+      return 'Fon';
+    }
+
+    return 'Hisse';
   }
 
   double _parseDouble(String value) {
@@ -477,8 +655,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
   void _openTransactionHistory() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const TransactionHistoryPage(showBottomNav: false),
+      noAnimationRoute(
+        builder: (_) => const TransactionHistoryPage(showBottomNav: true),
       ),
     );
   }
@@ -619,6 +797,33 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
+    final currencies = <String>{
+      'TRY',
+      'USD',
+      'EUR',
+      'GBP',
+      'CHF',
+      'JPY',
+      'CAD',
+      'AUD',
+      'NZD',
+      'SEK',
+      'NOK',
+      'DKK',
+      'INR',
+      'CNY',
+      'HKD',
+      'SGD',
+      'AED',
+      'SAR',
+      'KWD',
+      'QAR',
+      'RUB',
+      if (_currency.trim().isNotEmpty)
+        _currency.trim().toUpperCase(),
+    }.toList()
+      ..sort();
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
@@ -690,9 +895,24 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         labelText: 'Varlık ara',
                         hintText: 'Örn: ASELS, USD, Altın...',
                         prefixIcon: Icons.search_rounded,
+                      ).copyWith(
+                        suffixIcon: _assetSearchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Varlığı temizle',
+                                onPressed: () =>
+                                    _clearSelectedAsset(keepFocus: true),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
                       ),
                       validator: _requiredText,
-                      onChanged: _searchAssets,
+                      focusNode: _assetSearchFocusNode,
+                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textInputAction: TextInputAction.search,
+                      onChanged: _onAssetSearchChanged,
                     ),
                     const SizedBox(height: 8),
                     if (_isSearching) const LinearProgressIndicator(minHeight: 2),
@@ -704,6 +924,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           onSelected: _selectAsset,
                         ),
                       ),
+                    if (_selectedAsset != null) ...[
+                      const SizedBox(height: 10),
+                      _SelectedAssetCard(
+                        asset: _selectedAsset!,
+                        isLoadingPrice: _isLoadingLivePrice,
+                        livePriceMessage: _livePriceMessage,
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _quantityController,
@@ -716,7 +944,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: const [
   _TurkishDecimalTextInputFormatter(
-    decimalDigits: 2,
+    decimalDigits: 8,
     dotAsDecimal: true,
   ),
 ],
@@ -733,9 +961,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       controller: _priceController,
                       focusNode: _priceFocusNode,
                       decoration: _fieldDecoration(
-                        labelText: 'Birim fiyat (TL)',
+                        labelText: 'Birim fiyat ($_currency)',
                         hintText: 'Örn: 123,45',
-                        suffixIcon: Icons.currency_lira_rounded,
+                        suffixIcon: Icons.payments_outlined,
                       ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: const [
@@ -757,16 +985,28 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _currency,
-                            decoration: _fieldDecoration(labelText: 'Para birimi'),
-                            items: const [
-                              DropdownMenuItem(value: 'TRY', child: Text('TRY')),
-                              DropdownMenuItem(value: 'USD', child: Text('USD')),
-                              DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                              DropdownMenuItem(value: 'GBP', child: Text('GBP')),
-                            ],
+                            key: ValueKey<String>(
+                              'currency-$_currency',
+                            ),
+                            initialValue: _currency,
+                            decoration: _fieldDecoration(
+                              labelText: 'Para birimi',
+                            ),
+                            items: currencies
+                                .map(
+                                  (currency) =>
+                                      DropdownMenuItem<String>(
+                                    value: currency,
+                                    child: Text(currency),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (value) {
-                              if (value != null) setState(() => _currency = value);
+                              if (value == null) return;
+
+                              setState(() {
+                                _currency = value;
+                              });
                             },
                           ),
                         ),
@@ -780,11 +1020,17 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                                 labelText: 'İşlem tarihi',
                                 suffixIcon: Icons.calendar_today_rounded,
                               ),
-                              child: Text(
-                                _formatDate(_transactionDate),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                              child: FittedBox(
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _formatDate(_transactionDate),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -977,8 +1223,8 @@ class _TurkishDecimalTextInputFormatter extends TextInputFormatter {
 }
 
 class _SuggestionPanel extends StatelessWidget {
-  final List<MarketAsset> suggestions;
-  final ValueChanged<MarketAsset> onSelected;
+  final List<AssetInfo> suggestions;
+  final ValueChanged<AssetInfo> onSelected;
 
   const _SuggestionPanel({
     required this.suggestions,
@@ -995,6 +1241,9 @@ class _SuggestionPanel extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFFDCE7F1),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: .045),
@@ -1005,31 +1254,241 @@ class _SuggestionPanel extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: suggestions.map((item) {
-            return ListTile(
-              dense: true,
-              visualDensity: VisualDensity.compact,
-              tileColor: Colors.white,
-              leading: CircleAvatar(
-                radius: 16,
-                backgroundColor: const Color(0xFF008DB9).withValues(alpha: .12),
+          children: [
+            for (var index = 0; index < suggestions.length; index++) ...[
+              _AssetSuggestionTile(
+                asset: suggestions[index],
+                onTap: () => onSelected(suggestions[index]),
+              ),
+              if (index != suggestions.length - 1)
+                const Divider(
+                  height: 1,
+                  indent: 62,
+                  color: Color(0xFFE8EEF5),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AssetSuggestionTile extends StatelessWidget {
+  final AssetInfo asset;
+  final VoidCallback onTap;
+
+  const _AssetSuggestionTile({
+    required this.asset,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final supportColor = asset.hasLiveData
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFD97706);
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      tileColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 5,
+      ),
+      leading: CircleAvatar(
+        radius: 18,
+        backgroundColor: const Color(0xFF008DB9).withValues(alpha: .12),
+        child: Text(
+          asset.symbol.characters.first,
+          style: const TextStyle(
+            color: Color(0xFF008DB9),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+      title: Text(
+        asset.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF0F172A),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Text(
+          '${asset.symbol} • ${asset.exchange} • ${asset.currency}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+        ),
+      ),
+      trailing: Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          color: supportColor,
+          shape: BoxShape.circle,
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _SelectedAssetCard extends StatelessWidget {
+  final AssetInfo asset;
+  final bool isLoadingPrice;
+  final String? livePriceMessage;
+
+  const _SelectedAssetCard({
+    required this.asset,
+    required this.isLoadingPrice,
+    required this.livePriceMessage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final live = asset.hasLiveData;
+    final statusColor =
+        live ? const Color(0xFF16A34A) : const Color(0xFFD97706);
+    final statusText = switch (asset.supportStatus) {
+      AssetSupportStatus.live => 'Canlı veri',
+      AssetSupportStatus.delayed => 'Gecikmeli veri',
+      AssetSupportStatus.catalogOnly => 'Katalog hazır',
+      AssetSupportStatus.planned => 'Yakında',
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4FAFE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFBFE3F4),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDDF2FC),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
                 child: Text(
-                  item.symbol.characters.first,
+                  asset.symbol.characters.first,
                   style: const TextStyle(
-                    color: Color(0xFF008DB9),
-                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0284C7),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
                   ),
                 ),
               ),
-              title: Text(
-                '${item.symbol} • ${item.name}',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      asset.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${asset.symbol} • ${asset.exchange} • ${asset.currency}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              subtitle: Text('${item.market} • ${item.currency}'),
-              onTap: () => onSelected(item),
-            );
-          }).toList(),
-        ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isLoadingPrice || livePriceMessage != null) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFD8E7F1)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (isLoadingPrice)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  )
+                else
+                  Icon(
+                    livePriceMessage?.startsWith('Canlı fiyat:')
+                            == true
+                        ? Icons.check_circle_rounded
+                        : Icons.info_outline_rounded,
+                    size: 18,
+                    color:
+                        livePriceMessage?.startsWith('Canlı fiyat:')
+                                == true
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFD97706),
+                  ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    livePriceMessage ?? 'Canlı fiyat alınıyor...',
+                    style: const TextStyle(
+                      color: Color(0xFF334155),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

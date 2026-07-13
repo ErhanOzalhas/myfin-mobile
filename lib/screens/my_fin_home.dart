@@ -30,6 +30,7 @@ import '../widgets/common/thin_divider.dart';
 import '../widgets/common/empty_state_line.dart';
 import '../utils/myfin_formatters.dart';
 import 'portfolio/portfolio_page.dart';
+import 'portfolio/portfolio_asset_page.dart';
 import 'performance/performance_report_page.dart';
 import 'market/live_market_page.dart';
 import 'settings/settings_page.dart';
@@ -118,22 +119,19 @@ _HeroPortfolioCard(refreshTick: _refreshTick),
 
 const SizedBox(height: 16),
 
+_DashboardFadeIn(
+  delay: 40,
+  child: _MyFinIntelligenceHero(
+    refreshTick: _refreshTick,
+  ),
+),
+
+const SizedBox(height: 16),
+
 const _RowQuickActions(),
 
 const SizedBox(height: 16),
 
-
-_DashboardFadeIn(
-  delay: 40,
-  child: _MyFinIntelligenceHero(
-
-    refreshTick: _refreshTick,
-
-  ),
-
-),
-
-const SizedBox(height: 16),
 _KpiGrid(refreshTick: _refreshTick),
               const SizedBox(height: 14),
               
@@ -651,7 +649,7 @@ class _RowQuickActions extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 noAnimationRoute(
-                  builder: (_) => const TransactionEntryPage(showBottomNav: false),
+                  builder: (_) => const TransactionEntryPage(showBottomNav: true),
                 ),
               );
             },
@@ -1629,14 +1627,7 @@ class _DashboardInsightPanel extends StatelessWidget {
                 color: needsAttention
                     ? const Color(0xFFDC2626)
                     : const Color(0xFF16A34A),
-                onTap: () {
-  final analysis = PortfolioAnalyzer.analyze(items);
-  Navigator.of(context).push(
-    noAnimationRoute(
-      builder: (_) => AiChatPage(analysis: analysis),
-    ),
-  );
-},
+    onTap: () => _openIntelligencePage(context),
               ),
             ),
             const SizedBox(width: 12),
@@ -1782,17 +1773,41 @@ class _PortfolioPulsePanel extends StatelessWidget {
         final portfolio = const PortfolioIntelligenceService().build(items);
         final pulse = _PulseData.fromIntelligence(
           portfolio: portfolio,
-         score: PortfolioAnalyzer.analyze(items).aiScore,
+          score: PortfolioAnalyzer.analyze(items).aiScore,
         );
 
-        return PortfolioPulsePanel(
-          title: pulse.title,
-          message: pulse.message,
-          score: pulse.score,
-          dominantLabel: pulse.dominantLabel,
-          assetCount: items.length,
-          color: pulse.color,
-          icon: pulse.icon,
+        final dominantType = portfolio.dominantType;
+        final dominantAssetCount = items
+            .where(
+              (item) => _sameAssetCategory(
+                item.type,
+                dominantType,
+              ),
+            )
+            .length;
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: dominantType.isEmpty
+              ? null
+              : () {
+                  Navigator.of(context).push(
+                    noAnimationRoute(
+                      builder: (_) => PortfolioAssetPage(
+                        initialCategory: dominantType,
+                      ),
+                    ),
+                  );
+                },
+          child: PortfolioPulsePanel(
+            title: pulse.title,
+            message: pulse.message,
+            score: pulse.score,
+            dominantLabel: pulse.dominantLabel,
+            assetCount: dominantAssetCount,
+            color: pulse.color,
+            icon: pulse.icon,
+          ),
         );
       },
     );
@@ -1968,6 +1983,33 @@ Future<_DistributionSnapshot> _loadDistributionSnapshot(
   // portfolio intelligence today. Using live market quotes here caused the
   // allocation card to show a different dominant weight for the same portfolio.
   return _DistributionSnapshot.fromCost(items);
+}
+
+String _normalizedAssetCategory(String type) {
+  switch (type.trim().toLowerCase()) {
+    case 'altin':
+    case 'altın':
+      return 'altin';
+    case 'hisse':
+    case 'bist':
+      return 'hisse';
+    case 'doviz':
+    case 'döviz':
+      return 'doviz';
+    case 'kripto':
+      return 'kripto';
+    case 'fon':
+      return 'fon';
+    case 'endeks':
+      return 'endeks';
+    default:
+      return type.trim().toLowerCase();
+  }
+}
+
+bool _sameAssetCategory(String first, String second) {
+  return _normalizedAssetCategory(first) ==
+      _normalizedAssetCategory(second);
 }
 
 String _assetTypeLabel(String type) {
@@ -2747,13 +2789,7 @@ final scoreColor = _scoreColor(aiScore);
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(28),
-            onTap: () {
-  Navigator.of(context).push(
-    noAnimationRoute(
-      builder: (_) => AiChatPage(analysis: analysis),
-    ),
-  );
-},
+            onTap: () => _openIntelligencePage(context),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -2806,31 +2842,27 @@ final scoreColor = _scoreColor(aiScore);
                         },
                       ),
                       const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                      Expanded(
+                        child: SizedBox(
+                          height: 58,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
                               'MyFin Intelligence',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 21,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -.3,
+                                height: 1.28,
                               ),
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'AI destekli portföy merkezi',
-                              style: TextStyle(
-                                color: Colors.black45,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -2851,6 +2883,20 @@ final scoreColor = _scoreColor(aiScore);
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 72),
+                    child: Text(
+                      'AI destekli portföy merkezi',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     summary,
@@ -2860,23 +2906,66 @@ final scoreColor = _scoreColor(aiScore);
                       color: Color(0xFF334155),
                       fontSize: 15,
                       height: 1.35,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      
-                      FilledButton.icon(
-                       onPressed: () {
-  Navigator.of(context).push(
-    noAnimationRoute(
-      builder: (_) => AiChatPage(analysis: analysis),
-    ),
-  );
-},
-                        icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                        label: const Text("MyFin AI'ye Sor"),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                noAnimationRoute(
+                                  builder: (_) => AiChatPage(analysis: analysis),
+                                ),
+                              );
+                            },
+                            child: Ink(
+                              height: 54,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF0F172A),
+                                    Color(0xFF008DB9),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF008DB9)
+                                        .withValues(alpha: .24),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _PulsingAiGlowIcon(),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      "MyFin AI'ye Sor",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -2890,3 +2979,58 @@ final scoreColor = _scoreColor(aiScore);
   }
 }
 
+/// "MyFin AI'ye Sor" butonundaki yıldız ikonunun etrafında yumuşak,
+/// nabız gibi atan (pulsing) sarı bir AI ışıltısı oluşturan widget.
+class _PulsingAiGlowIcon extends StatefulWidget {
+  const _PulsingAiGlowIcon();
+
+  @override
+  State<_PulsingAiGlowIcon> createState() => _PulsingAiGlowIconState();
+}
+
+class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double glowStrength = 0.30 + (_controller.value * 0.35);
+        final double scale = 1.0 + (_controller.value * 0.10);
+
+        return Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFF5A623).withOpacity(glowStrength),
+                blurRadius: 22,
+                spreadRadius: 3,
+              ),
+            ],
+          ),
+          child: Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+        );
+      },
+      child: const Icon(
+        Icons.auto_awesome_rounded,
+        color: Color(0xFFF5A623),
+        size: 22,
+      ),
+    );
+  }
+}

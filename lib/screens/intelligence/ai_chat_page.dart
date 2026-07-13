@@ -315,8 +315,9 @@ class _AiChatPageState extends State<AiChatPage> {
         ),
       ),
       bottomNavigationBar: const MyFinBottomNav(
-        selectedIndex: 3,
-      ),
+  selectedIndex: 3,
+  allowSelectedDestinationNavigation: true,
+),
     ); 
   }
 }
@@ -383,14 +384,14 @@ class _HeroPanel extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: <Color>[Color(0xFF0F172A), Color(0xFF164E63)],
+          colors: <Color>[Color(0xFF0F172A), Color(0xFF008DB9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.18),
+            color: const Color(0xFF008DB9).withValues(alpha: 0.24),
             blurRadius: 24,
             offset: const Offset(0, 14),
           ),

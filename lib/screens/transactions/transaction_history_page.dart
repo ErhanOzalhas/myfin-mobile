@@ -12,10 +12,12 @@ import '../../utils/no_animation_route.dart';
 
 class TransactionHistoryPage extends StatelessWidget {
   final bool showBottomNav;
+  final String? symbolFilter;
 
   const TransactionHistoryPage({
     super.key,
     this.showBottomNav = true,
+    this.symbolFilter,
   });
 
   String _formatDate(dynamic value) {
@@ -32,7 +34,11 @@ class TransactionHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('İşlemler'),
+        title: Text(
+          symbolFilter == null || symbolFilter!.isEmpty
+              ? 'İşlem Geçmişi'
+              : '$symbolFilter İşlem Geçmişi',
+        ),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -40,17 +46,28 @@ class TransactionHistoryPage extends StatelessWidget {
           stream: PortfolioRepository.instance.watchTransactions(),
           builder: (context, snapshot) {
             final docs = snapshot.data?.docs ?? [];
+            final visibleDocs =
+                symbolFilter == null || symbolFilter!.isEmpty
+                    ? docs
+                    : docs.where((doc) {
+                        final symbol =
+                            (doc.data()['symbol'] ?? '').toString();
+                        return symbol.toUpperCase() ==
+                            symbolFilter!.toUpperCase();
+                      }).toList();
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
               children: [
-                const SectionTitle(title: 'İşlem Geçmişi'),
+                
                 const SizedBox(height: 12),
                 SurfaceCard(
                   child: Text(
-                    docs.isEmpty
-                        ? 'Henüz işlem kaydı yok. Alış veya satış işlemi girdiğinde burada görünecek.'
-                        : '${docs.length} işlem kaydı bulundu.',
+                    visibleDocs.isEmpty
+                        ? (symbolFilter == null || symbolFilter!.isEmpty
+                            ? 'Henüz işlem kaydı yok. Alış veya satış işlemi girdiğinde burada görünecek.'
+                            : '$symbolFilter için işlem kaydı bulunamadı.')
+                        : '${visibleDocs.length} işlem kaydı bulundu.',
                     style: const TextStyle(
                       color: Colors.black54,
                       fontWeight: FontWeight.w700,
@@ -59,7 +76,7 @@ class TransactionHistoryPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                for (final doc in docs)
+                for (final doc in visibleDocs)
                   _TransactionHistoryTile(
                     transactionId: doc.id,
                     data: doc.data(),
@@ -72,8 +89,12 @@ class TransactionHistoryPage extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar:
-          showBottomNav ? const MyFinBottomNav(selectedIndex: 2) : null,
+      bottomNavigationBar: showBottomNav
+          ? const MyFinBottomNav(
+              selectedIndex: 2,
+              allowSelectedDestinationNavigation: true,
+            )
+          : null,
     );
   }
 }

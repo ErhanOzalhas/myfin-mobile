@@ -9,11 +9,13 @@ import '../../utils/no_animation_route.dart';
 class MyFinBottomNav extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int>? onDestinationSelected;
+  final bool allowSelectedDestinationNavigation;
 
   const MyFinBottomNav({
     super.key,
     required this.selectedIndex,
     this.onDestinationSelected,
+    this.allowSelectedDestinationNavigation = false,
   });
 
   @override
@@ -26,7 +28,7 @@ class MyFinBottomNav extends StatelessWidget {
           return;
         }
 
-        if (index == selectedIndex) return;
+        if (index == selectedIndex && !allowSelectedDestinationNavigation) return;
 
         final Widget page = switch (index) {
           0 => const MyFinHome(),

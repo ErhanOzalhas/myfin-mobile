@@ -1,4 +1,5 @@
-import 'package:myfin_mobile/models/portfolio_item.dart';
+import '../models/portfolio_item.dart';
+import 'portfolio_valuation_service.dart';
 
 class PortfolioSummary {
   final double totalCost;
@@ -19,57 +20,55 @@ class PortfolioSummary {
 }
 
 class PortfolioSummaryService {
-  /// Şimdilik toplam değer hesabında kullanıcının girdiği alış birim fiyatı esas alınır.
-  /// Canlı fiyat eşleşmesi tam oturduktan sonra currentValue ayrı bir alanda ele alınacak.
-  static Future<PortfolioSummary> calculate(List<PortfolioItem> items) async {
-    return calculateFromCost(items);
+  static Future<PortfolioSummary> calculate(
+    List<PortfolioItem> items, {
+    bool forceRefresh = false,
+  }) async {
+    final valuation = await PortfolioValuationService.instance.calculate(
+      items,
+      forceRefresh: forceRefresh,
+    );
+
+    return PortfolioSummary(
+      totalCost: valuation.totalCost,
+      totalValue: valuation.totalValue,
+      totalProfit: valuation.totalProfit,
+      profitPercent: valuation.profitPercent,
+      assetCount: valuation.assetCount,
+      primaryCurrency: valuation.baseCurrency,
+    );
   }
 
-  static PortfolioSummary calculateFromCost(List<PortfolioItem> items) {
-    final totalCost = items.fold<double>(
+  /// Yalnızca yüklenme anı ve çevrimdışı görsel geri dönüş için kullanılır.
+  /// Yabancı para birimleri burada birbirine eklenmez.
+  static PortfolioSummary calculateFromCost(
+    List<PortfolioItem> items,
+  ) {
+    final tryItems = items.where(
+      (item) => _normalizeCurrency(item.currency) == 'TRY',
+    );
+
+    final totalCost = tryItems.fold<double>(
       0,
       (sum, item) => sum + item.totalCost,
     );
 
-    return _buildSummary(
-      items,
-      totalCost: totalCost,
-      totalValue: totalCost,
-    );
-  }
-
-  static PortfolioSummary _buildSummary(
-    List<PortfolioItem> items, {
-    required double totalCost,
-    required double totalValue,
-  }) {
-    final totalProfit = totalValue - totalCost;
-    final profitPercent = totalCost <= 0 ? 0.0 : (totalProfit / totalCost) * 100;
-
     return PortfolioSummary(
       totalCost: totalCost,
-      totalValue: totalValue,
-      totalProfit: totalProfit,
-      profitPercent: profitPercent,
+      totalValue: totalCost,
+      totalProfit: 0,
+      profitPercent: 0,
       assetCount: items.length,
-      primaryCurrency: _primaryCurrency(items),
+      primaryCurrency: 'TRY',
     );
   }
 
-  static String _primaryCurrency(List<PortfolioItem> items) {
-    if (items.isEmpty) return 'TRY';
+  static String _normalizeCurrency(String value) {
+    final normalized = value.trim().toUpperCase();
 
-    final totals = <String, double>{};
-    for (final item in items) {
-      totals[item.currency] = (totals[item.currency] ?? 0) + item.totalCost;
-    }
-
-    return totals.entries
-        .fold<MapEntry<String, double>?>(null, (best, entry) {
-          if (best == null || entry.value > best.value) return entry;
-          return best;
-        })
-        ?.key ??
-        'TRY';
+    return switch (normalized) {
+      'TL' || '₺' => 'TRY',
+      _ => normalized,
+    };
   }
 }

@@ -1,58 +1,42 @@
 import '../models/dashboard_summary.dart';
-
 import '../models/portfolio_item.dart';
-
+import '../services/portfolio_valuation_service.dart';
 
 class DashboardRepository {
   DashboardRepository._();
 
   static final DashboardRepository instance = DashboardRepository._();
 
-  Future<DashboardSummary> calculate(List<PortfolioItem> items) async {
-    double totalCost = 0;
-    double currentValue = 0;
+  Future<DashboardSummary> calculate(
+    List<PortfolioItem> items,
+  ) async {
+    final valuation =
+        await PortfolioValuationService.instance.calculate(items);
 
-    String? bestName;
-    double bestPercent = -999999;
+    PortfolioItemValuation? best;
+    PortfolioItemValuation? worst;
 
-    String? worstName;
-    double worstPercent = 999999;
-
-    for (final item in items) {
-      
-
-      final double cost = item.totalCost;
-      final double value = cost;
-
-      totalCost += cost;
-      currentValue += value;
-
-      final double percent = cost == 0 ? 0.0 : ((value - cost) / cost) * 100;
-
-      if (percent > bestPercent) {
-        bestPercent = percent;
-        bestName = item.symbol;
+    for (final itemValuation in valuation.items) {
+      if (best == null ||
+          itemValuation.profitPercent > best.profitPercent) {
+        best = itemValuation;
       }
 
-      if (percent < worstPercent) {
-        worstPercent = percent;
-        worstName = item.symbol;
+      if (worst == null ||
+          itemValuation.profitPercent < worst.profitPercent) {
+        worst = itemValuation;
       }
     }
 
-    final double profit = currentValue - totalCost;
-    final double profitPercent =
-        totalCost == 0 ? 0.0 : ((profit / totalCost) * 100).toDouble();
-
     return DashboardSummary(
-      totalCost: totalCost,
-      currentValue: currentValue,
-      profitLoss: profit,
-      profitPercent: profitPercent,
-      bestPerformer: bestName,
-      bestPerformance: bestName == null ? 0.0 : bestPercent,
-      worstPerformer: worstName,
-      worstPerformance: worstName == null ? 0.0 : worstPercent,
+      totalCost: valuation.totalCost,
+      currentValue: valuation.totalValue,
+      profitLoss: valuation.totalProfit,
+      profitPercent: valuation.profitPercent,
+      bestPerformer: best?.item.symbol,
+      bestPerformance: best?.profitPercent ?? 0,
+      worstPerformer: worst?.item.symbol,
+      worstPerformance: worst?.profitPercent ?? 0,
     );
   }
 }

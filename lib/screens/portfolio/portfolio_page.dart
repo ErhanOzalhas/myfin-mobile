@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../transactions/transaction_entry_page.dart';
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
-import '../../services/portfolio_summary_service.dart';
+import '../../services/portfolio_valuation_service.dart';
 import '../../utils/myfin_formatters.dart';
 import '../../widgets/common/empty_state_line.dart';
 import '../../widgets/common/icon_box.dart';
@@ -13,13 +13,73 @@ import '../../widgets/dashboard/distribution_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../my_fin_home.dart' as legacy;
 import '../../utils/no_animation_route.dart';
+import 'portfolio_asset_page.dart';
+import 'asset_detail_page.dart';
+String _normalizedPortfolioCategory(String type) {
+  switch (type.trim().toLowerCase()) {
+    case 'altin':
+    case 'altın':
+      return 'altin';
+    case 'hisse':
+    case 'bist':
+      return 'hisse';
+    case 'doviz':
+    case 'döviz':
+      return 'doviz';
+    case 'kripto':
+      return 'kripto';
+    case 'fon':
+      return 'fon';
+    case 'endeks':
+      return 'endeks';
+    default:
+      return type.trim().toLowerCase();
+  }
+}
+
+bool _samePortfolioCategory(String first, String second) {
+  return _normalizedPortfolioCategory(first) ==
+      _normalizedPortfolioCategory(second);
+}
+
+String _portfolioCategoryLabel(String type) {
+  switch (_normalizedPortfolioCategory(type)) {
+    case 'altin':
+      return 'Altın';
+    case 'hisse':
+      return 'Hisse';
+    case 'doviz':
+      return 'Döviz';
+    case 'kripto':
+      return 'Kripto';
+    case 'fon':
+      return 'Fon';
+    case 'endeks':
+      return 'Endeks';
+    default:
+      return type.trim().isEmpty ? 'Diğer' : type.trim();
+  }
+}
+
 class PortfolioPage extends StatelessWidget {
   final bool showBottomNav;
+  final String? initialCategory;
 
   const PortfolioPage({
     super.key,
     this.showBottomNav = true,
+    this.initialCategory,
   });
+
+  void _openAssets(BuildContext context, {String? category}) {
+    Navigator.of(context).push(
+      noAnimationRoute(
+        builder: (_) => PortfolioAssetPage(
+          initialCategory: category,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,27 +110,90 @@ class PortfolioPage extends StatelessWidget {
               );
             }
 
-            final items = snapshot.data ?? [];
+            final items = snapshot.data ?? <PortfolioItem>[];
 
-            return FutureBuilder<PortfolioSummary>(
+            return FutureBuilder<PortfolioValuation>(
               key: ValueKey(
-                'portfolio-summary-${items.length}-${items.fold<double>(0, (sum, item) => sum + item.totalCost)}',
+                'portfolio-live-summary-${items.length}-${items.fold<double>(0, (sum, item) => sum + item.totalCost)}',
               ),
-              future: PortfolioSummaryService.calculate(items),
+              future: PortfolioValuationService.instance.calculate(items),
               builder: (context, summarySnapshot) {
-                final summary = summarySnapshot.data ??
-                    PortfolioSummaryService.calculateFromCost(items);
+                final valuation = summarySnapshot.data;
 
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
                   children: [
-                    _DistributionCard(refreshTick: items.length),
-                    const SizedBox(height: 14),
-                    _PortfolioSummaryCard(summary: summary),
+                    if (valuation == null)
+                      const SurfaceCard(
+                        child: SizedBox(
+                          height: 210,
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                      )
+                    else
+                      _PortfolioSummaryCard(summary: valuation),
                     const SizedBox(height: 18),
-                    const SectionTitle(title: 'Varlıklar'),
-                    const SizedBox(height: 12),
-                    _PortfolioList(refreshTick: 0, items: items),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => _openAssets(
+                        context,
+                        category: initialCategory,
+                      ),
+                      child: SurfaceCard(
+                        padding: const EdgeInsets.all(18),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0F2FE),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: Color(0xFF0284C7),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Portföy Varlıklarını Gör',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${items.length} varlık • filtrele ve incele',
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFF0284C7),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                     
+                     const SizedBox(height: 14),
+                    _DistributionCard(refreshTick: items.length),
+                    
+                    
                   ],
                 );
               },
@@ -82,195 +205,17 @@ class PortfolioPage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             noAnimationRoute(
-   builder: (_) => const TransactionEntryPage(),
+              builder: (_) => const TransactionEntryPage(
+                showBottomNav: true,
+              ),
             ),
           );
         },
         icon: const Icon(Icons.add_rounded),
         label: const Text('Yeni İşlem'),
       ),
-     bottomNavigationBar: showBottomNav
-    ? const MyFinBottomNav(selectedIndex: 1)
-    : null, 
-    );
-  }
-}
-
-class AssetDetailPage extends StatelessWidget {
-  final PortfolioItem item;
-
-  const AssetDetailPage({super.key, required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final totalCost = item.totalCost;
-    final currentValue = totalCost;
-    final profitLoss = currentValue - totalCost;
-    final profitPercent = totalCost <= 0 ? 0.0 : (profitLoss / totalCost) * 100;
-    final isProfit = profitLoss >= 0;
-    final profitColor =
-        isProfit ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-    final title = item.name.isNotEmpty ? item.name : item.symbol;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
-      appBar: AppBar(
-        title: Text(item.symbol),
-        centerTitle: false,
-        backgroundColor: const Color(0xFFF7F9FC),
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
-          children: [
-            SurfaceCard(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: const Color(0xFFBAE6FD),
-                        child: Text(
-                          item.symbol.isNotEmpty
-                              ? item.symbol.characters.first
-                              : '?',
-                          style: const TextStyle(
-                            color: Color(0xFF075985),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${item.symbol} • ${item.type} • ${item.currency}',
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    formatCurrency(currentValue, item.currency),
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -.7,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  const Text(
-                    'Güncel değer / canlı veri bağlanana kadar maliyet bazlı',
-                    style: TextStyle(
-                      color: Colors.black54,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: profitColor.withValues(alpha: .10),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isProfit
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          color: profitColor,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${isProfit ? '+' : ''}${formatCurrency(profitLoss, item.currency)}',
-                            style: TextStyle(
-                              color: profitColor,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          formatPercent(profitPercent),
-                          style: TextStyle(
-                            color: profitColor,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            SurfaceCard(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: [
-                  _AssetDetailRow(label: 'Kategori', value: item.type),
-                  const ThinDivider(),
-                  _AssetDetailRow(
-                    label: 'Miktar / Adet',
-                    value: item.quantity.toString(),
-                  ),
-                  const ThinDivider(),
-                  _AssetDetailRow(
-                    label: 'Alış birim fiyatı',
-                    value: formatCurrency(item.averagePrice, item.currency),
-                  ),
-                  const ThinDivider(),
-                  _AssetDetailRow(
-                    label: 'Toplam maliyet',
-                    value: formatCurrency(totalCost, item.currency),
-                  ),
-                  const ThinDivider(),
-                  const _AssetDetailRow(
-                    label: 'Güncel canlı fiyat',
-                    value: 'Piyasa verisi bekleniyor',
-                  ),
-                  const ThinDivider(),
-                  _AssetDetailRow(
-                    label: 'Kâr / Zarar',
-                    value:
-                        '${isProfit ? '+' : ''}${formatCurrency(profitLoss, item.currency)}',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: const MyFinBottomNav(
-        selectedIndex: 1,
-      ),
+      bottomNavigationBar:
+          showBottomNav ? const MyFinBottomNav(selectedIndex: 1) : null,
     );
   }
 }
@@ -333,7 +278,7 @@ class _DistributionCard extends StatelessWidget {
 }
 
 class _PortfolioSummaryCard extends StatelessWidget {
-  final PortfolioSummary summary;
+  final PortfolioValuation summary;
 
   const _PortfolioSummaryCard({required this.summary});
 
@@ -371,7 +316,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'Canlı fiyat bağlanınca K/Z güncellenecek',
+                      'Canlı piyasa verileriyle güncellenir',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.black54,
@@ -401,7 +346,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 22),
           Text(
-            formatCurrency(summary.totalValue, summary.primaryCurrency),
+            formatCurrency(summary.totalValue, summary.baseCurrency),
             style: const TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w800,
@@ -411,7 +356,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Toplam Yatırım',
+            'Güncel Portföy Değeri',
             style: TextStyle(
               fontSize: 13,
               color: Colors.black54,
@@ -437,7 +382,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '$profitPrefix${formatCurrency(summary.totalProfit.abs(), summary.primaryCurrency)}',
+                    '$profitPrefix${formatCurrency(summary.totalProfit.abs(), summary.baseCurrency)}',
                     style: TextStyle(
                       color: profitColor,
                       fontSize: 16,
@@ -464,14 +409,14 @@ class _PortfolioSummaryCard extends StatelessWidget {
                   label: 'Toplam Maliyet',
                   value: formatCurrency(
                     summary.totalCost,
-                    summary.primaryCurrency,
+                    summary.baseCurrency,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _PortfolioSummaryMetric(
-                  label: 'Beklenen Getiri',
+                  label: 'Toplam Getiri',
                   value: formatPercent(summary.profitPercent),
                   valueColor: profitColor,
                 ),
@@ -697,44 +642,6 @@ class _PortfolioAssetTile extends StatelessWidget {
             const Icon(Icons.chevron_right_rounded, color: Colors.black38),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AssetDetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _AssetDetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
