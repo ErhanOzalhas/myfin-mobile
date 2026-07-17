@@ -1,19 +1,8 @@
 import '../models/asset_category.dart';
 
-enum AssetSupportStatus {
-  live,
-  delayed,
-  catalogOnly,
-  planned,
-}
+enum AssetSupportStatus { live, delayed, catalogOnly, planned }
 
-enum AssetRiskLevel {
-  low,
-  medium,
-  high,
-  veryHigh,
-  unknown,
-}
+enum AssetRiskLevel { low, medium, high, veryHigh, unknown }
 
 class AssetInfo {
   final String symbol;
@@ -66,8 +55,7 @@ class AssetInfo {
 
   bool get isTurkishAsset => countryCode.toUpperCase() == 'TR';
 
-  bool get isGlobalAsset =>
-      countryCode.toUpperCase() == 'GLOBAL';
+  bool get isGlobalAsset => countryCode.toUpperCase() == 'GLOBAL';
 
   int searchScore(String query) {
     final normalizedQuery = _normalize(query);
@@ -109,9 +97,7 @@ class AssetInfo {
       return 50;
     }
 
-    if (aiTags.any(
-      (tag) => _normalize(tag).contains(normalizedQuery),
-    )) {
+    if (aiTags.any((tag) => _normalize(tag).contains(normalizedQuery))) {
       return 40;
     }
 
@@ -161,12 +147,19 @@ class AssetInfo {
   static String _normalize(String value) {
     return value
         .trim()
-        .toUpperCase()
+        .replaceAll('ı', 'i')
         .replaceAll('İ', 'I')
+        .replaceAll('ş', 's')
         .replaceAll('Ş', 'S')
+        .replaceAll('ğ', 'g')
         .replaceAll('Ğ', 'G')
+        .replaceAll('ü', 'u')
         .replaceAll('Ü', 'U')
+        .replaceAll('ö', 'o')
         .replaceAll('Ö', 'O')
-        .replaceAll('Ç', 'C');
+        .replaceAll('ç', 'c')
+        .replaceAll('Ç', 'C')
+        .toUpperCase()
+        .replaceAll('İ', 'I');
   }
 }

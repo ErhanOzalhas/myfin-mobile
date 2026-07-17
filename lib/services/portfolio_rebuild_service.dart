@@ -27,9 +27,9 @@ class PortfolioRebuildService {
 
     for (final doc in transactions) {
       final data = doc.data();
-debugPrint(
-  'REBUILD TX => symbol=${data['symbol']} | assetName=${data['assetName']} | assetType=${data['assetType']} | type=${data['type']}',
-);
+      debugPrint(
+        'REBUILD TX => symbol=${data['symbol']} | assetName=${data['assetName']} | assetType=${data['assetType']} | type=${data['type']}',
+      );
       final symbol = (data['symbol'] ?? '').toString().trim().toUpperCase();
       if (symbol.isEmpty) continue;
 
@@ -48,6 +48,11 @@ debugPrint(
           currency: (data['currency'] ?? 'TRY').toString(),
         ),
       );
+
+      final originalBuy = _originalBuyBeforeTypeChange(data);
+      if (transactionType == 'Satış' && originalBuy != null) {
+        position.buy(originalBuy.$1, originalBuy.$2);
+      }
 
       if (transactionType == 'Satış') {
         position.sell(quantity);
@@ -71,6 +76,23 @@ debugPrint(
         ),
       );
     }
+  }
+
+  (double, double)? _originalBuyBeforeTypeChange(Map<String, dynamic> data) {
+    final history = data['changeHistory'];
+    if (history is! List || history.isEmpty) return null;
+    final firstChange = history.first;
+    if (firstChange is! Map) return null;
+    final before = firstChange['before'];
+    if (before is! Map || (before['type'] ?? '').toString() != 'Alış') {
+      return null;
+    }
+    final currentType = (data['type'] ?? '').toString();
+    if (currentType != 'Satış') return null;
+    final quantity = (before['quantity'] as num?)?.toDouble() ?? 0;
+    final price = (before['price'] as num?)?.toDouble() ?? 0;
+    if (quantity <= 0 || price <= 0) return null;
+    return (quantity, price);
   }
 
   DateTime _dateFrom(dynamic value) {
@@ -107,44 +129,43 @@ debugPrint(
   }
 
   String _resolveAssetType(Map<String, dynamic> data, String symbol) {
-  final assetType = (data['assetType'] ?? '').toString().trim();
-  if (assetType.isNotEmpty) return assetType;
+    final assetType = (data['assetType'] ?? '').toString().trim();
+    if (assetType.isNotEmpty) return assetType;
 
-  final assetName = (data['assetName'] ?? '').toString().toUpperCase();
-  final normalized = symbol.toUpperCase();
+    final assetName = (data['assetName'] ?? '').toString().toUpperCase();
+    final normalized = symbol.toUpperCase();
 
-  if (normalized == 'USD' ||
-      normalized == 'EUR' ||
-      normalized == 'GBP' ||
-      normalized == 'CHF' ||
-      assetName.contains('DOLAR') ||
-      assetName.contains('EURO') ||
-      assetName.contains('STERLIN') ||
-      assetName.contains('FRANG')) {
-    return 'Döviz';
+    if (normalized == 'USD' ||
+        normalized == 'EUR' ||
+        normalized == 'GBP' ||
+        normalized == 'CHF' ||
+        assetName.contains('DOLAR') ||
+        assetName.contains('EURO') ||
+        assetName.contains('STERLIN') ||
+        assetName.contains('FRANG')) {
+      return 'Döviz';
+    }
+
+    if (normalized == 'XAU' ||
+        normalized == 'ALTIN' ||
+        normalized == 'GAU' ||
+        normalized == 'XAUUSD' ||
+        assetName.contains('ALTIN')) {
+      return 'Altın';
+    }
+
+    if (normalized == 'BTC' ||
+        normalized == 'ETH' ||
+        normalized == 'SOL' ||
+        assetName.contains('BITCOIN') ||
+        assetName.contains('ETHEREUM') ||
+        assetName.contains('SOLANA')) {
+      return 'Kripto';
+    }
+
+    return 'Hisse';
   }
-
-  if (normalized == 'XAU' ||
-      normalized == 'ALTIN' ||
-      normalized == 'GAU' ||
-      normalized == 'XAUUSD' ||
-      assetName.contains('ALTIN')) {
-    return 'Altın';
-  }
-
-  if (normalized == 'BTC' ||
-      normalized == 'ETH' ||
-      normalized == 'SOL' ||
-      assetName.contains('BITCOIN') ||
-      assetName.contains('ETHEREUM') ||
-      assetName.contains('SOLANA')) {
-    return 'Kripto';
-  }
-
-  return 'Hisse';
 }
-  }
-
 
 class _PositionAccumulator {
   final String symbol;

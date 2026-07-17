@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../repositories/portfolio_repository.dart';
@@ -8,6 +9,7 @@ import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import 'transaction_entry_page.dart';
 import '../../utils/no_animation_route.dart';
+
 class TransactionDetailPage extends StatelessWidget {
   final String transactionId;
   final Map<String, dynamic> data;
@@ -20,6 +22,21 @@ class TransactionDetailPage extends StatelessWidget {
     required this.formattedDate,
   });
 
+  String _formatTimestamp(dynamic value) {
+    if (value is! Timestamp) return '-';
+    final date = value.toDate();
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  Map<String, dynamic>? get _latestChange {
+    final history = data['changeHistory'];
+    if (history is! List || history.isEmpty) return null;
+    final latest = history.last;
+    return latest is Map ? Map<String, dynamic>.from(latest) : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final symbol = (data['symbol'] ?? '-').toString();
@@ -30,15 +47,17 @@ class TransactionDetailPage extends StatelessWidget {
     final total = (data['total'] as num?)?.toDouble() ?? 0;
     final currency = (data['currency'] ?? 'TRY').toString();
     final note = (data['note'] ?? '').toString();
+    final latestChange = _latestChange;
+    final hasChanges =
+        data['wasEdited'] == true ||
+        data['updatedAt'] != null ||
+        latestChange != null;
 
     final isSell = type == 'Satış';
     final color = isSell ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('İşlem Detayı'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('İşlem Detayı'), centerTitle: false),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
@@ -85,6 +104,14 @@ class TransactionDetailPage extends StatelessWidget {
                 ],
               ),
             ),
+            if (hasChanges) ...[
+              const SizedBox(height: 14),
+              _TransactionChangeHistoryCard(
+                latestChange: latestChange,
+                fallbackEditedAt: data['updatedAt'],
+                formatTimestamp: _formatTimestamp,
+              ),
+            ],
             const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: () {
@@ -126,14 +153,16 @@ class TransactionDetailPage extends StatelessWidget {
 
                 if (result != true) return;
 
-                await PortfolioRepository.instance.deleteTransaction(transactionId);
+                await PortfolioRepository.instance.deleteTransaction(
+                  transactionId,
+                );
                 await PortfolioRebuildService().rebuildFromTransactions();
 
                 if (!context.mounted) return;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('İşlem silindi.')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('İşlem silindi.')));
 
                 Navigator.of(context).pop();
               },
@@ -143,10 +172,185 @@ class TransactionDetailPage extends StatelessWidget {
           ],
         ),
       ),
-      
+
       bottomNavigationBar: const MyFinBottomNav(
         selectedIndex: 2,
         allowSelectedDestinationNavigation: true,
+      ),
+    );
+  }
+}
+
+class _TransactionChangeHistoryCard extends StatelessWidget {
+  final Map<String, dynamic>? latestChange;
+  final dynamic fallbackEditedAt;
+  final String Function(dynamic) formatTimestamp;
+
+  const _TransactionChangeHistoryCard({
+    required this.latestChange,
+    required this.fallbackEditedAt,
+    required this.formatTimestamp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final change = latestChange;
+    final editedAt = change?['editedAt'] ?? fallbackEditedAt;
+
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Değişiklik Geçmişi',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ReportRow(label: 'Son düzenleme', value: formatTimestamp(editedAt)),
+          if (change == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Bu işlem düzenlendi. Önceki değişiklik ayrıntısı kaydedilmemiş.',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                ),
+              ),
+            )
+          else
+            ..._buildVersionCards(change),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildVersionCards(Map<String, dynamic> change) {
+    final before = Map<String, dynamic>.from(change['before'] as Map? ?? {});
+    final after = Map<String, dynamic>.from(change['after'] as Map? ?? {});
+    return [
+      const SizedBox(height: 6),
+      _TransactionVersionCard(
+        title: 'İşlemin Önceki Hali',
+        data: before,
+        color: const Color(0xFFF59E0B),
+        formatTimestamp: formatTimestamp,
+      ),
+      const SizedBox(height: 12),
+      _TransactionVersionCard(
+        title: 'İşlemin Yeni Hali',
+        data: after,
+        color: const Color(0xFF0284C7),
+        formatTimestamp: formatTimestamp,
+      ),
+    ];
+  }
+}
+
+class _TransactionVersionCard extends StatelessWidget {
+  final String title;
+  final Map<String, dynamic> data;
+  final Color color;
+  final String Function(dynamic) formatTimestamp;
+
+  const _TransactionVersionCard({
+    required this.title,
+    required this.data,
+    required this.color,
+    required this.formatTimestamp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final quantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+    final price = (data['price'] as num?)?.toDouble() ?? 0;
+    final total = (data['total'] as num?)?.toDouble() ?? quantity * price;
+    final currency = (data['currency'] ?? 'TRY').toString();
+    final type = (data['type'] ?? '-').toString();
+    final note = (data['note'] ?? '').toString();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _VersionRow(label: 'İşlem türü', value: type),
+          _VersionRow(label: 'Adet / Miktar', value: formatQuantity(quantity)),
+          _VersionRow(
+            label: 'Birim fiyat',
+            value: formatCurrency(price, currency),
+          ),
+          _VersionRow(
+            label: 'İşlem tutarı',
+            value: formatCurrency(total, currency),
+          ),
+          _VersionRow(
+            label: 'İşlem tarihi',
+            value: formatTimestamp(data['transactionDate']),
+          ),
+          if (note.isNotEmpty) _VersionRow(label: 'Not', value: note),
+        ],
+      ),
+    );
+  }
+}
+
+class _VersionRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _VersionRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,8 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../screens/my_fin_home.dart';
-import '../services/user_cloud_service.dart';
+import '../services/app_startup_coordinator.dart';
 import 'login_page.dart';
 import '../screens/main_shell.dart';
 
@@ -25,7 +24,7 @@ class AuthGate extends StatelessWidget {
         }
 
         return FutureBuilder<void>(
-          future: UserCloudService.createUserProfileIfNeeded(user),
+          future: AppStartupCoordinator.instance.prepareCriticalData(),
           builder: (context, profileSnapshot) {
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return const _AuthLoadingPage();
@@ -44,10 +43,6 @@ class _AuthLoadingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

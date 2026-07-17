@@ -1,6 +1,7 @@
 String formatCurrency(double value, [String currency = 'TRY']) {
-  final normalizedCurrency =
-      currency.trim().isEmpty ? 'TRY' : currency.trim().toUpperCase();
+  final normalizedCurrency = currency.trim().isEmpty
+      ? 'TRY'
+      : currency.trim().toUpperCase();
   final formattedValue = formatTurkishDecimal(value);
 
   if (normalizedCurrency == 'TRY') {
@@ -16,14 +17,25 @@ String formatPercent(double value) {
 }
 
 String formatQuantity(double value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
-  }
+  final isNegative = value < 0;
+  final fixed = value.abs().toStringAsFixed(8);
+  final parts = fixed.split('.');
+  final integer = _groupTurkishThousands(parts.first);
+  final decimal = parts.last.replaceFirst(RegExp(r'0+$'), '');
+  final sign = isNegative ? '-' : '';
 
-  return value
-      .toStringAsFixed(4)
-      .replaceAll(RegExp(r'0+$'), '')
-      .replaceAll('.', ',');
+  if (decimal.isEmpty) return '$sign$integer';
+  return '$sign$integer,$decimal';
+}
+
+String _groupTurkishThousands(String digits) {
+  final reversed = digits.split('').reversed.toList();
+  final grouped = <String>[];
+  for (var index = 0; index < reversed.length; index++) {
+    if (index > 0 && index % 3 == 0) grouped.add('.');
+    grouped.add(reversed[index]);
+  }
+  return grouped.reversed.join();
 }
 
 String formatTurkishDecimal(double value) {

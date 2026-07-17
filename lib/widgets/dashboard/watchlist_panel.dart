@@ -4,9 +4,11 @@ class WatchlistPanel extends StatelessWidget {
   const WatchlistPanel({
     super.key,
     required this.items,
+    this.isLoading = false,
   });
 
   final List<WatchlistItem> items;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +37,11 @@ class WatchlistPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          if (items.isEmpty)
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (items.isEmpty)
             const Text(
-              'Takip listesi bekleniyor.',
+              'Canlı Piyasa ekranından favori varlık ekleyebilirsin.',
               style: TextStyle(
                 color: Colors.black54,
                 fontWeight: FontWeight.w700,
@@ -60,12 +64,14 @@ class WatchlistItem {
     required this.name,
     required this.price,
     required this.changePercent,
+    this.hasLiveData = true,
   });
 
   final String symbol;
   final String name;
   final String price;
   final double changePercent;
+  final bool hasLiveData;
 
   bool get isPositive => changePercent >= 0;
 }
@@ -77,7 +83,9 @@ class _WatchlistRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.isPositive
+    final color = !item.hasLiveData
+        ? const Color(0xFF94A3B8)
+        : item.isPositive
         ? const Color(0xFF16A34A)
         : const Color(0xFFDC2626);
 
@@ -136,7 +144,9 @@ class _WatchlistRow extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(
-              '${item.isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%',
+              item.hasLiveData
+                  ? '${item.isPositive ? '+' : ''}${item.changePercent.toStringAsFixed(2)}%'
+                  : '—',
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w900,

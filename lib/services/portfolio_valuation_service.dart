@@ -50,19 +50,82 @@ class PortfolioValuationService {
 
   static const String baseCurrency = 'TRY';
 
+  final Map<String, _ValuationCacheEntry> _valuationCache = {};
+  final Map<String, Future<PortfolioValuation>> _inFlight = {};
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  String _fingerprint(List<PortfolioItem> items) {
+    final sorted = [...items]..sort((a, b) => a.id.compareTo(b.id));
+    return sorted
+        .map(
+          (item) => [
+            item.id,
+            item.symbol,
+            item.type,
+            item.quantity.toStringAsFixed(8),
+            item.averagePrice.toStringAsFixed(8),
+            item.currency,
+          ].join('|'),
+        )
+        .join('::');
+  }
+
+  PortfolioValuation? peek(List<PortfolioItem> items) {
+    return _valuationCache[_fingerprint(items)]?.valuation;
+  }
+
   Future<PortfolioValuation> calculate(
     List<PortfolioItem> portfolioItems, {
     bool forceRefresh = false,
-  }) async {
-    final valuations = <PortfolioItemValuation>[];
+  }) {
+    final fingerprint = _fingerprint(portfolioItems);
+    final cached = _valuationCache[fingerprint];
 
-    for (final item in portfolioItems) {
-      valuations.add(
-        await _calculateItem(
-          item,
-          forceRefresh: forceRefresh,
-        ),
-      );
+    if (!forceRefresh && cached != null && cached.isFresh) {
+      return Future.value(cached.valuation);
+    }
+
+    final running = _inFlight[fingerprint];
+    if (running != null) return running;
+
+    final calculation =
+        _calculateUncached(portfolioItems, forceRefresh: forceRefresh)
+            .then((valuation) {
+              _valuationCache[fingerprint] = _ValuationCacheEntry(
+                valuation: valuation,
+                savedAt: DateTime.now(),
+                hasAnyLivePrice: valuation.items.any(
+                  (item) => item.hasLivePrice,
+                ),
+              );
+              while (_valuationCache.length > 6) {
+                _valuationCache.remove(_valuationCache.keys.first);
+              }
+              revision.value++;
+              return valuation;
+            })
+            .whenComplete(() => _inFlight.remove(fingerprint));
+
+    _inFlight[fingerprint] = calculation;
+    return calculation;
+  }
+
+  Future<PortfolioValuation> _calculateUncached(
+    List<PortfolioItem> portfolioItems, {
+    required bool forceRefresh,
+  }) async {
+    var valuations = await _calculateItems(
+      portfolioItems,
+      forceRefresh: forceRefresh,
+    );
+
+    final hasNoLivePrice =
+        portfolioItems.isNotEmpty &&
+        valuations.every((valuation) => !valuation.hasLivePrice);
+
+    if (hasNoLivePrice && !forceRefresh) {
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      valuations = await _calculateItems(portfolioItems, forceRefresh: true);
     }
 
     final totalCost = valuations.fold<double>(
@@ -74,8 +137,9 @@ class PortfolioValuationService {
       (sum, valuation) => sum + valuation.currentValueInBaseCurrency,
     );
     final totalProfit = totalValue - totalCost;
-    final profitPercent =
-        totalCost <= 0 ? 0.0 : (totalProfit / totalCost) * 100;
+    final profitPercent = totalCost <= 0
+        ? 0.0
+        : (totalProfit / totalCost) * 100;
 
     debugPrint(
       '📊 Tek finans motoru -> '
@@ -92,6 +156,32 @@ class PortfolioValuationService {
       totalProfit: totalProfit,
       profitPercent: profitPercent,
     );
+  }
+
+  Future<List<PortfolioItemValuation>> _calculateItems(
+    List<PortfolioItem> portfolioItems, {
+    required bool forceRefresh,
+  }) async {
+    final valuations = <PortfolioItemValuation>[];
+
+    // Portföy ekranındaki özet, en yavaş fiyat isteğini beklediği için küçük
+    // ardışık gruplar kartın görünmesini gereksiz yere geciktiriyordu. Normal
+    // bir portföyün fiyatlarını tek dalgada hazırlayıp büyük portföylerde de
+    // sağlayıcıyı korumak için makul bir üst sınır kullanıyoruz.
+    const batchSize = 12;
+    for (var index = 0; index < portfolioItems.length; index += batchSize) {
+      final proposedEnd = index + batchSize;
+      final end = proposedEnd < portfolioItems.length
+          ? proposedEnd
+          : portfolioItems.length;
+      final batch = portfolioItems.sublist(index, end);
+      valuations.addAll(
+        await Future.wait(
+          batch.map((item) => _calculateItem(item, forceRefresh: forceRefresh)),
+        ),
+      );
+    }
+    return valuations;
   }
 
   Future<PortfolioItemValuation> _calculateItem(
@@ -123,6 +213,7 @@ class PortfolioValuationService {
     try {
       final quote = await MarketService.instance.getQuote(
         _marketSymbolFor(item),
+        exchange: _marketExchangeFor(item),
         forceRefresh: forceRefresh,
       );
 
@@ -140,8 +231,9 @@ class PortfolioValuationService {
       }
 
       final profitLoss = currentValueInBase - costInBase;
-      final profitPercent =
-          costInBase <= 0 ? 0.0 : (profitLoss / costInBase) * 100;
+      final profitPercent = costInBase <= 0
+          ? 0.0
+          : (profitLoss / costInBase) * 100;
 
       debugPrint(
         '📈 ${item.symbol}: '
@@ -212,5 +304,33 @@ class PortfolioValuationService {
     }
 
     return symbol;
+  }
+
+  String? _marketExchangeFor(PortfolioItem item) {
+    final type = item.type.trim().toLowerCase();
+    final currency = item.currency.trim().toUpperCase();
+
+    if ((type == 'hisse' || type == 'bist') && currency == 'TRY') {
+      return 'XIST';
+    }
+
+    return null;
+  }
+}
+
+class _ValuationCacheEntry {
+  final PortfolioValuation valuation;
+  final DateTime savedAt;
+  final bool hasAnyLivePrice;
+
+  const _ValuationCacheEntry({
+    required this.valuation,
+    required this.savedAt,
+    required this.hasAnyLivePrice,
+  });
+
+  bool get isFresh {
+    if (!hasAnyLivePrice) return false;
+    return DateTime.now().difference(savedAt) < const Duration(seconds: 30);
   }
 }

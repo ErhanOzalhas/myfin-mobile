@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/app_startup_coordinator.dart';
 import '../widgets/navigation/myfin_bottom_nav.dart';
 import 'intelligence/intelligence_page.dart';
 import 'my_fin_home.dart';
@@ -25,6 +26,14 @@ class _MainShellState extends State<MainShell> {
     const SettingsPage(showBottomNav: false),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppStartupCoordinator.instance.preloadSecondary();
+    });
+  }
+
   void _selectPage(int index) {
     if (index == _selectedIndex) return;
     setState(() => _selectedIndex = index);
@@ -33,10 +42,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: MyFinBottomNav(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _selectPage,

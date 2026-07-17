@@ -41,10 +41,9 @@ String _marketStatusLabel(MarketStatus status) {
 
 Color _marketStatusColor(MarketStatus status) {
   return switch (status) {
-    MarketStatus.open || MarketStatus.alwaysOpen =>
-      const Color(0xFF16A34A),
-    MarketStatus.preMarket || MarketStatus.afterHours =>
-      const Color(0xFFD97706),
+    MarketStatus.open || MarketStatus.alwaysOpen => const Color(0xFF16A34A),
+    MarketStatus.preMarket ||
+    MarketStatus.afterHours => const Color(0xFFD97706),
     MarketStatus.closed => const Color(0xFF64748B),
     MarketStatus.unknown => const Color(0xFF94A3B8),
   };
@@ -53,10 +52,7 @@ Color _marketStatusColor(MarketStatus status) {
 class AssetDetailPage extends StatefulWidget {
   final PortfolioItem item;
 
-  const AssetDetailPage({
-    super.key,
-    required this.item,
-  });
+  const AssetDetailPage({super.key, required this.item});
 
   @override
   State<AssetDetailPage> createState() => _AssetDetailPageState();
@@ -73,11 +69,10 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     _quoteFuture = _loadQuote();
   }
 
-  Future<MarketQuote> _loadQuote({
-    bool forceRefresh = false,
-  }) {
+  Future<MarketQuote> _loadQuote({bool forceRefresh = false}) {
     return MarketService.instance.getQuote(
       _marketSymbolFor(item),
+      exchange: _marketExchangeFor(item),
       forceRefresh: forceRefresh,
     );
   }
@@ -115,6 +110,18 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     }
 
     return rawSymbol;
+  }
+
+  String? _marketExchangeFor(PortfolioItem item) {
+    final normalizedType = item.type.trim().toLowerCase();
+    final currency = item.currency.trim().toUpperCase();
+
+    if ((normalizedType == 'hisse' || normalizedType == 'bist') &&
+        currency == 'TRY') {
+      return 'XIST';
+    }
+
+    return null;
   }
 
   @override
@@ -162,7 +169,8 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     required bool hasError,
   }) {
     final totalCost = item.totalCost;
-    final currenciesMatch = quote == null ||
+    final currenciesMatch =
+        quote == null ||
         quote.currency.trim().toUpperCase() ==
             item.currency.trim().toUpperCase();
 
@@ -170,17 +178,16 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
         ? totalCost
         : item.quantity * quote.price;
 
-    final profitLoss = currenciesMatch
-        ? currentValue - totalCost
-        : 0.0;
+    final profitLoss = currenciesMatch ? currentValue - totalCost : 0.0;
 
     final profitPercent = currenciesMatch && totalCost > 0
         ? (profitLoss / totalCost) * 100
         : 0.0;
 
     final isProfit = profitLoss >= 0;
-    final profitColor =
-        isProfit ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final profitColor = isProfit
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFDC2626);
     final title = item.name.isNotEmpty ? item.name : item.symbol;
     final displayCurrency = quote?.currency ?? item.currency;
 
@@ -195,15 +202,9 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF7FCFF),
-                Color(0xFFEAF6FF),
-                Color(0xFFDDF1FF),
-              ],
+              colors: [Color(0xFFF7FCFF), Color(0xFFEAF6FF), Color(0xFFDDF1FF)],
             ),
-            border: Border.all(
-              color: const Color(0xFFB9DDF2),
-            ),
+            border: Border.all(color: const Color(0xFFB9DDF2)),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF7CC5E8).withValues(alpha: .18),
@@ -275,9 +276,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                     child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
                     ),
                   ),
                 )
@@ -375,24 +374,16 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
           onTap: () {
             Navigator.of(context).push(
               noAnimationRoute(
-                builder: (_) => TransactionHistoryPage(
-                  symbolFilter: item.symbol,
-                ),
+                builder: (_) =>
+                    TransactionHistoryPage(symbolFilter: item.symbol),
               ),
             );
           },
           child: const Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: 6,
-              horizontal: 2,
-            ),
+            padding: EdgeInsets.symmetric(vertical: 6, horizontal: 2),
             child: Row(
               children: [
-                Icon(
-                  Icons.history_rounded,
-                  size: 18,
-                  color: Color(0xFF0284C7),
-                ),
+                Icon(Icons.history_rounded, size: 18, color: Color(0xFF0284C7)),
                 SizedBox(width: 8),
                 Text(
                   'İşlem geçmişini görüntüle',
@@ -449,15 +440,9 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                 ),
               ),
               const SizedBox(height: 4),
-              _AssetDetailRow(
-                label: 'Kategori',
-                value: item.type,
-              ),
+              _AssetDetailRow(label: 'Kategori', value: item.type),
               const ThinDivider(),
-              _AssetDetailRow(
-                label: 'Para birimi',
-                value: item.currency,
-              ),
+              _AssetDetailRow(label: 'Para birimi', value: item.currency),
               const ThinDivider(),
               _AssetDetailRow(
                 label: 'Alış tarihi',
@@ -467,10 +452,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
               const ThinDivider(),
               _AssetDetailRow(
                 label: 'Birim maliyet',
-                value: formatCurrency(
-                  item.averagePrice,
-                  item.currency,
-                ),
+                value: formatCurrency(item.averagePrice, item.currency),
               ),
               const ThinDivider(),
               _AssetDetailRow(
@@ -480,10 +462,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
               const ThinDivider(),
               _AssetDetailRow(
                 label: 'Toplam maliyet',
-                value: formatCurrency(
-                  totalCost,
-                  item.currency,
-                ),
+                value: formatCurrency(totalCost, item.currency),
               ),
             ],
           ),
@@ -521,18 +500,14 @@ class _LiveMarketStatusCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFEFF8FF),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFBAE6FD),
-          ),
+          border: Border.all(color: const Color(0xFFBAE6FD)),
         ),
         child: const Row(
           children: [
             SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.2,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 2.2),
             ),
             SizedBox(width: 12),
             Expanded(
@@ -555,16 +530,11 @@ class _LiveMarketStatusCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF7ED),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFFED7AA),
-          ),
+          border: Border.all(color: const Color(0xFFFED7AA)),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              color: Color(0xFFD97706),
-            ),
+            const Icon(Icons.cloud_off_rounded, color: Color(0xFFD97706)),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -576,10 +546,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                 ),
               ),
             ),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Tekrar dene'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Tekrar dene')),
           ],
         ),
       );
@@ -592,9 +559,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF1FBF5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFCDEED8),
-        ),
+        border: Border.all(color: const Color(0xFFCDEED8)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,10 +603,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
           IconButton(
             tooltip: 'Yenile',
             onPressed: onRetry,
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: Color(0xFF0284C7),
-            ),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF0284C7)),
           ),
         ],
       ),
@@ -663,10 +625,7 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SurfaceCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 13,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(
         children: [
           Container(
@@ -676,11 +635,7 @@ class _MetricCard extends StatelessWidget {
               color: Color(0xFFE0F2FE),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF0284C7),
-              size: 19,
-            ),
+            child: Icon(icon, color: const Color(0xFF0284C7), size: 19),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -720,11 +675,7 @@ class _AssetDetailRow extends StatelessWidget {
   final String value;
   final IconData? icon;
 
-  const _AssetDetailRow({
-    required this.label,
-    required this.value,
-    this.icon,
-  });
+  const _AssetDetailRow({required this.label, required this.value, this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -744,11 +695,7 @@ class _AssetDetailRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (icon != null) ...[
-            Icon(
-              icon,
-              size: 16,
-              color: const Color(0xFF64748B),
-            ),
+            Icon(icon, size: 16, color: const Color(0xFF64748B)),
             const SizedBox(width: 6),
           ],
           Flexible(

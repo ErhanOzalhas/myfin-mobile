@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
@@ -11,6 +12,9 @@ import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
 import '../services/ai_analysis_service.dart';
 import '../services/portfolio_intelligence_service.dart';
+import '../services/portfolio_valuation_service.dart';
+import '../services/market/market_favorites_service.dart';
+import '../services/market/market_service.dart';
 import '../widgets/dashboard/distribution_card.dart';
 import '../widgets/dashboard/market_ticker.dart';
 import '../widgets/dashboard/portfolio_list.dart';
@@ -23,6 +27,7 @@ import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analyzer.dart';
 import '../widgets/navigation/myfin_bottom_nav.dart';
 import 'transactions/transaction_history_page.dart';
+import 'transactions/transaction_detail_page.dart';
 import '../widgets/common/surface_card.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/common/icon_box.dart';
@@ -32,70 +37,86 @@ import '../utils/myfin_formatters.dart';
 import 'portfolio/portfolio_page.dart';
 import 'portfolio/portfolio_asset_page.dart';
 import 'performance/performance_report_page.dart';
+import 'performance/profit_loss_detail_page.dart';
 import 'market/live_market_page.dart';
 import 'settings/settings_page.dart';
 import 'transactions/transaction_entry_page.dart';
 import '../services/portfolio_summary_service.dart';
 import '../utils/no_animation_route.dart';
+
 void _openPortfolioPage(BuildContext context) {
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const PortfolioPage()));
+}
+
+void _openPortfolioCategory(BuildContext context, String category) {
   Navigator.of(context).push(
-    noAnimationRoute(builder: (_) => const PortfolioPage()),
+    noAnimationRoute(builder: (_) => PortfolioPage(initialCategory: category)),
   );
 }
 
 void _openIntelligencePage(BuildContext context) {
-  Navigator.of(context).push(
-    noAnimationRoute(builder: (_) => const IntelligencePage()),
-  );
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const IntelligencePage()));
 }
 
 void _openPerformanceReportPage(BuildContext context) {
-  Navigator.of(context).push(
-    noAnimationRoute(builder: (_) => const PerformanceReportPage()),
-  );
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const PerformanceReportPage()));
+}
+
+void _openProfitLossDetailPage(BuildContext context) {
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const ProfitLossDetailPage()));
 }
 
 void _openLiveMarketPage(BuildContext context) {
-  Navigator.of(context).push(
-    noAnimationRoute(builder: (_) => const LiveMarketPage()),
-  );
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const LiveMarketPage()));
 }
 
 void _openTransactionHistoryPage(BuildContext context) {
-  Navigator.of(context).push(
-    noAnimationRoute(builder: (_) => const TransactionHistoryPage()),
-  );
+  Navigator.of(
+    context,
+  ).push(noAnimationRoute(builder: (_) => const TransactionHistoryPage()));
 }
 
 class MyFinHome extends StatefulWidget {
-
   final bool showBottomNav;
 
-  const MyFinHome({
-
-    super.key,
-
-    this.showBottomNav = true,
-
-  });
+  const MyFinHome({super.key, this.showBottomNav = true});
 
   @override
   State<MyFinHome> createState() => _MyFinHomeState();
 }
 
 class _MyFinHomeState extends State<MyFinHome> {
- 
   int _refreshTick = 0;
 
   @override
-void initState() {
-  super.initState();
-}
+  void initState() {
+    super.initState();
+    PortfolioValuationService.instance.revision.addListener(
+      _handleValuationChanged,
+    );
+  }
 
   @override
   void dispose() {
-   
+    PortfolioValuationService.instance.revision.removeListener(
+      _handleValuationChanged,
+    );
     super.dispose();
+  }
+
+  void _handleValuationChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _refreshMarketData() async {
@@ -113,45 +134,52 @@ void initState() {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
             children: [
-             const _Header(),
-        const SizedBox(height: 24),
-_HeroPortfolioCard(refreshTick: _refreshTick),
-
-const SizedBox(height: 16),
-
-_DashboardFadeIn(
-  delay: 40,
-  child: _MyFinIntelligenceHero(
-    refreshTick: _refreshTick,
-  ),
-),
-
-const SizedBox(height: 16),
-
-const _RowQuickActions(),
-
-const SizedBox(height: 16),
-
-_KpiGrid(refreshTick: _refreshTick),
-              const SizedBox(height: 14),
-              
+              const _Header(),
               const SizedBox(height: 24),
-              SectionTitle(title: 'Son 7 Gün Performansı', action: 'Trend', onActionTap: () => _openPerformanceReportPage(context)),
-              _WeeklyPerformanceCard(refreshTick: _refreshTick),
-              const SizedBox(height: 24),
-              SectionTitle(title: 'Canlı Piyasa', action: 'Tümü', onActionTap: () => _openLiveMarketPage(context)),
+              _HeroPortfolioCard(refreshTick: _refreshTick),
+
+              const SizedBox(height: 16),
+
               _DashboardFadeIn(
-                delay: 140,
+                delay: 40,
+                child: _MyFinIntelligenceHero(refreshTick: _refreshTick),
+              ),
+
+              const SizedBox(height: 16),
+
+              _DashboardFadeIn(
+                delay: 80,
                 child: _MarketTicker(refreshTick: _refreshTick),
               ),
+
+              const SizedBox(height: 16),
+
+              const _RowQuickActions(),
+
+              const SizedBox(height: 16),
+
+              _KpiGrid(refreshTick: _refreshTick),
+              const SizedBox(height: 14),
+
               const SizedBox(height: 24),
-              SectionTitle(title: 'Portföy Dağılımı', action: 'Detay', onActionTap: () => _openPortfolioPage(context)),
+              SectionTitle(
+                title: 'Son 7 Gün Performansı',
+                action: 'Trend',
+                onActionTap: () => _openPerformanceReportPage(context),
+              ),
+              _WeeklyPerformanceCard(refreshTick: _refreshTick),
+              const SizedBox(height: 24),
+              SectionTitle(
+                title: 'Portföy Dağılımı',
+                action: 'Detay',
+                onActionTap: () => _openPortfolioPage(context),
+              ),
               _DashboardFadeIn(
                 delay: 200,
                 child: _DistributionCard(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 14),
-             
+
               const SizedBox(height: 24),
               const SectionTitle(title: 'Portföy Nabzı'),
               _DashboardFadeIn(
@@ -160,51 +188,52 @@ _KpiGrid(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 24),
               SectionTitle(
-  title: 'Akıllı İçgörüler',
-  action: 'AI',
-  onActionTap: () => _openIntelligencePage(context),
-),
-_DashboardFadeIn(
-  delay: 320,
-  child: _SmartInsightsPanel(refreshTick: _refreshTick),
-),
+                title: 'Akıllı İçgörüler',
+                action: 'AI',
+                onActionTap: () => _openIntelligencePage(context),
+              ),
+              _DashboardFadeIn(
+                delay: 320,
+                child: _SmartInsightsPanel(refreshTick: _refreshTick),
+              ),
               const SizedBox(height: 24),
-              SectionTitle(title: 'Takip Listesi', action: 'İzle', onActionTap: () => _openLiveMarketPage(context)),
+              SectionTitle(
+                title: 'Takip Listesi',
+                action: 'İzle',
+                onActionTap: () => _openLiveMarketPage(context),
+              ),
               _DashboardFadeIn(
                 delay: 360,
                 child: _WatchlistSection(refreshTick: _refreshTick),
               ),
               const SizedBox(height: 24),
-              const SectionTitle(title: 'Hızlı İşlemler'),
-              const _QuickActions(),
-              const SizedBox(height: 24),
-              SectionTitle(title: 'İşlemler', action: 'Tümü', onActionTap: () => _openTransactionHistoryPage(context)),
+              SectionTitle(
+                title: 'İşlemler',
+                action: 'Tümü',
+                onActionTap: () => _openTransactionHistoryPage(context),
+              ),
               const _RecentTransactions(),
             ],
           ),
         ),
       ),
-    
-   bottomNavigationBar: widget.showBottomNav
 
-    ? const MyFinBottomNav(selectedIndex: 0)
-
-    : null,
+      bottomNavigationBar: widget.showBottomNav
+          ? const MyFinBottomNav(selectedIndex: 0)
+          : null,
     );
   }
 }
 
-Future<DashboardSummary> _loadDashboardSummary(         
-  List<PortfolioItem> items,
-) {
+Future<DashboardSummary> _loadDashboardSummary(List<PortfolioItem> items) {
   return DashboardRepository.instance.calculate(items);
 }
 
 DashboardSummary _fallbackSummary(List<PortfolioItem> items) {
-  final totalCost = items.fold<double>(
-    0,
-    (sum, item) => sum + item.totalCost,
-  );
+  final cached = DashboardRepository.instance.peek(items);
+  if (cached != null) return cached;
+
+  final totalCost = items.fold<double>(0, (sum, item) => sum + item.totalCost);
 
   return DashboardSummary(
     totalCost: totalCost,
@@ -217,10 +246,6 @@ DashboardSummary _fallbackSummary(List<PortfolioItem> items) {
     worstPerformance: 0,
   );
 }
-
-
-
-
 
 class _PortfolioIntelligence {
   final int overallScore;
@@ -291,9 +316,7 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
       topCountry: 'Veri yok',
       topCountryWeight: 0,
       summary: 'Portföy maliyet bilgisi oluşunca skorlar hesaplanacak.',
-      signals: [
-        'Maliyet bilgisi olmayan varlıklar analize dahil edilemez.',
-      ],
+      signals: ['Maliyet bilgisi olmayan varlıklar analize dahil edilemez.'],
     );
   }
 
@@ -306,7 +329,9 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
     final weight = item.totalCost / total;
     final symbol = item.symbol.trim().toUpperCase();
     final sector = _inferSector(item);
-    final currency = item.currency.trim().isEmpty ? 'TRY' : item.currency.trim().toUpperCase();
+    final currency = item.currency.trim().isEmpty
+        ? 'TRY'
+        : item.currency.trim().toUpperCase();
     final country = _inferCountry(item);
 
     symbolWeights[symbol] = (symbolWeights[symbol] ?? 0) + weight;
@@ -328,30 +353,34 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
 
   final concentrationPenalty = (biggestPosition.value * 58).round();
   final sectorPenalty = (topSector.value * 24).round();
-  
+
   final itemBonus = (items.length * 6).clamp(0, 24).round();
 
   final diversificationScore =
-      (100 - concentrationPenalty - sectorPenalty + itemBonus).clamp(0, 100).round();
+      (100 - concentrationPenalty - sectorPenalty + itemBonus)
+          .clamp(0, 100)
+          .round();
 
-  final riskScore = (34 +
-          (biggestPosition.value * 38) +
-          (topSector.value * 18) +
-          (topCurrency.value > .85 ? 10 : 0) -
-          (items.length >= 5 ? 8 : 0))
-      .clamp(0, 100)
-      .round();
+  final riskScore =
+      (34 +
+              (biggestPosition.value * 38) +
+              (topSector.value * 18) +
+              (topCurrency.value > .85 ? 10 : 0) -
+              (items.length >= 5 ? 8 : 0))
+          .clamp(0, 100)
+          .round();
 
   final sectorScore = (100 - (topSector.value * 52)).clamp(0, 100).round();
   final currencyScore = (100 - (topCurrency.value * 42)).clamp(0, 100).round();
 
-  final overallScore = ((diversificationScore * .38) +
-          ((100 - riskScore) * .28) +
-          (sectorScore * .2) +
-          (currencyScore * .14))
-      .round()
-      .clamp(0, 100)
-      .toInt();
+  final overallScore =
+      ((diversificationScore * .38) +
+              ((100 - riskScore) * .28) +
+              (sectorScore * .2) +
+              (currencyScore * .14))
+          .round()
+          .clamp(0, 100)
+          .toInt();
 
   final signals = <String>[
     'En büyük pozisyon: ${biggestPosition.key} · ${_weightText(biggestPosition.value)}',
@@ -362,8 +391,8 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
   final summary = riskScore >= 72
       ? 'Portföy konsantrasyonu yüksek. Çeşitlendirme tarafında iyileştirme alanı var.'
       : diversificationScore >= 70
-          ? 'Portföy dengesi sağlıklı görünüyor. Risk dağılımı kontrol altında.'
-          : 'Portföy dengesi orta seviyede. Ana yoğunlukları takip etmek faydalı olur.';
+      ? 'Portföy dengesi sağlıklı görünüyor. Risk dağılımı kontrol altında.'
+      : 'Portföy dengesi orta seviyede. Ana yoğunlukları takip etmek faydalı olur.';
 
   return _PortfolioIntelligence(
     overallScore: overallScore,
@@ -399,7 +428,9 @@ String _inferSector(PortfolioItem item) {
   final name = item.name.toUpperCase();
   final type = item.type.toUpperCase();
 
-  if (type.contains('ALTIN') || name.contains('ALTIN') || symbol.contains('GOLD')) {
+  if (type.contains('ALTIN') ||
+      name.contains('ALTIN') ||
+      symbol.contains('GOLD')) {
     return 'Emtia';
   }
 
@@ -442,7 +473,9 @@ String _inferSector(PortfolioItem item) {
     return 'Finans';
   }
 
-  if (symbol.contains('USD') || symbol.contains('EUR') || type.contains('DÖVİZ')) {
+  if (symbol.contains('USD') ||
+      symbol.contains('EUR') ||
+      type.contains('DÖVİZ')) {
     return 'Döviz';
   }
 
@@ -526,7 +559,6 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
               IconBox(
                 icon: Icons.auto_awesome_rounded,
                 color: const Color(0xFF7C3AED),
-          
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -633,6 +665,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
     );
   }
 }
+
 class _RowQuickActions extends StatelessWidget {
   const _RowQuickActions();
 
@@ -641,27 +674,48 @@ class _RowQuickActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _QuickMiniAction(
-            icon: Icons.add_circle_outline_rounded,
-            title: 'Yeni İşlem',
-            subtitle: '',
-            color: const Color(0xFF008DB9),
+          child: _HomeShortcut(
+            icon: Icons.account_balance_wallet_rounded,
+            label: 'Portföy',
+            foreground: const Color(0xFF2563EB),
+            gradientColors: const [Color(0xFFDCE7FF), Color(0xFFA9C4FF)],
+            onTap: () => _openPortfolioPage(context),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _HomeShortcut(
+            icon: Icons.add_rounded,
+            label: 'Yeni',
+            foreground: const Color(0xFF0369A1),
+            gradientColors: const [Color(0xFFDDF4FF), Color(0xFF9CCAE9)],
             onTap: () {
               Navigator.of(context).push(
                 noAnimationRoute(
-                  builder: (_) => const TransactionEntryPage(showBottomNav: true),
+                  builder: (_) =>
+                      const TransactionEntryPage(showBottomNav: true),
                 ),
               );
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
-          child: _QuickMiniAction(
+          child: _HomeShortcut(
+            icon: Icons.trending_up_rounded,
+            label: 'Piyasa',
+            foreground: const Color(0xFF16A34A),
+            gradientColors: const [Color(0xFFE2FBEA), Color(0xFFA8E3BD)],
+            onTap: () => _openLiveMarketPage(context),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _HomeShortcut(
             icon: Icons.receipt_long_rounded,
-            title: 'İşlemler',
-            subtitle: '',
-            color: const Color(0xFFF97316),
+            label: 'Geçmiş',
+            foreground: const Color(0xFFF97316),
+            gradientColors: const [Color(0xFFFFEBDD), Color(0xFFFFC79F)],
             onTap: () => _openTransactionHistoryPage(context),
           ),
         ),
@@ -670,60 +724,100 @@ class _RowQuickActions extends StatelessWidget {
   }
 }
 
-class _QuickMiniAction extends StatelessWidget {
+class _HomeShortcut extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
+  final String label;
+  final Color foreground;
+  final List<Color> gradientColors;
   final VoidCallback onTap;
 
-  const _QuickMiniAction({
+  const _HomeShortcut({
     required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
+    required this.label,
+    required this.foreground,
+    required this.gradientColors,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       onTap: onTap,
-      child: SurfaceCard(
-        child: SizedBox(
-          height: 46,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IconBox(
-                icon: icon,
-                color: color,
-                size: 36,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradientColors,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .72),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: foreground.withValues(alpha: .22),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: .75),
+                    blurRadius: 8,
+                    offset: const Offset(-3, -3),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      color: Color(0xFF0F172A),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 5,
+                    left: 7,
+                    right: 7,
+                    child: Container(
+                      height: 14,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: .55),
+                            Colors.white.withValues(alpha: 0),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
                   ),
-                ),
+                  Center(child: Icon(icon, color: foreground, size: 29)),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 class _ScorePill extends StatelessWidget {
   final int score;
 
@@ -765,8 +859,8 @@ class _MiniScoreTile extends StatelessWidget {
     final scoreColor = value <= 40
         ? const Color(0xFFDC2626)
         : value <= 70
-            ? const Color(0xFFF59E0B)
-            : const Color(0xFF16A34A);
+        ? const Color(0xFFF59E0B)
+        : const Color(0xFF16A34A);
 
     return Container(
       padding: const EdgeInsets.all(13),
@@ -836,40 +930,51 @@ class _Header extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: const Icon(Icons.trending_up_rounded, color: Colors.white, size: 34),
+          child: const Icon(
+            Icons.trending_up_rounded,
+            color: Colors.white,
+            size: 34,
+          ),
         ),
         const SizedBox(width: 14),
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Benim Finans',
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: -.7,
-                      color: Color(0xFF0F172A))),
+              Text(
+                'Benim Finans',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -.7,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
               SizedBox(height: 2),
-              Text('Akıllı yatırım takibi',
-                  style: TextStyle(fontSize: 14, color: Colors.black54)),
+              Text(
+                'Akıllı yatırım takibi',
+                style: TextStyle(fontSize: 14, color: Colors.black54),
+              ),
             ],
           ),
         ),
         PopupMenuButton<String>(
           tooltip: 'Hesap',
           offset: const Offset(0, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           onSelected: (value) async {
             if (value == 'settings') {
-              Navigator.of(context).push(
-                noAnimationRoute(builder: (_) => const SettingsPage()),
-              );
+              Navigator.of(
+                context,
+              ).push(noAnimationRoute(builder: (_) => const SettingsPage()));
             }
 
             if (value == 'login') {
-              Navigator.of(context).push(
-                noAnimationRoute(builder: (_) => const LoginPage()),
-              );
+              Navigator.of(
+                context,
+              ).push(noAnimationRoute(builder: (_) => const LoginPage()));
             }
 
             if (value == 'logout') {
@@ -916,7 +1021,10 @@ class _Header extends StatelessWidget {
               value: isLoggedIn ? 'logout' : 'login',
               child: Row(
                 children: [
-                  Icon(isLoggedIn ? Icons.logout_rounded : Icons.login_rounded, size: 20),
+                  Icon(
+                    isLoggedIn ? Icons.logout_rounded : Icons.login_rounded,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Text(isLoggedIn ? 'Çıkış yap' : 'Giriş yap'),
                 ],
@@ -971,6 +1079,7 @@ class _HeroPortfolioCard extends StatelessWidget {
                   '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
               profitPercentText: formatPercent(summary.profitPercent),
               isProfit: isPositive,
+              onProfitTap: () => _openProfitLossDetailPage(context),
               onTap: () {
                 _openPortfolioPage(context);
               },
@@ -988,6 +1097,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
   final String profitPercentText;
   final bool isProfit;
   final VoidCallback onTap;
+  final VoidCallback onProfitTap;
 
   const _PrimaryDashboardCard({
     required this.totalValueText,
@@ -995,6 +1105,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
     required this.profitPercentText,
     required this.isProfit,
     required this.onTap,
+    required this.onProfitTap,
   });
 
   @override
@@ -1017,10 +1128,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0F172A),
-                Color(0xFF008DB9),
-              ],
+              colors: [Color(0xFF0F172A), Color(0xFF008DB9)],
             ),
             boxShadow: [
               BoxShadow(
@@ -1040,7 +1148,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
                     const Expanded(
                       child: Text(
                         'Portföy Özeti',
-                         style: TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
@@ -1091,29 +1199,48 @@ class _PrimaryDashboardCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
+                SizedBox(
+                  width: double.infinity,
+                  child: Material(
                     color: Colors.white.withValues(alpha: .92),
                     borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(trendIcon, color: trendColor, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$profitText ($profitPercentText)',
-                        style: TextStyle(
-                          color: trendColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: onProfitTap,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(trendIcon, color: trendColor, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '$profitText ($profitPercentText)',
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: trendColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: trendColor,
+                              size: 20,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -1131,11 +1258,9 @@ class _KpiGrid extends StatelessWidget {
   const _KpiGrid({required this.refreshTick});
 
   void _openPortfolio(BuildContext context) {
-    Navigator.of(context).push(
-      noAnimationRoute(
-        builder: (_) => const PortfolioPage(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(noAnimationRoute(builder: (_) => const PortfolioPage()));
   }
 
   @override
@@ -1162,27 +1287,26 @@ class _KpiGrid extends StatelessWidget {
                     subtitle: 'Maliyet: ${formatCurrency(summary.totalCost)}',
                     icon: Icons.account_balance_wallet_rounded,
                     color: const Color(0xFF2563EB),
-                  onTap: () => _openPortfolio(context),
-
-),
+                    onTap: () => _openPortfolio(context),
                   ),
-                
-             const SizedBox(width: 12),
-Expanded(
-  child: _MetricCard(
-    title: 'Kâr / Zarar',
-    value:
-        '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
-    subtitle: '${formatPercent(summary.profitPercent)} • Detay',
-    icon: isPositive
-        ? Icons.north_east_rounded
-        : Icons.south_east_rounded,
-    color: isPositive
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFDC2626),
-        onTap: () => _openPortfolio(context),
-  ),
-),
+                ),
+
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MetricCard(
+                    title: 'Kâr / Zarar',
+                    value:
+                        '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
+                    subtitle: '${formatPercent(summary.profitPercent)} • Detay',
+                    icon: isPositive
+                        ? Icons.north_east_rounded
+                        : Icons.south_east_rounded,
+                    color: isPositive
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFDC2626),
+                    onTap: () => _openProfitLossDetailPage(context),
+                  ),
+                ),
               ],
             );
           },
@@ -1191,7 +1315,6 @@ Expanded(
     );
   }
 }
-
 
 class _PerformanceHighlights extends StatelessWidget {
   final int refreshTick;
@@ -1218,7 +1341,9 @@ class _PerformanceHighlights extends StatelessWidget {
                   child: _MetricCard(
                     title: 'En İyi',
                     value: hasItems ? (summary.bestPerformer ?? '-') : '-',
-                    subtitle: hasItems ? formatPercent(summary.bestPerformance) : 'Veri yok',
+                    subtitle: hasItems
+                        ? formatPercent(summary.bestPerformance)
+                        : 'Veri yok',
                     icon: Icons.emoji_events_rounded,
                     color: const Color(0xFF16A34A),
                   ),
@@ -1228,7 +1353,9 @@ class _PerformanceHighlights extends StatelessWidget {
                   child: _MetricCard(
                     title: 'En Zayıf',
                     value: hasItems ? (summary.worstPerformer ?? '-') : '-',
-                    subtitle: hasItems ? formatPercent(summary.worstPerformance) : 'Veri yok',
+                    subtitle: hasItems
+                        ? formatPercent(summary.worstPerformance)
+                        : 'Veri yok',
                     icon: Icons.trending_down_rounded,
                     color: const Color(0xFFDC2626),
                   ),
@@ -1241,7 +1368,6 @@ class _PerformanceHighlights extends StatelessWidget {
     );
   }
 }
-
 
 class _MetricCard extends StatelessWidget {
   final String title;
@@ -1360,7 +1486,8 @@ class _WeeklyPerformanceCard extends StatelessWidget {
             child: EmptyStateLine(
               icon: Icons.show_chart_rounded,
               title: 'Trend grafiği beklemede',
-              subtitle: 'Portföye varlık eklediğinde 7 günlük performans simülasyonu oluşacak.',
+              subtitle:
+                  'Portföye varlık eklediğinde 7 günlük performans simülasyonu oluşacak.',
             ),
           );
         }
@@ -1397,7 +1524,6 @@ class _WeeklyPerformanceCard extends StatelessWidget {
   }
 }
 
-
 class _WeeklyTrendData {
   final List<double> values;
   final double totalChange;
@@ -1421,7 +1547,10 @@ class _WeeklyTrendData {
 
   bool get isPositive => totalChange >= 0;
 
-  factory _WeeklyTrendData.fromSummary(DashboardSummary summary, int itemCount) {
+  factory _WeeklyTrendData.fromSummary(
+    DashboardSummary summary,
+    int itemCount,
+  ) {
     final end = summary.profitPercent;
     final volatility = (itemCount * .28).clamp(.35, 1.65).toDouble();
     final start = end - (end >= 0 ? 2.4 : -2.4);
@@ -1490,8 +1619,6 @@ class _DashboardFadeIn extends StatelessWidget {
   }
 }
 
-
-
 class _MarketTicker extends StatelessWidget {
   final int refreshTick;
 
@@ -1499,8 +1626,9 @@ class _MarketTicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MarketTicker(
-      rows: [
+    return MarketTicker(
+      onTap: () => _openLiveMarketPage(context),
+      rows: const [
         MarketTickerRowData(
           flag: '🇺🇸',
           name: 'USD / TRY',
@@ -1534,7 +1662,6 @@ class _MarketTicker extends StatelessWidget {
   }
 }
 
-
 class _DistributionCard extends StatelessWidget {
   final int refreshTick;
 
@@ -1561,17 +1688,27 @@ class _DistributionCard extends StatelessWidget {
             child: EmptyStateLine(
               icon: Icons.donut_large_rounded,
               title: 'Dağılım için veri yok',
-              subtitle: 'Varlık eklediğinde portföy dağılımı otomatik hesaplanacak.',
+              subtitle:
+                  'Varlık eklediğinde portföy dağılımı otomatik hesaplanacak.',
             ),
           );
         }
 
-        return FutureBuilder<_DistributionSnapshot>(
+        return FutureBuilder<PortfolioValuation>(
           key: ValueKey('distribution-$refreshTick-${items.length}'),
-          future: _loadDistributionSnapshot(items),
+          initialData: PortfolioValuationService.instance.peek(items),
+          future: PortfolioValuationService.instance.calculate(
+            items,
+            forceRefresh: refreshTick > 0,
+          ),
           builder: (context, distributionSnapshot) {
-            final distribution = distributionSnapshot.data ??
-                _DistributionSnapshot.fromCost(items);
+            final valuation = distributionSnapshot.data;
+            final distribution = valuation == null
+                ? _DistributionSnapshot.fromCost(items)
+                : _DistributionSnapshot.fromValuation(valuation);
+            final performance = _HomeCategoryPerformance.fromValuation(
+              valuation,
+            );
             return DistributionCard(
               title: 'Portföy Dağılımı',
               items: distribution.segments
@@ -1580,14 +1717,45 @@ class _DistributionCard extends StatelessWidget {
                       label: segment.label,
                       value: segment.ratio * distribution.totalValue,
                       color: segment.color,
+                      changePercent: performance[segment.label],
                     ),
                   )
                   .toList(),
+              onItemTap: (item) => _openPortfolioCategory(context, item.label),
             );
           },
         );
       },
     );
+  }
+}
+
+class _HomeCategoryPerformance {
+  static Map<String, double> fromValuation(PortfolioValuation? valuation) {
+    if (valuation == null) return const {};
+
+    final costs = <String, double>{};
+    final currentValues = <String, double>{};
+    final hasLivePrice = <String, bool>{};
+
+    for (final itemValuation in valuation.items) {
+      final category = _assetTypeLabel(itemValuation.item.type);
+      costs[category] =
+          (costs[category] ?? 0) + itemValuation.costInBaseCurrency;
+      currentValues[category] =
+          (currentValues[category] ?? 0) +
+          itemValuation.currentValueInBaseCurrency;
+      hasLivePrice[category] =
+          (hasLivePrice[category] ?? false) || itemValuation.hasLivePrice;
+    }
+
+    final result = <String, double>{};
+    for (final entry in costs.entries) {
+      if (entry.value <= 0 || hasLivePrice[entry.key] != true) continue;
+      final currentValue = currentValues[entry.key] ?? entry.value;
+      result[entry.key] = ((currentValue - entry.value) / entry.value) * 100;
+    }
+    return result;
   }
 }
 
@@ -1606,7 +1774,8 @@ class _DashboardInsightPanel extends StatelessWidget {
         final portfolio = const PortfolioIntelligenceService().build(items);
 
         final needsAttention =
-            hasItems && (portfolio.profitLossPercent < 0 || portfolio.hasDominantType);
+            hasItems &&
+            (portfolio.profitLossPercent < 0 || portfolio.hasDominantType);
 
         final dominantType = hasItems && portfolio.dominantType.isNotEmpty
             ? _assetTypeLabel(portfolio.dominantType)
@@ -1627,7 +1796,7 @@ class _DashboardInsightPanel extends StatelessWidget {
                 color: needsAttention
                     ? const Color(0xFFDC2626)
                     : const Color(0xFF16A34A),
-    onTap: () => _openIntelligencePage(context),
+                onTap: () => _openIntelligencePage(context),
               ),
             ),
             const SizedBox(width: 12),
@@ -1636,7 +1805,9 @@ class _DashboardInsightPanel extends StatelessWidget {
                 icon: Icons.category_rounded,
                 title: 'Yoğunluk',
                 value: dominantType,
-                subtitle: hasItems ? '${items.length} varlık izleniyor' : 'Veri yok',
+                subtitle: hasItems
+                    ? '${items.length} varlık izleniyor'
+                    : 'Veri yok',
                 color: const Color(0xFF7C3AED),
                 onTap: () => _openPortfolioPage(context),
               ),
@@ -1675,20 +1846,13 @@ class _MiniInsightCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-  padding: const EdgeInsets.symmetric(
-    horizontal: 12,
-    vertical: 4,
-  ),
-  child: Row(
-    children: [
-      IconBox(
-        icon: icon,
-        color: color,
-        size: 34,
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              children: [
+                IconBox(icon: icon, color: color, size: 34),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -1726,7 +1890,10 @@ class _MiniInsightCard extends StatelessWidget {
                 ),
                 if (onTap != null) ...[
                   const SizedBox(width: 4),
-                  Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: .55)),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: color.withValues(alpha: .55),
+                  ),
                 ],
               ],
             ),
@@ -1736,7 +1903,6 @@ class _MiniInsightCard extends StatelessWidget {
     );
   }
 }
-
 
 class _PortfolioPulsePanel extends StatelessWidget {
   final int refreshTick;
@@ -1764,7 +1930,8 @@ class _PortfolioPulsePanel extends StatelessWidget {
             child: EmptyStateLine(
               icon: Icons.monitor_heart_rounded,
               title: 'Portföy nabzı beklemede',
-              subtitle: 'Varlık ekledikçe risk, yoğunluk ve günlük sinyal burada oluşacak.',
+              subtitle:
+                  'Varlık ekledikçe risk, yoğunluk ve günlük sinyal burada oluşacak.',
             ),
           );
         }
@@ -1778,12 +1945,7 @@ class _PortfolioPulsePanel extends StatelessWidget {
 
         final dominantType = portfolio.dominantType;
         final dominantAssetCount = items
-            .where(
-              (item) => _sameAssetCategory(
-                item.type,
-                dominantType,
-              ),
-            )
+            .where((item) => _sameAssetCategory(item.type, dominantType))
             .length;
 
         return InkWell(
@@ -1793,9 +1955,8 @@ class _PortfolioPulsePanel extends StatelessWidget {
               : () {
                   Navigator.of(context).push(
                     noAnimationRoute(
-                      builder: (_) => PortfolioAssetPage(
-                        initialCategory: dominantType,
-                      ),
+                      builder: (_) =>
+                          PortfolioAssetPage(initialCategory: dominantType),
                     ),
                   );
                 },
@@ -1813,7 +1974,6 @@ class _PortfolioPulsePanel extends StatelessWidget {
     );
   }
 }
-
 
 Future<_PulseData> _loadPulseData(List<PortfolioItem> items) async {
   final valuesByType = <String, double>{};
@@ -1882,7 +2042,8 @@ class _PulseData {
       return _PulseData(
         score: safeScore,
         title: 'Portföy dengesi güçlü',
-        message: '$dominantLabel ağırlığı kontrol altında. Genel AI görünümü güçlü.',
+        message:
+            '$dominantLabel ağırlığı kontrol altında. Genel AI görünümü güçlü.',
         dominantLabel: dominantLabel,
         color: const Color(0xFF16A34A),
         icon: Icons.verified_rounded,
@@ -1914,8 +2075,7 @@ class _PulseData {
     );
   }
 
-
-factory _PulseData.fromValues({
+  factory _PulseData.fromValues({
     required List<PortfolioItem> items,
     required Map<String, double> valuesByType,
     required double totalValue,
@@ -1924,8 +2084,9 @@ factory _PulseData.fromValues({
   }) {
     final dominant = _dominantEntry(valuesByType);
     final dominantRatio = totalValue <= 0 ? 0 : dominant.value / totalValue;
-    final double profitPercent =
-    totalCost <= 0 ? 0.0 : (totalProfit / totalCost) * 100;
+    final double profitPercent = totalCost <= 0
+        ? 0.0
+        : (totalProfit / totalCost) * 100;
     double score = 88;
     if (items.length < 3) score -= 14;
     if (dominantRatio > .70) score -= 22;
@@ -1934,13 +2095,16 @@ factory _PulseData.fromValues({
     if (profitPercent > 5) score += 6;
     score = score.clamp(18, 98).toDouble();
 
-    final dominantLabel = dominant.key.isEmpty ? 'Diğer' : _assetTypeLabel(dominant.key);
+    final dominantLabel = dominant.key.isEmpty
+        ? 'Diğer'
+        : _assetTypeLabel(dominant.key);
 
     if (score >= 75) {
       return _PulseData(
         score: score,
         title: 'Portföy dengesi güçlü',
-        message: '$dominantLabel ağırlığı kontrol altında. Güncel performans ${formatPercent(profitPercent)}.',
+        message:
+            '$dominantLabel ağırlığı kontrol altında. Güncel performans ${formatPercent(profitPercent)}.',
         dominantLabel: dominantLabel,
         color: const Color(0xFF16A34A),
         icon: Icons.verified_rounded,
@@ -1951,7 +2115,8 @@ factory _PulseData.fromValues({
       return _PulseData(
         score: score,
         title: 'Portföy dengesi izlenmeli',
-        message: '$dominantLabel tarafında yoğunluk artıyor. Dağılımı düzenli takip et.',
+        message:
+            '$dominantLabel tarafında yoğunluk artıyor. Dağılımı düzenli takip et.',
         dominantLabel: dominantLabel,
         color: const Color(0xFFF59E0B),
         icon: Icons.warning_amber_rounded,
@@ -1961,7 +2126,8 @@ factory _PulseData.fromValues({
     return _PulseData(
       score: score,
       title: 'Risk yoğunluğu yüksek',
-      message: '$dominantLabel portföyde baskın. Yeni alımlarda çeşitlendirme düşünebilirsin.',
+      message:
+          '$dominantLabel portföyde baskın. Yeni alımlarda çeşitlendirme düşünebilirsin.',
       dominantLabel: dominantLabel,
       color: const Color(0xFFDC2626),
       icon: Icons.report_rounded,
@@ -1972,17 +2138,6 @@ factory _PulseData.fromValues({
 MapEntry<String, double> _dominantEntry(Map<String, double> totals) {
   if (totals.isEmpty) return const MapEntry('', 0);
   return totals.entries.reduce((a, b) => a.value >= b.value ? a : b);
-}
-
-Future<_DistributionSnapshot> _loadDistributionSnapshot(
-  List<PortfolioItem> items,
-) async {
-  // Keep portfolio allocation aligned with the rest of the dashboard.
-  //
-  // Portfolio Pulse, Smart Summary and Smart Insights all use cost-based
-  // portfolio intelligence today. Using live market quotes here caused the
-  // allocation card to show a different dominant weight for the same portfolio.
-  return _DistributionSnapshot.fromCost(items);
 }
 
 String _normalizedAssetCategory(String type) {
@@ -2008,8 +2163,7 @@ String _normalizedAssetCategory(String type) {
 }
 
 bool _sameAssetCategory(String first, String second) {
-  return _normalizedAssetCategory(first) ==
-      _normalizedAssetCategory(second);
+  return _normalizedAssetCategory(first) == _normalizedAssetCategory(second);
 }
 
 String _assetTypeLabel(String type) {
@@ -2056,7 +2210,6 @@ Color _assetTypeColor(String type) {
   }
 }
 
-
 class _DistributionSnapshot {
   final double totalValue;
   final List<_DistributionSegment> segments;
@@ -2071,6 +2224,18 @@ class _DistributionSnapshot {
     for (final item in items) {
       totals[item.type] = (totals[item.type] ?? 0) + item.totalCost;
     }
+    return _DistributionSnapshot.fromTotals(totals);
+  }
+
+  factory _DistributionSnapshot.fromValuation(PortfolioValuation valuation) {
+    final totals = <String, double>{};
+
+    for (final itemValuation in valuation.items) {
+      final category = _assetTypeLabel(itemValuation.item.type);
+      totals[category] =
+          (totals[category] ?? 0) + itemValuation.currentValueInBaseCurrency;
+    }
+
     return _DistributionSnapshot.fromTotals(totals);
   }
 
@@ -2143,7 +2308,8 @@ class _SmartInsightsPanel extends StatelessWidget {
             child: EmptyStateLine(
               icon: Icons.psychology_rounded,
               title: 'Akıllı içgörü beklemede',
-              subtitle: 'Portföye varlık eklediğinde odak, risk ve aksiyon önerileri oluşacak.',
+              subtitle:
+                  'Portföye varlık eklediğinde odak, risk ve aksiyon önerileri oluşacak.',
             ),
           );
         }
@@ -2152,7 +2318,8 @@ class _SmartInsightsPanel extends StatelessWidget {
           key: ValueKey('smart-insights-$refreshTick-${items.length}'),
           future: _loadSmartInsightData(items),
           builder: (context, insightSnapshot) {
-            final data = insightSnapshot.data ?? _SmartInsightData.fromCost(items);
+            final data =
+                insightSnapshot.data ?? _SmartInsightData.fromCost(items);
             return SmartInsightsPanel(
               title: data.title,
               message: data.message,
@@ -2168,7 +2335,9 @@ class _SmartInsightsPanel extends StatelessWidget {
   }
 }
 
-Future<_SmartInsightData> _loadSmartInsightData(List<PortfolioItem> items) async {
+Future<_SmartInsightData> _loadSmartInsightData(
+  List<PortfolioItem> items,
+) async {
   final portfolio = const PortfolioIntelligenceService().build(items);
   final intelligence = _buildPortfolioIntelligence(items);
 
@@ -2220,29 +2389,44 @@ class _SmartInsightData {
     final actions = <String>[];
 
     if (dominantRatio > .60) {
-      actions.add('$dominantLabel ağırlığı %$dominantPercent seviyesinde. Yeni eklemelerde dengeyi artırmayı düşün.');
+      actions.add(
+        '$dominantLabel ağırlığı %$dominantPercent seviyesinde. Yeni eklemelerde dengeyi artırmayı düşün.',
+      );
     } else {
-      actions.add('Dağılım dengeli görünüyor. Mevcut çeşitlendirmeyi koruyarak izlemeye devam et.');
+      actions.add(
+        'Dağılım dengeli görünüyor. Mevcut çeşitlendirmeyi koruyarak izlemeye devam et.',
+      );
     }
 
     if (profitPercent >= 5) {
-      actions.add('Kâr bölgesi güçlü. En çok yükselen varlıkları ve hedef kâr seviyelerini gözden geçir.');
+      actions.add(
+        'Kâr bölgesi güçlü. En çok yükselen varlıkları ve hedef kâr seviyelerini gözden geçir.',
+      );
     } else if (profitPercent <= -5) {
-      actions.add('Zarar baskısı oluşmuş. Ortalama maliyet, stop seviyesi ve pozisyon büyüklüğünü yeniden kontrol et.');
+      actions.add(
+        'Zarar baskısı oluşmuş. Ortalama maliyet, stop seviyesi ve pozisyon büyüklüğünü yeniden kontrol et.',
+      );
     } else {
-      actions.add('Performans nötr bölgede. Ani karar yerine piyasa yönünü birkaç gün daha izle.');
+      actions.add(
+        'Performans nötr bölgede. Ani karar yerine piyasa yönünü birkaç gün daha izle.',
+      );
     }
 
     if (assetCount < 3) {
-      actions.add('Portföyde az sayıda varlık var. Takip listesine yeni alternatifler eklemek riski azaltabilir.');
+      actions.add(
+        'Portföyde az sayıda varlık var. Takip listesine yeni alternatifler eklemek riski azaltabilir.',
+      );
     } else {
-      actions.add('$assetCount varlık izleniyor. Haftalık performans grafiğiyle gidişat değişimini karşılaştır.');
+      actions.add(
+        '$assetCount varlık izleniyor. Haftalık performans grafiğiyle gidişat değişimini karşılaştır.',
+      );
     }
 
     if (safeScore >= 75 && !portfolio.hasDominantType && profitPercent >= -4) {
       return _SmartInsightData(
         title: 'AI görünümü pozitif',
-        message: 'Portföy hem performans hem dağılım açısından sağlıklı sinyal üretiyor.',
+        message:
+            'Portföy hem performans hem dağılım açısından sağlıklı sinyal üretiyor.',
         badge: 'Güçlü',
         actions: actions,
         color: const Color(0xFF16A34A),
@@ -2253,7 +2437,8 @@ class _SmartInsightData {
     if (safeScore < 60 || profitPercent <= -4 || portfolio.hasDominantType) {
       return _SmartInsightData(
         title: 'AI dikkat uyarısı',
-        message: '$dominantLabel tarafındaki yoğunluk ve performans birlikte izlenmeli.',
+        message:
+            '$dominantLabel tarafındaki yoğunluk ve performans birlikte izlenmeli.',
         badge: 'Dikkat',
         actions: actions,
         color: const Color(0xFFDC2626),
@@ -2263,7 +2448,8 @@ class _SmartInsightData {
 
     return _SmartInsightData(
       title: 'AI görünümü dengeli',
-      message: 'Portföyde net bir alarm yok; takip ve dağılım kontrolü yeterli görünüyor.',
+      message:
+          'Portföyde net bir alarm yok; takip ve dağılım kontrolü yeterli görünüyor.',
       badge: 'Dengeli',
       actions: actions,
       color: const Color(0xFF008DB9),
@@ -2272,126 +2458,77 @@ class _SmartInsightData {
   }
 }
 
-
-
-
-class _WatchlistSection extends StatelessWidget {
+class _WatchlistSection extends StatefulWidget {
   final int refreshTick;
 
   const _WatchlistSection({required this.refreshTick});
 
   @override
-  Widget build(BuildContext context) {
-    return WatchlistPanel(
-      items: const [
-        WatchlistItem(
-          symbol: 'ASELS',
-          name: 'Aselsan',
-          price: '145,80 TL',
-          changePercent: 2.14,
-        ),
-        WatchlistItem(
-          symbol: 'THYAO',
-          name: 'Türk Hava Yolları',
-          price: '318,40 TL',
-          changePercent: -0.86,
-        ),
-        WatchlistItem(
-          symbol: 'XAU',
-          name: 'Gram Altın',
-          price: '4.851,00 TL',
-          changePercent: 1.22,
-        ),
-      ],
-    );
-  }
+  State<_WatchlistSection> createState() => _WatchlistSectionState();
 }
 
-class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+class _WatchlistSectionState extends State<_WatchlistSection> {
+  Future<List<WatchlistItem>>? _itemsFuture;
+  String? _fingerprint;
+
+  Future<List<WatchlistItem>> _itemsFor(List<FavoriteMarketAsset> favorites) {
+    final fingerprint = [
+      widget.refreshTick,
+      ...favorites.map((favorite) => favorite.asset.symbol),
+    ].join('|');
+
+    if (_itemsFuture != null && _fingerprint == fingerprint) {
+      return _itemsFuture!;
+    }
+
+    _fingerprint = fingerprint;
+    return _itemsFuture = Future.wait(
+      favorites.map((favorite) async {
+        var quote = favorite.lastQuote;
+        try {
+          quote = await MarketService.instance.getQuote(
+            favorite.asset.symbol,
+            exchange: favorite.asset.exchange,
+            forceRefresh: widget.refreshTick > 0,
+          );
+        } catch (_) {
+          // Son başarılı fiyat varsa kartta gösterilmeye devam edilir.
+        }
+
+        return WatchlistItem(
+          symbol: favorite.asset.symbol,
+          name: favorite.asset.name,
+          price: quote == null
+              ? 'Veri yok'
+              : formatCurrency(quote.price, quote.currency),
+          changePercent: quote?.changePercent ?? 0,
+          hasLiveData: quote != null,
+        );
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: .92,
-      children: [
-        _QuickAction(
-          icon: Icons.add_circle_rounded,
-          title: 'Yeni İşlem',
-          color: const Color(0xFF008DB9),
-          onTap: () async {
-            await Navigator.of(context).push(
-              noAnimationRoute(
-                builder: (_) => const TransactionEntryPage(showBottomNav: false),
-              ),
+    return ValueListenableBuilder<List<FavoriteMarketAsset>>(
+      valueListenable: MarketFavoritesService.instance.favorites,
+      builder: (context, favorites, child) {
+        if (favorites.isEmpty) {
+          return const WatchlistPanel(items: []);
+        }
+
+        return FutureBuilder<List<WatchlistItem>>(
+          future: _itemsFor(favorites),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const WatchlistPanel(items: [], isLoading: true);
+            }
+            return WatchlistPanel(
+              items: snapshot.data!.take(3).toList(growable: false),
             );
           },
-        ),
-        _QuickAction(
-          icon: Icons.swap_vert_rounded,
-          title: 'İşlem Gir',
-          color: const Color(0xFFF97316),
-          onTap: () {
-            Navigator.of(context).push(
-              noAnimationRoute(
-                builder: (_) => const TransactionEntryPage(showBottomNav: false),
-              ),
-            );
-          },
-        ),
-        _QuickAction(
-          icon: Icons.notifications_active_rounded,
-          title: 'Alarm Kur',
-          color: const Color(0xFF7C3AED),
-          onTap: () {
-            Navigator.of(context).push(
-              noAnimationRoute(
-                builder: (_) => const PriceAlertPage(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _QuickAction({
-    required this.icon,
-    required this.title,
-    required this.color,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: SurfaceCard(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconBox(icon: icon, color: color, size: 44),
-            const SizedBox(height: 10),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -2399,10 +2536,18 @@ class _QuickAction extends StatelessWidget {
 class _RecentTransactions extends StatelessWidget {
   const _RecentTransactions();
 
+  String _formatDate(dynamic value) {
+    if (value is! Timestamp) return '-';
+    final date = value.toDate();
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<PortfolioItem>>(
-      stream: PortfolioRepository.instance.watchPortfolio(),
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: PortfolioRepository.instance.watchTransactions(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SurfaceCard(
@@ -2421,9 +2566,9 @@ class _RecentTransactions extends StatelessWidget {
           );
         }
 
-        final List<PortfolioItem> items = snapshot.data ?? <PortfolioItem>[];
+        final transactions = snapshot.data?.docs ?? [];
 
-        if (items.isEmpty) {
+        if (transactions.isEmpty) {
           return SurfaceCard(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -2458,7 +2603,7 @@ class _RecentTransactions extends StatelessWidget {
                           ),
                           SizedBox(height: 3),
                           Text(
-                            'İlk varlığını eklediğinde burada görünecek.',
+                            'Alış veya satış işlemi eklediğinde burada görünecek.',
                             style: TextStyle(
                               color: Colors.black54,
                               fontWeight: FontWeight.w600,
@@ -2476,7 +2621,8 @@ class _RecentTransactions extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         noAnimationRoute(
-                          builder: (_) => const TransactionEntryPage(showBottomNav: false),
+                          builder: (_) =>
+                              const TransactionEntryPage(showBottomNav: true),
                         ),
                       );
                     },
@@ -2489,21 +2635,46 @@ class _RecentTransactions extends StatelessWidget {
           );
         }
 
-        final List<PortfolioItem> recentItems = items.reversed.take(3).toList();
+        final recentTransactions = transactions.take(3).toList(growable: false);
         final List<Widget> rows = <Widget>[];
 
-        for (int index = 0; index < recentItems.length; index++) {
-          final PortfolioItem item = recentItems[index];
+        for (int index = 0; index < recentTransactions.length; index++) {
+          final transaction = recentTransactions[index];
+          final data = transaction.data();
+          final symbol = (data['symbol'] ?? '-').toString();
+          final assetName = (data['assetName'] ?? '').toString();
+          final type = (data['type'] ?? '-').toString();
+          final quantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+          final total = (data['total'] as num?)?.toDouble() ?? 0;
+          final currency = (data['currency'] ?? 'TRY').toString();
+          final formattedDate = _formatDate(
+            data['transactionDate'] ?? data['createdAt'],
+          );
+
           rows.add(
             _TransactionRow(
-              symbol: item.symbol.trim().isEmpty ? item.name : item.symbol.trim().toUpperCase(),
-              type: 'Portföy Girişi',
-              amount: formatCurrency(item.totalCost, item.currency),
-              detail: '${formatQuantity(item.quantity)} adet • ${item.type}',
+              symbol: assetName.isEmpty || assetName == symbol
+                  ? symbol
+                  : '$symbol • $assetName',
+              type: type,
+              amount: formatCurrency(total, currency),
+              detail: '${formatQuantity(quantity)} adet • $formattedDate',
+              isSell: type == 'Satış',
+              onTap: () {
+                Navigator.of(context).push(
+                  noAnimationRoute(
+                    builder: (_) => TransactionDetailPage(
+                      transactionId: transaction.id,
+                      data: data,
+                      formattedDate: formattedDate,
+                    ),
+                  ),
+                );
+              },
             ),
           );
 
-          if (index != recentItems.length - 1) {
+          if (index != recentTransactions.length - 1) {
             rows.add(const ThinDivider());
           }
         }
@@ -2522,43 +2693,72 @@ class _TransactionRow extends StatelessWidget {
   final String type;
   final String amount;
   final String detail;
+  final bool isSell;
+  final VoidCallback? onTap;
 
   const _TransactionRow({
     required this.symbol,
     required this.type,
     required this.amount,
     required this.detail,
+    required this.isSell,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    const Color color = Color(0xFF008DB9);
-    final String avatarText = symbol.trim().isEmpty ? '?' : symbol.characters.first;
+    final color = isSell ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
+    final String avatarText = symbol.trim().isEmpty
+        ? '?'
+        : symbol.characters.first;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: color.withValues(alpha: .12),
-            child: Text(
-              avatarText,
-              style: const TextStyle(
-                color: color,
-                fontWeight: FontWeight.w800,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: color.withValues(alpha: .12),
+              child: Text(
+                avatarText,
+                style: TextStyle(color: color, fontWeight: FontWeight.w800),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    symbol,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    type,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  symbol,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  amount,
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
@@ -2567,40 +2767,23 @@ class _TransactionRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  type,
+                  detail,
                   style: const TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w700,
+                    color: Colors.black45,
+                    fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                detail,
-                style: const TextStyle(
-                  color: Colors.black45,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: Color(0xFF94A3B8),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2642,10 +2825,7 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alarm Kur'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Alarm Kur'), centerTitle: false),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -2690,8 +2870,14 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'Üstüne çıkarsa', child: Text('Üstüne çıkarsa')),
-                        DropdownMenuItem(value: 'Altına inerse', child: Text('Altına inerse')),
+                        DropdownMenuItem(
+                          value: 'Üstüne çıkarsa',
+                          child: Text('Üstüne çıkarsa'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Altına inerse',
+                          child: Text('Altına inerse'),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value == null) return;
@@ -2701,13 +2887,17 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _targetController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Hedef Fiyat',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        final parsed = double.tryParse((value ?? '').replaceAll(',', '.'));
+                        final parsed = double.tryParse(
+                          (value ?? '').replaceAll(',', '.'),
+                        );
                         if (parsed == null || parsed <= 0) {
                           return 'Geçerli bir hedef fiyat gir.';
                         }
@@ -2730,11 +2920,10 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
           ],
         ),
       ),
+      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 2),
     );
   }
 }
-
-
 
 class _MyFinIntelligenceHero extends StatefulWidget {
   final int refreshTick;
@@ -2755,7 +2944,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-  );
+    );
   }
 
   @override
@@ -2777,9 +2966,9 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
         final intelligence = _buildPortfolioIntelligence(items);
-final analysis = PortfolioAnalyzer.analyze(items);
-final aiScore = analysis.aiScore;
-final scoreColor = _scoreColor(aiScore);
+        final analysis = PortfolioAnalyzer.analyze(items);
+        final aiScore = analysis.aiScore;
+        final scoreColor = _scoreColor(aiScore);
 
         final summary = items.isEmpty
             ? 'İlk varlığını eklediğinde MyFin portföyünü analiz etmeye başlayacak.'
@@ -2818,16 +3007,14 @@ final scoreColor = _scoreColor(aiScore);
                             height: 58,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF7C3AED),
-                                  Color(0xFF0EA5E9),
-                                ],
+                                colors: [Color(0xFF7C3AED), Color(0xFF0EA5E9)],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF7C3AED)
-                                      .withValues(alpha: glow),
+                                  color: const Color(
+                                    0xFF7C3AED,
+                                  ).withValues(alpha: glow),
                                   blurRadius: 24,
                                   offset: const Offset(0, 10),
                                 ),
@@ -2873,7 +3060,7 @@ final scoreColor = _scoreColor(aiScore);
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                         '$aiScore/100',
+                          '$aiScore/100',
                           style: TextStyle(
                             color: scoreColor,
                             fontSize: 14,
@@ -2920,7 +3107,8 @@ final scoreColor = _scoreColor(aiScore);
                             onTap: () {
                               Navigator.of(context).push(
                                 noAnimationRoute(
-                                  builder: (_) => AiChatPage(analysis: analysis),
+                                  builder: (_) =>
+                                      AiChatPage(analysis: analysis),
                                 ),
                               );
                             },
@@ -2938,8 +3126,9 @@ final scoreColor = _scoreColor(aiScore);
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF008DB9)
-                                        .withValues(alpha: .24),
+                                    color: const Color(
+                                      0xFF008DB9,
+                                    ).withValues(alpha: .24),
                                     blurRadius: 24,
                                     offset: const Offset(0, 10),
                                   ),
@@ -3020,10 +3209,7 @@ class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
               ),
             ],
           ),
-          child: Transform.scale(
-            scale: scale,
-            child: child,
-          ),
+          child: Transform.scale(scale: scale, child: child),
         );
       },
       child: const Icon(

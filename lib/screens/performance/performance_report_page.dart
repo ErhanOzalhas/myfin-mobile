@@ -17,8 +17,7 @@ class PerformanceReportPage extends StatefulWidget {
   const PerformanceReportPage({super.key});
 
   @override
-  State<PerformanceReportPage> createState() =>
-      _PerformanceReportPageState();
+  State<PerformanceReportPage> createState() => _PerformanceReportPageState();
 }
 
 class _PerformanceReportPageState extends State<PerformanceReportPage> {
@@ -32,9 +31,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
     'Özel',
   ];
 
-  Future<DashboardSummary> _loadDashboardSummary(
-    List<PortfolioItem> items,
-  ) {
+  Future<DashboardSummary> _loadDashboardSummary(List<PortfolioItem> items) {
     return DashboardRepository.instance.calculate(items);
   }
 
@@ -72,11 +69,12 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
             return FutureBuilder<DashboardSummary>(
               future: _loadDashboardSummary(items),
               builder: (context, summarySnapshot) {
-                final summary =
-                    summarySnapshot.data ?? _fallbackSummary(items);
+                final summary = summarySnapshot.data ?? _fallbackSummary(items);
 
-                final trend =
-                    _WeeklyTrendData.fromSummary(summary, items.length);
+                final trend = _WeeklyTrendData.fromSummary(
+                  summary,
+                  items.length,
+                );
 
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
@@ -90,6 +88,15 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                             child: ChoiceChip(
                               label: Text(range),
                               selected: range == _range,
+                              showCheckmark: false,
+                              selectedColor: const Color(0xFF0F73C5),
+                              backgroundColor: Colors.white,
+                              labelStyle: TextStyle(
+                                color: range == _range
+                                    ? Colors.white
+                                    : const Color(0xFF475569),
+                                fontWeight: FontWeight.w700,
+                              ),
                               onSelected: (_) {
                                 setState(() => _range = range);
                               },
@@ -101,8 +108,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                     const SizedBox(height: 14),
                     WeeklyPerformanceCard(
                       title: '$_range performansı',
-                      subtitle:
-                          'Seçili tarih aralığı için portföy görünümü.',
+                      subtitle: 'Seçili tarih aralığı için portföy görünümü.',
                       changeText: formatPercent(trend.totalChange),
                       values: trend.values,
                       isPositive: trend.isPositive,
@@ -147,6 +153,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
       ),
       bottomNavigationBar: const MyFinBottomNav(
         selectedIndex: 0,
+        allowSelectedDestinationNavigation: true,
       ),
     );
   }

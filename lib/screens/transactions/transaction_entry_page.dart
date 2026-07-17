@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../../utils/myfin_formatters.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../../utils/no_animation_route.dart';
+import '../portfolio/portfolio_page.dart';
 
 import 'transaction_history_page.dart';
 
@@ -25,6 +27,8 @@ class TransactionEntryPage extends StatefulWidget {
   final String? transactionId;
   final Map<String, dynamic>? transactionData;
   final String? formattedDate;
+  final AssetInfo? initialAsset;
+  final double? initialPrice;
 
   const TransactionEntryPage({
     super.key,
@@ -32,6 +36,8 @@ class TransactionEntryPage extends StatefulWidget {
     this.transactionId,
     this.transactionData,
     this.formattedDate,
+    this.initialAsset,
+    this.initialPrice,
   });
 
   bool get isEdit => transactionId != null && transactionData != null;
@@ -79,7 +85,25 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _priceFocusNode.addListener(_handlePriceFocusChanged);
 
     final data = widget.transactionData;
-    if (data == null) return;
+    if (data == null) {
+      final asset = widget.initialAsset;
+      if (asset != null) {
+        _selectedAsset = asset;
+        _symbolController.text = asset.symbol;
+        _assetSearchController.text = '${asset.symbol} • ${asset.name}';
+        _assetName = asset.name;
+        _assetType = _assetTypeFor(asset);
+        _currency = asset.currency;
+
+        final initialPrice = widget.initialPrice;
+        if (initialPrice != null && initialPrice > 0) {
+          _priceController.text = _formatPriceInput(initialPrice);
+          _livePriceMessage =
+              'Canlı fiyat: ${formatCurrency(initialPrice, asset.currency)}';
+        }
+      }
+      return;
+    }
 
     final symbol = (data['symbol'] ?? '').toString();
     final assetName = (data['assetName'] ?? '').toString();
@@ -203,25 +227,25 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   }
 
   String _formatQuantityText(String value) {
-  final formatted = const _TurkishDecimalTextInputFormatter(
-    decimalDigits: 8,
-    dotAsDecimal: false,
-  ).formatString(value);
+    final formatted = const _TurkishDecimalTextInputFormatter(
+      decimalDigits: 8,
+      dotAsDecimal: false,
+    ).formatString(value);
 
-  if (formatted.isEmpty) return '';
+    if (formatted.isEmpty) return '';
 
-  final separatorIndex = formatted.indexOf(',');
-  if (separatorIndex == -1) return formatted;
+    final separatorIndex = formatted.indexOf(',');
+    if (separatorIndex == -1) return formatted;
 
-  final integerPart = formatted.substring(0, separatorIndex);
-  var decimalPart = formatted.substring(separatorIndex + 1);
+    final integerPart = formatted.substring(0, separatorIndex);
+    var decimalPart = formatted.substring(separatorIndex + 1);
 
-  decimalPart = decimalPart.replaceFirst(RegExp(r'0+$'), '');
+    decimalPart = decimalPart.replaceFirst(RegExp(r'0+$'), '');
 
-  if (decimalPart.isEmpty) return integerPart;
+    if (decimalPart.isEmpty) return integerPart;
 
-  return '$integerPart,$decimalPart';
-}
+    return '$integerPart,$decimalPart';
+  }
 
   String _formatCurrencyText(String value) {
     final formatted = const _TurkishDecimalTextInputFormatter(
@@ -329,10 +353,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       _livePriceMessage = null;
     });
 
-    final results = await _remoteAssetSearch.search(
-      query,
-      limit: 18,
-    );
+    final results = await _remoteAssetSearch.search(query, limit: 18);
 
     if (!mounted || requestId != _searchRequestId) {
       return;
@@ -360,8 +381,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
     FocusScope.of(context).unfocus();
 
-    if (asset.provider == 'CoinGecko' &&
-        asset.providerAssetId != null) {
+    if (asset.provider == 'CoinGecko' && asset.providerAssetId != null) {
       CoinGeckoCoinIndex.instance.rememberPreferred(
         symbol: asset.symbol,
         coinId: asset.providerAssetId!,
@@ -389,8 +409,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
       setState(() {
         _isLoadingLivePrice = false;
-        _livePriceMessage =
-            'Canlı fiyat alınamadı. Fiyatı elle girebilirsin.';
+        _livePriceMessage = 'Canlı fiyat alınamadı. Fiyatı elle girebilirsin.';
       });
 
       debugPrint('AUTO PRICE ERROR (${asset.symbol}): $error');
@@ -445,11 +464,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: _transactionDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      isScrollControlled: true,
+      barrierColor: Colors.black.withValues(alpha: .62),
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TransactionDateSheet(initialDate: _transactionDate),
     );
 
     if (picked == null) return;
@@ -478,9 +498,41 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       final items = await PortfolioRepository.instance.watchPortfolio().first;
 
       if (widget.isEdit) {
-        await PortfolioRepository.instance.updateTransaction(
-          widget.transactionId!,
-          {
+        if (_transactionType == 'Satış') {
+          final availableQuantity = await _availableQuantityForEditedSale(
+            symbol: symbol,
+            transactionDate: _transactionDate,
+          );
+          if (quantity > availableQuantity + 0.000001) {
+            throw Exception(
+              '$symbol için bu tarihte satılabilir miktar '
+              '${formatQuantity(availableQuantity)} adet. İşlem Satış olarak kaydedilemez.',
+            );
+          }
+        }
+
+        final original = widget.transactionData!;
+        final previousHistory =
+            (original['changeHistory'] as List?)
+                ?.whereType<Map>()
+                .map((entry) => Map<String, dynamic>.from(entry))
+                .toList() ??
+            <Map<String, dynamic>>[];
+        previousHistory.add({
+          'editedAt': Timestamp.now(),
+          'before': {
+            'symbol': original['symbol'],
+            'assetName': original['assetName'],
+            'assetType': original['assetType'],
+            'type': original['type'],
+            'quantity': original['quantity'],
+            'price': original['price'],
+            'total': original['total'],
+            'currency': original['currency'],
+            'transactionDate': original['transactionDate'],
+            'note': original['note'],
+          },
+          'after': {
             'symbol': symbol,
             'assetName': resolvedAssetName,
             'assetType': resolvedAssetType,
@@ -492,7 +544,23 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             'transactionDate': Timestamp.fromDate(_transactionDate),
             'note': _noteController.text.trim(),
           },
-        );
+        });
+
+        await PortfolioRepository.instance
+            .updateTransaction(widget.transactionId!, {
+              'symbol': symbol,
+              'assetName': resolvedAssetName,
+              'assetType': resolvedAssetType,
+              'type': _transactionType,
+              'quantity': quantity,
+              'price': price,
+              'total': quantity * price,
+              'currency': _currency,
+              'transactionDate': Timestamp.fromDate(_transactionDate),
+              'note': _noteController.text.trim(),
+              'wasEdited': true,
+              'changeHistory': previousHistory,
+            });
 
         await PortfolioRebuildService().rebuildFromTransactions();
 
@@ -508,7 +576,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         final itemName = item.name.trim().toUpperCase();
         final assetName = _assetName.trim().toUpperCase();
 
-        if (itemSymbol == symbol || itemName == symbol || itemName == assetName) {
+        if (itemSymbol == symbol ||
+            itemName == symbol ||
+            itemName == assetName) {
           existingItem = item;
           break;
         }
@@ -554,7 +624,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         final remainingQuantity = existingItem.quantity - quantity;
 
         if (remainingQuantity <= 0) {
-          await PortfolioRepository.instance.deletePortfolioItem(existingItem.id);
+          await PortfolioRepository.instance.deletePortfolioItem(
+            existingItem.id,
+          );
         } else {
           await PortfolioRepository.instance.updatePortfolioItem(
             existingItem.copyWith(quantity: remainingQuantity),
@@ -589,10 +661,63 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         _isSaved = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('İşlem kaydedilemedi: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('İşlem kaydedilemedi: $error')));
     }
+  }
+
+  Future<double> _availableQuantityForEditedSale({
+    required String symbol,
+    required DateTime transactionDate,
+  }) async {
+    final snapshot = await PortfolioRepository.instance
+        .watchTransactions()
+        .first;
+    final transactions =
+        snapshot.docs.where((doc) {
+          if (doc.id == widget.transactionId) return false;
+          final data = doc.data();
+          final itemSymbol = (data['symbol'] ?? '')
+              .toString()
+              .trim()
+              .toUpperCase();
+          final rawDate = data['transactionDate'];
+          final date = rawDate is Timestamp
+              ? rawDate.toDate()
+              : DateTime.fromMillisecondsSinceEpoch(0);
+          return itemSymbol == symbol && !date.isAfter(transactionDate);
+        }).toList()..sort((a, b) {
+          final aDate = a.data()['transactionDate'];
+          final bDate = b.data()['transactionDate'];
+          final aMillis = aDate is Timestamp ? aDate.millisecondsSinceEpoch : 0;
+          final bMillis = bDate is Timestamp ? bDate.millisecondsSinceEpoch : 0;
+          return aMillis.compareTo(bMillis);
+        });
+
+    var available = 0.0;
+    for (final transaction in transactions) {
+      final data = transaction.data();
+      final itemQuantity = (data['quantity'] as num?)?.toDouble() ?? 0;
+      if ((data['type'] ?? 'Alış').toString() == 'Satış') {
+        available = math.max(0, available - itemQuantity);
+      } else {
+        available += itemQuantity;
+      }
+    }
+    final currentData = widget.transactionData;
+    Map<dynamic, dynamic>? original = currentData;
+    final history = currentData?['changeHistory'];
+    if (history is List && history.isNotEmpty && history.first is Map) {
+      final before = (history.first as Map)['before'];
+      if (before is Map) original = before;
+    }
+    if (original != null &&
+        (original['type'] ?? '').toString() == 'Alış' &&
+        (original['symbol'] ?? '').toString().trim().toUpperCase() == symbol) {
+      available += (original['quantity'] as num?)?.toDouble() ?? 0;
+    }
+    return available;
   }
 
   String _resolveAssetType(String symbol, String currentType) {
@@ -659,6 +784,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         builder: (_) => const TransactionHistoryPage(showBottomNav: true),
       ),
     );
+  }
+
+  void _openPortfolio() {
+    Navigator.of(
+      context,
+    ).push(noAnimationRoute(builder: (_) => const PortfolioPage()));
   }
 
   static const Color _brandBlue = Color(0xFF075DA8);
@@ -737,9 +868,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             : const Color(0xFF111827);
       }),
       backgroundColor: WidgetStateProperty.resolveWith((states) {
-        return states.contains(WidgetState.selected)
-            ? _softBlue
-            : Colors.white;
+        return states.contains(WidgetState.selected) ? _softBlue : Colors.white;
       }),
     );
   }
@@ -749,10 +878,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final label = _isSaving
         ? 'Kaydediliyor...'
         : _isSaved
-            ? 'İşlem kaydedildi'
-            : widget.isEdit
-                ? 'Değişiklikleri Kaydet'
-                : 'Yeni İşlemi Kaydet';
+        ? 'İşlem kaydedildi'
+        : widget.isEdit
+        ? 'Değişiklikleri Kaydet'
+        : 'Yeni İşlemi Kaydet';
 
     return SizedBox(
       width: double.infinity,
@@ -819,14 +948,13 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       'KWD',
       'QAR',
       'RUB',
-      if (_currency.trim().isNotEmpty)
-        _currency.trim().toUpperCase(),
-    }.toList()
-      ..sort();
+      if (_currency.trim().isNotEmpty) _currency.trim().toUpperCase(),
+    }.toList()..sort();
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
+        toolbarHeight: 68,
         automaticallyImplyLeading: false,
         leading: Navigator.of(context).canPop()
             ? IconButton(
@@ -837,26 +965,20 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         title: Text(widget.isEdit ? 'İşlemi Düzenle' : 'Yeni İşlem'),
         centerTitle: false,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: OutlinedButton.icon(
-              onPressed: _openTransactionHistory,
-              icon: const Icon(Icons.history_rounded, size: 18),
-              label: const Text('Geçmiş'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _brandBlue,
-                backgroundColor: _softBlue,
-                side: const BorderSide(color: _brandBlue, width: 1.2),
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                minimumSize: const Size(0, 36),
-                textStyle: const TextStyle(fontWeight: FontWeight.w800),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+          _HeaderShortcutButton(
+            label: 'Portföyüm',
+            icon: Icons.account_balance_wallet_rounded,
+            color: const Color(0xFF0284C7),
+            onPressed: _openPortfolio,
           ),
+          const SizedBox(width: 7),
+          _HeaderShortcutButton(
+            label: 'Geçmiş',
+            icon: Icons.history_rounded,
+            color: const Color(0xFF16A34A),
+            onPressed: _openTransactionHistory,
+          ),
+          const SizedBox(width: 10),
         ],
       ),
       body: SafeArea(
@@ -864,7 +986,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           key: _formKey,
           child: ListView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(16, 8, 16, keyboardInset > 0 ? 92 : 20),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              8,
+              16,
+              keyboardInset > 0 ? 92 : 20,
+            ),
             children: [
               SurfaceCard(
                 child: Column(
@@ -891,31 +1018,33 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _assetSearchController,
-                      decoration: _fieldDecoration(
-                        labelText: 'Varlık ara',
-                        hintText: 'Örn: ASELS, USD, Altın...',
-                        prefixIcon: Icons.search_rounded,
-                      ).copyWith(
-                        suffixIcon: _assetSearchController.text.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Varlığı temizle',
-                                onPressed: () =>
-                                    _clearSelectedAsset(keepFocus: true),
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                      ),
+                      decoration:
+                          _fieldDecoration(
+                            labelText: 'Varlık ara',
+                            hintText: 'Örn: ASELS, USD, Altın...',
+                            prefixIcon: Icons.search_rounded,
+                          ).copyWith(
+                            suffixIcon: _assetSearchController.text.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Varlığı temizle',
+                                    onPressed: () =>
+                                        _clearSelectedAsset(keepFocus: true),
+                                    icon: const Icon(Icons.close_rounded),
+                                  ),
+                          ),
                       validator: _requiredText,
                       focusNode: _assetSearchFocusNode,
                       keyboardType: TextInputType.text,
-                      textCapitalization: TextCapitalization.characters,
+                      textCapitalization: TextCapitalization.none,
                       autocorrect: false,
                       enableSuggestions: false,
                       textInputAction: TextInputAction.search,
                       onChanged: _onAssetSearchChanged,
                     ),
                     const SizedBox(height: 8),
-                    if (_isSearching) const LinearProgressIndicator(minHeight: 2),
+                    if (_isSearching)
+                      const LinearProgressIndicator(minHeight: 2),
                     if (_suggestions.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -941,17 +1070,18 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         hintText: 'Örn: 10.000,00',
                         suffixIcon: Icons.trending_up_rounded,
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: TextInputType.text,
                       inputFormatters: const [
-  _TurkishDecimalTextInputFormatter(
-    decimalDigits: 8,
-    dotAsDecimal: true,
-  ),
-],
+                        _TurkishDecimalTextInputFormatter(
+                          decimalDigits: 8,
+                          dotAsDecimal: false,
+                        ),
+                      ],
                       textInputAction: TextInputAction.next,
                       onEditingComplete: () {
-                        _quantityController.text =
-                            _formatQuantityText(_quantityController.text);
+                        _quantityController.text = _formatQuantityText(
+                          _quantityController.text,
+                        );
                         FocusScope.of(context).nextFocus();
                       },
                       validator: _requiredNumber,
@@ -965,7 +1095,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         hintText: 'Örn: 123,45',
                         suffixIcon: Icons.payments_outlined,
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: TextInputType.text,
                       inputFormatters: const [
                         _TurkishDecimalTextInputFormatter(
                           decimalDigits: 2,
@@ -974,8 +1104,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       ],
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) {
-                        _priceController.text =
-                            _formatCurrencyText(_priceController.text);
+                        _priceController.text = _formatCurrencyText(
+                          _priceController.text,
+                        );
                         FocusScope.of(context).unfocus();
                       },
                       validator: _requiredNumber,
@@ -985,17 +1116,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            key: ValueKey<String>(
-                              'currency-$_currency',
-                            ),
+                            key: ValueKey<String>('currency-$_currency'),
                             initialValue: _currency,
                             decoration: _fieldDecoration(
                               labelText: 'Para birimi',
                             ),
                             items: currencies
                                 .map(
-                                  (currency) =>
-                                      DropdownMenuItem<String>(
+                                  (currency) => DropdownMenuItem<String>(
                                     value: currency,
                                     child: Text(currency),
                                   ),
@@ -1048,20 +1176,21 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       minLines: 2,
                       maxLines: 2,
                       maxLength: 200,
-                      buildCounter: (
-                        BuildContext context, {
-                        required int currentLength,
-                        required bool isFocused,
-                        required int? maxLength,
-                      }) {
-                        return Text(
-                          '$currentLength/${maxLength ?? 200}',
-                          style: const TextStyle(
-                            color: Color(0xFF596273),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      },
+                      buildCounter:
+                          (
+                            BuildContext context, {
+                            required int currentLength,
+                            required bool isFocused,
+                            required int? maxLength,
+                          }) {
+                            return Text(
+                              '$currentLength/${maxLength ?? 200}',
+                              style: const TextStyle(
+                                color: Color(0xFF596273),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          },
                     ),
                   ],
                 ),
@@ -1087,6 +1216,183 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                 const MyFinBottomNav(selectedIndex: 2),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderShortcutButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _HeaderShortcutButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: color,
+        elevation: 2,
+        shadowColor: color.withValues(alpha: .28),
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(0, 38),
+        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+      ),
+    );
+  }
+}
+
+class _TransactionDateSheet extends StatefulWidget {
+  final DateTime initialDate;
+
+  const _TransactionDateSheet({required this.initialDate});
+
+  @override
+  State<_TransactionDateSheet> createState() => _TransactionDateSheetState();
+}
+
+class _TransactionDateSheetState extends State<_TransactionDateSheet> {
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.initialDate;
+  }
+
+  String _dateLabel(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  ThemeData _calendarTheme(BuildContext context) {
+    final base = Theme.of(context);
+    return base.copyWith(
+      datePickerTheme: base.datePickerTheme.copyWith(
+        headerHeadlineStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        weekdayStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        dayStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        yearStyle: const TextStyle(fontSize: 14),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return Container(
+      height: MediaQuery.sizeOf(context).height * .58,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1D5DB),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 10, 0),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'İşlem Tarihi Seç',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F9FC),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _dateLabel(_selectedDate),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  width: 380,
+                  height: 310,
+                  child: Theme(
+                    data: _calendarTheme(context),
+                    child: CalendarDatePicker(
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: now.add(const Duration(days: 1)),
+                      onDateChanged: (date) =>
+                          setState(() => _selectedDate = date),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, _selectedDate),
+                  child: const Text('Tarihi Uygula'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1129,8 +1435,26 @@ class _TurkishDecimalTextInputFormatter extends TextInputFormatter {
     for (final codeUnit in text.codeUnits) {
       final char = String.fromCharCode(codeUnit);
       final isDigit = codeUnit >= 48 && codeUnit <= 57;
-      if (isDigit || char == ',' || char == '.' || char == '/') {
-        sanitized.write(char == '/' ? ',' : char);
+      if (isDigit ||
+          char == ',' ||
+          char == '.' ||
+          char == '/' ||
+          char == ';' ||
+          char == ':' ||
+          char == '٫' ||
+          char == '，' ||
+          char == '．') {
+        if (char == '/' ||
+            char == ';' ||
+            char == ':' ||
+            char == '٫' ||
+            char == '，') {
+          sanitized.write(',');
+        } else if (char == '．') {
+          sanitized.write('.');
+        } else {
+          sanitized.write(char);
+        }
       }
     }
 
@@ -1226,10 +1550,7 @@ class _SuggestionPanel extends StatelessWidget {
   final List<AssetInfo> suggestions;
   final ValueChanged<AssetInfo> onSelected;
 
-  const _SuggestionPanel({
-    required this.suggestions,
-    required this.onSelected,
-  });
+  const _SuggestionPanel({required this.suggestions, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -1241,9 +1562,7 @@ class _SuggestionPanel extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: const Color(0xFFDCE7F1),
-          ),
+          border: Border.all(color: const Color(0xFFDCE7F1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: .045),
@@ -1261,11 +1580,7 @@ class _SuggestionPanel extends StatelessWidget {
                 onTap: () => onSelected(suggestions[index]),
               ),
               if (index != suggestions.length - 1)
-                const Divider(
-                  height: 1,
-                  indent: 62,
-                  color: Color(0xFFE8EEF5),
-                ),
+                const Divider(height: 1, indent: 62, color: Color(0xFFE8EEF5)),
             ],
           ],
         ),
@@ -1278,10 +1593,7 @@ class _AssetSuggestionTile extends StatelessWidget {
   final AssetInfo asset;
   final VoidCallback onTap;
 
-  const _AssetSuggestionTile({
-    required this.asset,
-    required this.onTap,
-  });
+  const _AssetSuggestionTile({required this.asset, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1293,10 +1605,7 @@ class _AssetSuggestionTile extends StatelessWidget {
       dense: true,
       visualDensity: VisualDensity.compact,
       tileColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 5,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       leading: CircleAvatar(
         radius: 18,
         backgroundColor: const Color(0xFF008DB9).withValues(alpha: .12),
@@ -1333,10 +1642,7 @@ class _AssetSuggestionTile extends StatelessWidget {
       trailing: Container(
         width: 9,
         height: 9,
-        decoration: BoxDecoration(
-          color: supportColor,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: supportColor, shape: BoxShape.circle),
       ),
       onTap: onTap,
     );
@@ -1357,8 +1663,9 @@ class _SelectedAssetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final live = asset.hasLiveData;
-    final statusColor =
-        live ? const Color(0xFF16A34A) : const Color(0xFFD97706);
+    final statusColor = live
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFD97706);
     final statusText = switch (asset.supportStatus) {
       AssetSupportStatus.live => 'Canlı veri',
       AssetSupportStatus.delayed => 'Gecikmeli veri',
@@ -1372,9 +1679,7 @@ class _SelectedAssetCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF4FAFE),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFBFE3F4),
-        ),
+        border: Border.all(color: const Color(0xFFBFE3F4)),
       ),
       child: Column(
         children: [
@@ -1428,10 +1733,7 @@ class _SelectedAssetCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: .10),
                   borderRadius: BorderRadius.circular(999),
@@ -1457,22 +1759,17 @@ class _SelectedAssetCard extends StatelessWidget {
                   const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
                   Icon(
-                    livePriceMessage?.startsWith('Canlı fiyat:')
-                            == true
+                    livePriceMessage?.startsWith('Canlı fiyat:') == true
                         ? Icons.check_circle_rounded
                         : Icons.info_outline_rounded,
                     size: 18,
-                    color:
-                        livePriceMessage?.startsWith('Canlı fiyat:')
-                                == true
-                            ? const Color(0xFF16A34A)
-                            : const Color(0xFFD97706),
+                    color: livePriceMessage?.startsWith('Canlı fiyat:') == true
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFD97706),
                   ),
                 const SizedBox(width: 8),
                 Expanded(

@@ -1,8 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../app/my_fin_app.dart';
+import '../services/app_startup_coordinator.dart';
 
 class MyFinLaunchApp extends StatefulWidget {
   const MyFinLaunchApp({super.key});
@@ -17,10 +16,21 @@ class _MyFinLaunchAppState extends State<MyFinLaunchApp> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 3600), () {
-      if (!mounted) return;
-      setState(() => _showApp = true);
-    });
+    _prepareApp();
+  }
+
+  Future<void> _prepareApp() async {
+    final minimumSplash = Future<void>.delayed(
+      const Duration(milliseconds: 1400),
+    );
+    final preload = AppStartupCoordinator.instance
+        .prepareCriticalData()
+        .timeout(const Duration(milliseconds: 2400), onTimeout: () {});
+
+    await Future.wait([minimumSplash, preload]);
+
+    if (!mounted) return;
+    setState(() => _showApp = true);
   }
 
   @override
@@ -55,17 +65,12 @@ class _MyFinSplashScreenState extends State<_MyFinSplashScreen>
       duration: const Duration(milliseconds: 1600),
     )..forward();
 
-    _fade = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
 
-    _scale = Tween<double>(begin: .92, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutBack,
-      ),
-    );
+    _scale = Tween<double>(
+      begin: .92,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
   }
 
   @override
@@ -86,11 +91,7 @@ class _MyFinSplashScreenState extends State<_MyFinSplashScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF071A3D),
-                Color(0xFF008DB9),
-                Color(0xFF0F172A),
-              ],
+              colors: [Color(0xFF071A3D), Color(0xFF008DB9), Color(0xFF0F172A)],
             ),
           ),
           child: SafeArea(
@@ -216,11 +217,7 @@ class _StepRow extends StatelessWidget {
             color: Colors.white.withValues(alpha: .18),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.check_rounded,
-            color: Colors.white,
-            size: 16,
-          ),
+          child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(
