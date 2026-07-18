@@ -99,27 +99,6 @@ class MyFinHome extends StatefulWidget {
 class _MyFinHomeState extends State<MyFinHome> {
   int _refreshTick = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    PortfolioValuationService.instance.revision.addListener(
-      _handleValuationChanged,
-    );
-  }
-
-  @override
-  void dispose() {
-    PortfolioValuationService.instance.revision.removeListener(
-      _handleValuationChanged,
-    );
-    super.dispose();
-  }
-
-  void _handleValuationChanged() {
-    if (!mounted) return;
-    setState(() {});
-  }
-
   Future<void> _refreshMarketData() async {
     setState(() => _refreshTick++);
     await Future<void>.delayed(const Duration(milliseconds: 350));
@@ -1503,20 +1482,17 @@ class _WeeklyPerformanceCard extends StatelessWidget {
                 ? const Color(0xFF16A34A)
                 : const Color(0xFFDC2626);
 
-            return _DashboardFadeIn(
-              delay: 110,
-              child: WeeklyPerformanceCard(
-                title: trend.title,
-                subtitle: trend.subtitle,
-                changeText: formatPercent(trend.totalChange),
-                values: trend.values,
-                isPositive: trend.isPositive,
-                color: color,
-                momentumLabel: trend.momentumLabel,
-                riskLabel: trend.riskLabel,
-                riskColor: trend.riskColor,
-                dailyLabel: trend.dailyLabel,
-              ),
+            return WeeklyPerformanceCard(
+              title: trend.title,
+              subtitle: trend.subtitle,
+              changeText: formatPercent(trend.totalChange),
+              values: trend.values,
+              isPositive: trend.isPositive,
+              color: color,
+              momentumLabel: trend.momentumLabel,
+              riskLabel: trend.riskLabel,
+              riskColor: trend.riskColor,
+              dailyLabel: trend.dailyLabel,
             );
           },
         );
