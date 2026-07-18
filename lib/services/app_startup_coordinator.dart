@@ -8,6 +8,7 @@ import '../repositories/dashboard_repository.dart';
 import '../repositories/portfolio_repository.dart';
 import 'market/market_favorites_service.dart';
 import 'market/market_service.dart';
+import 'portfolio_performance_service.dart';
 import 'user_cloud_service.dart';
 
 class AppStartupCoordinator {
@@ -78,6 +79,10 @@ class AppStartupCoordinator {
     await _ignoreFailure(
       DashboardRepository.instance.calculate(items),
       label: 'portföy özeti',
+    );
+    await _ignoreFailure(
+      PortfolioPerformanceService.instance.captureToday(items),
+      label: 'günlük portföy kapanışı',
     );
 
     await Future.wait<void>([profileFuture, transactionsFuture]);

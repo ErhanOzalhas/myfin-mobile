@@ -39,6 +39,10 @@ class FirestoreService {
     return _userSubCollection('transactions');
   }
 
+  CollectionReference<Map<String, dynamic>> get _portfolioSnapshotsCollection {
+    return _userSubCollection('portfolioSnapshots');
+  }
+
   Future<void> createOrUpdateUserProfile({
     required String email,
     String? displayName,
@@ -77,19 +81,18 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchAssets() {
-    return _userSubCollection('assets')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _userSubCollection(
+      'assets',
+    ).orderBy('createdAt', descending: true).snapshots();
   }
 
   Future<void> updateAsset({
     required String assetId,
     required Map<String, dynamic> data,
   }) async {
-    await _userSubCollection('assets').doc(assetId).update({
-      ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _userSubCollection(
+      'assets',
+    ).doc(assetId).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> deleteAsset(String assetId) async {
@@ -113,19 +116,18 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchDebts() {
-    return _userSubCollection('debts')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _userSubCollection(
+      'debts',
+    ).orderBy('createdAt', descending: true).snapshots();
   }
 
   Future<void> updateDebt({
     required String debtId,
     required Map<String, dynamic> data,
   }) async {
-    await _userSubCollection('debts').doc(debtId).update({
-      ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _userSubCollection(
+      'debts',
+    ).doc(debtId).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> deleteDebt(String debtId) async {
@@ -148,10 +150,7 @@ class FirestoreService {
     });
   }
 
-  Future<void> updatePortfolioItem(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+  Future<void> updatePortfolioItem(String id, Map<String, dynamic> data) async {
     await _portfolioItemsCollection.doc(id).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -171,10 +170,7 @@ class FirestoreService {
     });
   }
 
-  Future<void> updateTransaction(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+  Future<void> updateTransaction(String id, Map<String, dynamic> data) async {
     await _transactionsCollection.doc(id).update({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -189,5 +185,27 @@ class FirestoreService {
     return _transactionsCollection
         .orderBy('transactionDate', descending: true)
         .snapshots();
+  }
+
+  Future<void> upsertPortfolioSnapshot(
+    String dateKey,
+    Map<String, dynamic> data,
+  ) async {
+    await _portfolioSnapshotsCollection.doc(dateKey).set({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getPortfolioSnapshots({
+    required String startDateKey,
+    required String endDateKey,
+  }) {
+    return _portfolioSnapshotsCollection
+        .where(FieldPath.documentId, isGreaterThanOrEqualTo: startDateKey)
+        .where(FieldPath.documentId, isLessThanOrEqualTo: endDateKey)
+        .orderBy(FieldPath.documentId)
+        .get();
   }
 }

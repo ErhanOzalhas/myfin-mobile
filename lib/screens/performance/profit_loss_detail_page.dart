@@ -329,21 +329,22 @@ class _ProfitLossSummary extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          stops: [0, .48, .62, 1],
           colors: [
+            Color(0xFFFBEFEF),
+            Color(0xFFFFF9F9),
             Colors.white,
-            color.withValues(alpha: .018),
-            const Color(0xFFFCFDFE),
+            Color(0xFFFBEFEF),
           ],
         ),
-        border: Border.all(color: color.withValues(alpha: .055)),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .045),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Color(0x24D98B8B),
+            blurRadius: 28,
+            offset: Offset(0, 12),
           ),
         ],
       ),

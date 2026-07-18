@@ -15,6 +15,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
     required this.riskLabel,
     required this.riskColor,
     required this.dailyLabel,
+    this.hasHistory = true,
   });
 
   final String title;
@@ -27,6 +28,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
   final String riskLabel;
   final Color riskColor;
   final String dailyLabel;
+  final bool hasHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -73,21 +75,33 @@ class WeeklyPerformanceCard extends StatelessWidget {
           const SizedBox(height: 18),
           SizedBox(
             height: 112,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 850),
-              curve: Curves.easeOutCubic,
-              builder: (context, progress, _) {
-                return CustomPaint(
-                  painter: _WeeklyTrendPainter(
-                    values: values,
-                    color: color,
-                    progress: progress,
+            child: hasHistory
+                ? TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 850),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, progress, _) {
+                      return CustomPaint(
+                        painter: _WeeklyTrendPainter(
+                          values: values,
+                          color: color,
+                          progress: progress,
+                        ),
+                        child: const SizedBox.expand(),
+                      );
+                    },
+                  )
+                : const Center(
+                    child: Text(
+                      'Gerçek performans geçmişi oluşturuluyor.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  child: const SizedBox.expand(),
-                );
-              },
-            ),
           ),
           const SizedBox(height: 12),
           Row(

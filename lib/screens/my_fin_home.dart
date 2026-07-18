@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,12 +7,14 @@ import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
 import '../models/portfolio_item.dart';
+import '../models/portfolio_performance.dart';
 import '../repositories/dashboard_repository.dart';
 import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
 import '../services/ai_analysis_service.dart';
 import '../services/portfolio_intelligence_service.dart';
 import '../services/portfolio_valuation_service.dart';
+import '../services/portfolio_performance_service.dart';
 import '../services/market/market_favorites_service.dart';
 import '../services/market/market_service.dart';
 import '../widgets/dashboard/distribution_card.dart';
@@ -1472,27 +1473,43 @@ class _WeeklyPerformanceCard extends StatelessWidget {
           );
         }
 
-        return FutureBuilder<DashboardSummary>(
+        final end = DateTime.now();
+        final start = end.subtract(const Duration(days: 6));
+        return FutureBuilder<PortfolioPerformance>(
           key: ValueKey('weekly-performance-$refreshTick-${items.length}'),
-          future: _loadDashboardSummary(items),
-          builder: (context, summarySnapshot) {
-            final summary = summarySnapshot.data ?? _fallbackSummary(items);
-            final trend = _WeeklyTrendData.fromSummary(summary, items.length);
-            final color = trend.isPositive
+          future: PortfolioPerformanceService.instance.load(
+            items: items,
+            start: start,
+            end: end,
+          ),
+          builder: (context, performanceSnapshot) {
+            final performance = performanceSnapshot.data;
+            final hasHistory = performance?.hasHistory ?? false;
+            final isPositive = performance?.isPositive ?? true;
+            final color = isPositive
                 ? const Color(0xFF16A34A)
                 : const Color(0xFFDC2626);
 
             return WeeklyPerformanceCard(
-              title: trend.title,
-              subtitle: trend.subtitle,
-              changeText: formatPercent(trend.totalChange),
-              values: trend.values,
-              isPositive: trend.isPositive,
+              title: !hasHistory
+                  ? 'Geçmiş oluşturuluyor'
+                  : isPositive
+                  ? 'Gidişat olumlu'
+                  : 'Gidişat zayıflıyor',
+              subtitle: hasHistory
+                  ? 'Son 7 günün gerçek portföy kapanışları.'
+                  : 'İlk günlük kapanış kaydedildi.',
+              changeText: formatPercent(performance?.totalReturnPercent ?? 0),
+              values: performance?.chartValues ?? const [],
+              isPositive: isPositive,
               color: color,
-              momentumLabel: trend.momentumLabel,
-              riskLabel: trend.riskLabel,
-              riskColor: trend.riskColor,
-              dailyLabel: trend.dailyLabel,
+              momentumLabel: performance?.momentumLabel ?? 'Bekleniyor',
+              riskLabel: performance?.riskLabel ?? 'Bekleniyor',
+              riskColor: _performanceRiskColor(performance),
+              dailyLabel: formatPercent(
+                performance?.averageDailyReturnPercent ?? 0,
+              ),
+              hasHistory: hasHistory,
             );
           },
         );
@@ -1501,73 +1518,15 @@ class _WeeklyPerformanceCard extends StatelessWidget {
   }
 }
 
-class _WeeklyTrendData {
-  final List<double> values;
-  final double totalChange;
-  final String title;
-  final String subtitle;
-  final String momentumLabel;
-  final String riskLabel;
-  final String dailyLabel;
-  final Color riskColor;
-
-  const _WeeklyTrendData({
-    required this.values,
-    required this.totalChange,
-    required this.title,
-    required this.subtitle,
-    required this.momentumLabel,
-    required this.riskLabel,
-    required this.dailyLabel,
-    required this.riskColor,
-  });
-
-  bool get isPositive => totalChange >= 0;
-
-  factory _WeeklyTrendData.fromSummary(
-    DashboardSummary summary,
-    int itemCount,
-  ) {
-    final end = summary.profitPercent;
-    final volatility = (itemCount * .28).clamp(.35, 1.65).toDouble();
-    final start = end - (end >= 0 ? 2.4 : -2.4);
-    final values = <double>[];
-
-    for (var i = 0; i < 7; i++) {
-      final t = i / 6;
-      final wave = math.sin((i + 1) * 1.15) * volatility;
-      values.add(start + ((end - start) * t) + wave);
-    }
-
-    values[6] = end;
-    final change = values.last - values.first;
-    final avgDaily = change / 6;
-    final riskAbs = summary.profitPercent.abs();
-
-    String riskLabel;
-    Color riskColor;
-    if (riskAbs >= 12 || itemCount < 2) {
-      riskLabel = 'Yüksek';
-      riskColor = const Color(0xFFDC2626);
-    } else if (riskAbs >= 5 || itemCount < 4) {
-      riskLabel = 'Orta';
-      riskColor = const Color(0xFFF59E0B);
-    } else {
-      riskLabel = 'Düşük';
-      riskColor = const Color(0xFF16A34A);
-    }
-
-    return _WeeklyTrendData(
-      values: values,
-      totalChange: change,
-      title: change >= 0 ? 'Gidişat olumlu' : 'Gidişat zayıflıyor',
-      subtitle: 'Son 7 gün görünümü portföy performansından türetildi.',
-      momentumLabel: change >= 0 ? 'Pozitif' : 'Negatif',
-      riskLabel: riskLabel,
-      dailyLabel: formatPercent(avgDaily),
-      riskColor: riskColor,
-    );
+Color _performanceRiskColor(PortfolioPerformance? performance) {
+  if (performance == null || !performance.hasHistory) {
+    return const Color(0xFF64748B);
   }
+  if (performance.volatilityPercent >= 3) return const Color(0xFFDC2626);
+  if (performance.volatilityPercent >= 1.25) {
+    return const Color(0xFFF59E0B);
+  }
+  return const Color(0xFF16A34A);
 }
 
 class _DashboardFadeIn extends StatelessWidget {

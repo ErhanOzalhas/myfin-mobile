@@ -5,6 +5,7 @@ import '../performance/profit_loss_detail_page.dart';
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_valuation_service.dart';
+import '../../services/report_export_service.dart';
 import '../../utils/myfin_formatters.dart';
 import '../../widgets/common/empty_state_line.dart';
 import '../../widgets/common/icon_box.dart';
@@ -216,12 +217,55 @@ class _PortfolioPageState extends State<PortfolioPage> {
     return future;
   }
 
+  Future<void> _exportReport(ReportFileType type) async {
+    final valuation = _lastValuation;
+    if (valuation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rapor için portföy verisi bekleniyor.')),
+      );
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? const Rect.fromLTWH(0, 0, 1, 1)
+        : box.localToGlobal(Offset.zero) & box.size;
+    try {
+      await ReportExportService.instance.sharePortfolio(
+        valuation: valuation,
+        type: type,
+        shareOrigin: origin,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Rapor oluşturulamadı: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('Portföy'),
+        actions: [
+          PopupMenuButton<ReportFileType>(
+            tooltip: 'Rapor oluştur',
+            icon: const Icon(Icons.ios_share_rounded),
+            onSelected: _exportReport,
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: ReportFileType.pdf,
+                child: Text('PDF Raporu'),
+              ),
+              PopupMenuItem(
+                value: ReportFileType.excel,
+                child: Text('Excel Raporu'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: StreamBuilder<List<PortfolioItem>>(
