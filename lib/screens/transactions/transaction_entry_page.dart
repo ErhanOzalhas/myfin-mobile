@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
@@ -820,7 +821,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       labelStyle: const TextStyle(
         color: Color(0xFF111827),
         fontSize: 13,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
       ),
       hintStyle: const TextStyle(
         color: Color(0xFF7B8494),
@@ -905,7 +906,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           label,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
             letterSpacing: -.1,
           ),
         ),
@@ -954,16 +955,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        toolbarHeight: 68,
-        automaticallyImplyLeading: false,
-        leading: Navigator.of(context).canPop()
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                onPressed: _goBack,
-              )
-            : null,
+        leading: MyFinBackButton(onPressed: _goBack),
         title: Text(widget.isEdit ? 'İşlemi Düzenle' : 'Yeni İşlem'),
-        centerTitle: false,
         actions: [
           _HeaderShortcutButton(
             label: 'Portföyüm',
@@ -1249,7 +1242,7 @@ class _HeaderShortcutButton extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         minimumSize: const Size(0, 38),
-        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
       ),
     );
@@ -1286,7 +1279,7 @@ class _TransactionDateSheetState extends State<_TransactionDateSheet> {
       datePickerTheme: base.datePickerTheme.copyWith(
         headerHeadlineStyle: const TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
         weekdayStyle: const TextStyle(
           fontSize: 12,
@@ -1329,7 +1322,7 @@ class _TransactionDateSheetState extends State<_TransactionDateSheet> {
                       'İşlem Tarihi Seç',
                       style: TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -1613,7 +1606,7 @@ class _AssetSuggestionTile extends StatelessWidget {
           asset.symbol.characters.first,
           style: const TextStyle(
             color: Color(0xFF008DB9),
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -1623,7 +1616,7 @@ class _AssetSuggestionTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Color(0xFF0F172A),
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w700,
         ),
       ),
       subtitle: Padding(
@@ -1634,7 +1627,7 @@ class _AssetSuggestionTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF64748B),
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             fontSize: 12,
           ),
         ),
@@ -1697,7 +1690,7 @@ class _SelectedAssetCard extends StatelessWidget {
                   asset.symbol.characters.first,
                   style: const TextStyle(
                     color: Color(0xFF0284C7),
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 17,
                   ),
                 ),
@@ -1713,7 +1706,7 @@ class _SelectedAssetCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
                     ),
@@ -1724,7 +1717,7 @@ class _SelectedAssetCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontSize: 11.5,
                       ),
                     ),

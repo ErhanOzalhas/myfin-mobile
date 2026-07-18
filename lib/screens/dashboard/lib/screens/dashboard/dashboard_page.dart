@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -13,10 +14,8 @@ class DashboardPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
+        leading: const MyFinBackButton(),
+        title: const Text('Dashboard'),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -58,7 +57,7 @@ class _DashboardHero extends StatelessWidget {
             'Genel Finans Özeti',
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: DashboardPage._text,
             ),
           ),
@@ -80,16 +79,13 @@ class _DashboardHero extends StatelessWidget {
             ),
             child: const Row(
               children: [
-                Icon(
-                  Icons.auto_graph_rounded,
-                  color: DashboardPage._primary,
-                ),
+                Icon(Icons.auto_graph_rounded, color: DashboardPage._primary),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Dashboard Pro altyapısı hazır.',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: DashboardPage._text,
                     ),
                   ),
@@ -184,7 +180,7 @@ class _MetricCard extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: DashboardPage._text,
             ),
           ),
@@ -244,10 +240,7 @@ class _AiInsightCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.tips_and_updates_rounded,
-            color: DashboardPage._primary,
-          ),
+          Icon(Icons.tips_and_updates_rounded, color: DashboardPage._primary),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -328,7 +321,7 @@ class _ActionButton extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: DashboardPage._text,
                 ),
               ),
@@ -351,7 +344,7 @@ class _SectionTitle extends StatelessWidget {
       title,
       style: const TextStyle(
         fontSize: 18,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w700,
         color: DashboardPage._text,
       ),
     );
@@ -362,10 +355,7 @@ class _Card extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  const _Card({
-    required this.child,
-    this.padding = const EdgeInsets.all(18),
-  });
+  const _Card({required this.child, this.padding = const EdgeInsets.all(18)});
 
   @override
   Widget build(BuildContext context) {

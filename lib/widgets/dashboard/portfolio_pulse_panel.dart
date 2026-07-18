@@ -55,16 +55,13 @@ class PortfolioPulsePanel extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontSize: 17,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   message,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -79,7 +76,7 @@ class PortfolioPulsePanel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: Text(
-  dominantLabel,
+                        dominantLabel,
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.bold,

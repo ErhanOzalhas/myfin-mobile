@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:flutter/services.dart';
 import 'package:myfin_mobile/services/ai/ai_chat_service.dart';
 import 'package:myfin_mobile/services/ai/openai_provider.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
+
 /// MyFin AI Chat Page
 ///
 /// Production-ready, dependency-free Flutter screen for the Intelligence area.
@@ -44,9 +46,7 @@ class AiChatPage extends StatefulWidget {
 class _AiChatPageState extends State<AiChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final AIChatService _chatService = AIChatService(
-    provider: OpenAIProvider(),
-  );
+  final AIChatService _chatService = AIChatService(provider: OpenAIProvider());
   final FocusNode _inputFocusNode = FocusNode();
 
   final List<_ChatMessage> _messages = <_ChatMessage>[
@@ -165,10 +165,7 @@ class _AiChatPageState extends State<AiChatPage> {
       }
     }
 
-    flushTimer = Timer.periodic(
-      flushInterval,
-      (_) => flushBufferedChunks(),
-    );
+    flushTimer = Timer.periodic(flushInterval, (_) => flushBufferedChunks());
 
     try {
       await for (final String chunk in _chatService.askStream(
@@ -255,14 +252,15 @@ class _AiChatPageState extends State<AiChatPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FB),
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         elevation: 0,
         centerTitle: false,
         backgroundColor: const Color(0xFFF6F8FB),
         foregroundColor: const Color(0xFF0F172A),
         titleSpacing: 0,
-        title: const _AppBarTitle(),
+        title: const Text('MyFin AI'),
       ),
-           body: SafeArea(
+      body: SafeArea(
         child: Column(
           children: <Widget>[
             Expanded(
@@ -315,60 +313,9 @@ class _AiChatPageState extends State<AiChatPage> {
         ),
       ),
       bottomNavigationBar: const MyFinBottomNav(
-  selectedIndex: 3,
-  allowSelectedDestinationNavigation: true,
-),
-    ); 
-  }
-}
-
-class _AppBarTitle extends StatelessWidget {
-  const _AppBarTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: <Color>[Color(0xFF00A7C8), Color(0xFF2563EB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: const Color(0xFF2563EB).withValues(alpha: 0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
-        ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'MyFin AI',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'Finansal asistan',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ],
+        selectedIndex: 3,
+        allowSelectedDestinationNavigation: true,
+      ),
     );
   }
 }
@@ -416,8 +363,10 @@ class _HeroPanel extends StatelessWidget {
               ),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -440,7 +389,7 @@ class _HeroPanel extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
             ),
           ),
@@ -579,22 +528,21 @@ class _MessageBubble extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
             child: Column(
-              crossAxisAlignment:
-                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: <Widget>[
-               isUser
-    ? Text(
-        message.text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          height: 1.45,
-        ),
-      )
-    : GptMarkdown(
-        _assistantDisplayText(message),
-      ), 
-                    
+                isUser
+                    ? Text(
+                        message.text,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          height: 1.45,
+                        ),
+                      )
+                    : GptMarkdown(_assistantDisplayText(message)),
+
                 const SizedBox(height: 8),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -606,7 +554,7 @@ class _MessageBubble extends StatelessWidget {
                             ? Colors.white.withValues(alpha: 0.72)
                             : const Color(0xFF94A3B8),
                         fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (!isUser) ...<Widget>[
@@ -633,7 +581,6 @@ class _MessageBubble extends StatelessWidget {
       ),
     );
   }
-
 
   static String _assistantDisplayText(_ChatMessage message) {
     if (!message.isStreaming) return message.text;
@@ -695,8 +642,10 @@ class _Composer extends StatelessWidget {
                 ),
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -707,8 +656,10 @@ class _Composer extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide:
-                      const BorderSide(color: Color(0xFF008DB9), width: 1.4),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF008DB9),
+                    width: 1.4,
+                  ),
                 ),
               ),
               onSubmitted: (_) {},
@@ -787,4 +738,3 @@ class _SuggestedPrompt {
   final String title;
   final String prompt;
 }
-

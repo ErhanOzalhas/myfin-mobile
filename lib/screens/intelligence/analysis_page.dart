@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:myfin_mobile/models/portfolio_item.dart';
 import 'package:myfin_mobile/repositories/portfolio_repository.dart';
 import 'package:myfin_mobile/services/ai_daily_brief_service.dart';
@@ -19,10 +20,8 @@ class AnalysisPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
-        title: const Text(
-          'AI Intelligence',
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
+        leading: const MyFinBackButton(),
+        title: const Text('AI Intelligence'),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
@@ -77,10 +76,7 @@ class AnalysisPage extends StatelessWidget {
 }
 
 class _AnalysisSectionTitle extends StatelessWidget {
-  const _AnalysisSectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _AnalysisSectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -138,8 +134,7 @@ class _ComingSoonPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_motion_rounded,
-                  color: Color(0xFF2563EB)),
+              Icon(Icons.auto_awesome_motion_rounded, color: Color(0xFF2563EB)),
               SizedBox(width: 10),
               Text(
                 'Yakında',

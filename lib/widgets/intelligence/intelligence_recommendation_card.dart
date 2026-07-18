@@ -29,10 +29,7 @@ class IntelligenceRecommendationCard extends StatelessWidget {
         children: [
           const Text(
             'AI Recommendations',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           if (recommendations.isEmpty)
@@ -46,7 +43,12 @@ class IntelligenceRecommendationCard extends StatelessWidget {
                   children: [
                     const Icon(Icons.auto_awesome, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(r)),
+                    Expanded(
+                      child: Text(
+                        r,
+                        style: const TextStyle(fontSize: 14, height: 1.35),
+                      ),
+                    ),
                   ],
                 ),
               ),

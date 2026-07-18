@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import '../transactions/transaction_entry_page.dart';
 import '../performance/profit_loss_detail_page.dart';
 import '../../models/portfolio_item.dart';
@@ -218,7 +219,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Portföy'), centerTitle: false),
+      appBar: AppBar(
+        leading: const MyFinBackButton(),
+        title: const Text('Portföy'),
+      ),
       body: SafeArea(
         child: StreamBuilder<List<PortfolioItem>>(
           stream: PortfolioRepository.instance.watchPortfolio(),
@@ -287,6 +291,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
                           )
                         : _PortfolioSummaryCard(summary: valuation),
                     const SizedBox(height: 18),
+                    const _PortfolioSectionHeader(
+                      icon: Icons.donut_large_rounded,
+                      title: 'Portföy Dağılımı',
+                    ),
+                    const SizedBox(height: 8),
                     _DistributionCard(
                       items: items,
                       valuation: valuation,
@@ -349,10 +358,8 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    if (selectedSummary != null) ...[
-                      _SelectedCategorySummary(snapshot: selectedSummary),
-                      const SizedBox(height: 10),
-                    ],
+                    _SelectedCategorySummary(snapshot: selectedSummary),
+                    const SizedBox(height: 10),
                     _PortfolioList(
                       refreshTick: 0,
                       items: _visibleItems(items),
@@ -394,14 +401,14 @@ class _PortfolioPageState extends State<PortfolioPage> {
 class _PortfolioSectionHeader extends StatelessWidget {
   final String title;
   final IconData? icon;
-  final String actionLabel;
-  final VoidCallback onActionTap;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
 
   const _PortfolioSectionHeader({
     required this.title,
-    required this.actionLabel,
-    required this.onActionTap,
     this.icon,
+    this.actionLabel,
+    this.onActionTap,
   });
 
   @override
@@ -419,7 +426,7 @@ class _PortfolioSectionHeader extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 19,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
                   letterSpacing: -.2,
                 ),
@@ -427,32 +434,33 @@ class _PortfolioSectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onActionTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 2, 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  actionLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+        if (actionLabel != null && onActionTap != null)
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onActionTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 2, 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    actionLabel!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
                     color: Color(0xFF0284C7),
                   ),
-                ),
-                const SizedBox(width: 2),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 18,
-                  color: Color(0xFF0284C7),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -495,19 +503,10 @@ class _DistributionCard extends StatelessWidget {
 
     return SurfaceCard(
       radius: 20,
-      padding: const EdgeInsets.fromLTRB(16, 17, 16, 18),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Portföy Dağılımı',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 18),
           for (int index = 0; index < segments.length; index++) ...[
             _DistributionProgressRow(
               segment: segments[index],
@@ -584,7 +583,7 @@ class _DistributionProgressRow extends StatelessWidget {
                   formatCurrency(value),
                   style: const TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -597,7 +596,7 @@ class _DistributionProgressRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: isPositive || isNegative
-                          ? FontWeight.w700
+                          ? FontWeight.w600
                           : FontWeight.w400,
                       color: changeColor,
                     ),
@@ -815,7 +814,7 @@ class _PortfolioCategoryFilters extends StatelessWidget {
                   ),
                   labelStyle: TextStyle(
                     color: selected ? Colors.white : const Color(0xFF475569),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -845,7 +844,7 @@ class _AssetsHeader extends StatelessWidget {
             'Varlıklar',
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -908,11 +907,13 @@ class _AssetsHeader extends StatelessWidget {
 class _SelectedCategorySnapshot {
   final String category;
   final double totalCost;
+  final double currentValue;
   final double? changePercent;
 
   const _SelectedCategorySnapshot({
     required this.category,
     required this.totalCost,
+    required this.currentValue,
     required this.changePercent,
   });
 
@@ -922,18 +923,49 @@ class _SelectedCategorySnapshot {
     required PortfolioValuation? valuation,
   }) {
     final isAll = category == 'Tümü';
+    bool belongsToSelectedCategory(PortfolioItem item) =>
+        isAll || _portfolioCategoryLabel(item.type) == category;
 
-    final totalCost = isAll && valuation != null
+    final totalCost = valuation == null
+        ? items
+              .where(belongsToSelectedCategory)
+              .fold<double>(0, (sum, item) => sum + item.totalCost)
+        : isAll
         ? valuation.totalCost
-        : items
-              .where((item) => _portfolioCategoryLabel(item.type) == category)
-              .fold<double>(0, (sum, item) => sum + item.totalCost);
+        : valuation.items
+              .where(
+                (itemValuation) =>
+                    belongsToSelectedCategory(itemValuation.item),
+              )
+              .fold<double>(
+                0,
+                (sum, itemValuation) => sum + itemValuation.costInBaseCurrency,
+              );
+
+    final currentValue = valuation == null
+        ? items
+              .where(belongsToSelectedCategory)
+              .fold<double>(0, (sum, item) => sum + item.totalCost)
+        : isAll
+        ? valuation.totalValue
+        : valuation.items
+              .where(
+                (itemValuation) =>
+                    _portfolioCategoryLabel(itemValuation.item.type) ==
+                    category,
+              )
+              .fold<double>(
+                0,
+                (sum, itemValuation) =>
+                    sum + itemValuation.currentValueInBaseCurrency,
+              );
 
     final performance = _CategoryPerformance.fromValuation(valuation)[category];
 
     return _SelectedCategorySnapshot(
       category: category,
       totalCost: totalCost,
+      currentValue: currentValue,
       changePercent: isAll
           ? valuation?.profitPercent
           : performance?.changePercent,
@@ -949,16 +981,13 @@ class _SelectedCategorySummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final change = snapshot.changePercent;
-    final isPositive = change != null && change > 0;
-    final isNegative = change != null && change < 0;
-    final changeColor = isPositive
+    final isProfit = change != null && change > 0;
+    final changeColor = isProfit
         ? const Color(0xFF16A34A)
-        : isNegative
-        ? const Color(0xFFDC2626)
-        : const Color(0xFF94A3B8);
+        : const Color(0xFFDC2626);
     final changeLabel = change == null || change.abs() < 0.005
-        ? '–'
-        : '${isPositive ? '▲ +' : '▼ -'}${change.abs().toStringAsFixed(2).replaceAll('.', ',')}%';
+        ? '0,00%'
+        : '${isProfit ? '+' : '-'}${change.abs().toStringAsFixed(2).replaceAll('.', ',')}%';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -972,33 +1001,89 @@ class _SelectedCategorySummary extends StatelessWidget {
             child: Text(
               snapshot.category,
               style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 color: Color(0xFF475569),
               ),
             ),
           ),
-          Text(
-            formatCurrency(snapshot.totalCost),
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(width: 14),
-          SizedBox(
-            width: 72,
-            child: Text(
-              changeLabel,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: isPositive || isNegative
-                    ? FontWeight.w700
-                    : FontWeight.w400,
-                color: changeColor,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Maliyet',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF475569),
+                ),
               ),
+              SizedBox(height: 3),
+              Text(
+                'Güncel',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatCurrency(snapshot.totalCost),
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                formatCurrency(snapshot.currentValue),
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 74,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: changeColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    changeLabel,
+                    maxLines: 1,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: changeColor,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1034,7 +1119,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               color: Color(0xFF64748B),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 2),
@@ -1045,7 +1130,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 25,
               height: 1.02,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
               letterSpacing: -.7,
             ),
@@ -1108,7 +1193,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                         formatPercent(summary.profitPercent),
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                           color: profitColor,
                         ),
                       ),
@@ -1146,7 +1231,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF0F3A5D),
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -1180,7 +1265,7 @@ class _CompactSummaryValue extends StatelessWidget {
           style: const TextStyle(
             color: Colors.black45,
             fontSize: 9.5,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 3),
@@ -1191,7 +1276,7 @@ class _CompactSummaryValue extends StatelessWidget {
           style: TextStyle(
             color: valueColor ?? const Color(0xFF0F172A),
             fontSize: 13,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
@@ -1369,7 +1454,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13.5,
                         height: 1.15,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                         letterSpacing: -.1,
                       ),
@@ -1382,7 +1467,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                             text: '${formatQuantity(item.quantity)} adet',
                             style: const TextStyle(
                               color: Color(0xFF0369A1),
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           TextSpan(text: ' • ${item.type}'),
@@ -1403,7 +1488,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontSize: 9.5,
                       ),
                     ),
@@ -1420,7 +1505,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       hasLivePrice ? 'Güncel Değer' : 'Maliyet',
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontSize: 9.5,
                       ),
                     ),
@@ -1436,7 +1521,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                         letterSpacing: -.15,
                       ),
@@ -1455,7 +1540,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                         color: hasLivePrice
                             ? performanceColor
                             : const Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontSize: 9.5,
                       ),
                     ),

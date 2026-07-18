@@ -12,9 +12,8 @@ class YahooFinanceMarketProvider implements MarketProvider {
     http.Client? client,
     Uri? baseUri,
     this.timeout = const Duration(seconds: 12),
-  })  : _client = client ?? http.Client(),
-        _baseUri = baseUri ??
-            Uri.parse('https://query1.finance.yahoo.com');
+  }) : _client = client ?? http.Client(),
+       _baseUri = baseUri ?? Uri.parse('https://query1.finance.yahoo.com');
 
   final http.Client _client;
   final Uri _baseUri;
@@ -24,24 +23,19 @@ class YahooFinanceMarketProvider implements MarketProvider {
   String get id => 'yahoo_finance';
 
   @override
-  bool supportsSymbol(
-    String symbol, {
-    String? exchange,
-  }) {
+  bool supportsSymbol(String symbol, {String? exchange}) {
     final value = symbol.trim();
-    if (value.isEmpty || value.contains('/')) return false;
+    if (value.isEmpty) return false;
+    if (value.contains('/') &&
+        !_commodityFuturesSymbols.containsKey(value.toUpperCase())) {
+      return false;
+    }
     return true;
   }
 
   @override
-  Future<MarketQuote> getQuote(
-    String symbol, {
-    String? exchange,
-  }) async {
-    final yahooSymbol = _toYahooSymbol(
-      symbol,
-      exchange: exchange,
-    );
+  Future<MarketQuote> getQuote(String symbol, {String? exchange}) async {
+    final yahooSymbol = _toYahooSymbol(symbol, exchange: exchange);
 
     final uri = _baseUri.replace(
       path: '/v8/finance/chart/$yahooSymbol',
@@ -55,13 +49,15 @@ class YahooFinanceMarketProvider implements MarketProvider {
     final http.Response response;
 
     try {
-      response = await _client.get(
-        uri,
-        headers: const {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 MyFin/1.0',
-        },
-      ).timeout(timeout);
+      response = await _client
+          .get(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 MyFin/1.0',
+            },
+          )
+          .timeout(timeout);
     } catch (error) {
       throw MarketProviderException(
         providerId: id,
@@ -70,8 +66,7 @@ class YahooFinanceMarketProvider implements MarketProvider {
       );
     }
 
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw MarketProviderException(
         providerId: id,
         message:
@@ -161,34 +156,31 @@ class YahooFinanceMarketProvider implements MarketProvider {
       _toDouble(metaMap['previousClose']),
     ]);
 
-    final change = previousClose > 0
-        ? currentPrice - previousClose
-        : 0.0;
+    final change = previousClose > 0 ? currentPrice - previousClose : 0.0;
     final changePercent = previousClose > 0
         ? (change / previousClose) * 100
         : 0.0;
 
-    final currency =
-        (metaMap['currency'] ?? _inferCurrency(exchange))
-            .toString()
-            .toUpperCase();
+    final currency = (metaMap['currency'] ?? _inferCurrency(exchange))
+        .toString()
+        .toUpperCase();
 
-    final exchangeName = (metaMap['exchangeName'] ??
-            metaMap['fullExchangeName'] ??
-            ProviderSymbolMapping.normalizeExchange(exchange) ??
-            'GLOBAL')
-        .toString();
+    final exchangeName =
+        (metaMap['exchangeName'] ??
+                metaMap['fullExchangeName'] ??
+                ProviderSymbolMapping.normalizeExchange(exchange) ??
+                'GLOBAL')
+            .toString();
 
-    final timestamp = _toInt(
-      metaMap['regularMarketTime'],
-    );
+    final timestamp = _toInt(metaMap['regularMarketTime']);
 
     return MarketQuote(
       symbol: symbol.trim().toUpperCase(),
-      name: (metaMap['longName'] ??
-              metaMap['shortName'] ??
-              symbol.trim().toUpperCase())
-          .toString(),
+      name:
+          (metaMap['longName'] ??
+                  metaMap['shortName'] ??
+                  symbol.trim().toUpperCase())
+              .toString(),
       category: _inferCategory(exchangeName),
       exchange: exchangeName,
       currency: currency,
@@ -201,8 +193,18 @@ class YahooFinanceMarketProvider implements MarketProvider {
               isUtc: true,
             ).toLocal()
           : DateTime.now(),
-      marketStatus: MarketStatus.unknown,
+      marketStatus: _parseMarketStatus(metaMap['marketState']),
     );
+  }
+
+  MarketStatus _parseMarketStatus(Object? value) {
+    return switch (value?.toString().trim().toUpperCase()) {
+      'REGULAR' || 'OPEN' => MarketStatus.open,
+      'PRE' || 'PREPRE' => MarketStatus.preMarket,
+      'POST' || 'POSTPOST' => MarketStatus.afterHours,
+      'CLOSED' => MarketStatus.closed,
+      _ => MarketStatus.unknown,
+    };
   }
 
   @override
@@ -214,9 +216,7 @@ class YahooFinanceMarketProvider implements MarketProvider {
 
     for (final symbol in symbols.toSet()) {
       try {
-        quotes.add(
-          await getQuote(symbol, exchange: exchange),
-        );
+        quotes.add(await getQuote(symbol, exchange: exchange));
       } on MarketProviderException {
         // Partial success.
       }
@@ -225,13 +225,17 @@ class YahooFinanceMarketProvider implements MarketProvider {
     return quotes;
   }
 
-  String _toYahooSymbol(
-    String symbol, {
-    String? exchange,
-  }) {
+  String _toYahooSymbol(String symbol, {String? exchange}) {
     final normalizedSymbol = symbol.trim().toUpperCase();
-    final normalizedExchange =
-        ProviderSymbolMapping.normalizeExchange(exchange);
+    final normalizedExchange = ProviderSymbolMapping.normalizeExchange(
+      exchange,
+    );
+
+    // Yahoo spot metal pairs do not have chart endpoints. Their liquid front
+    // month futures are used only as the fallback after the spot provider has
+    // failed, so the UI can still show a timely market reference value.
+    final commodityFuture = _commodityFuturesSymbols[normalizedSymbol];
+    if (commodityFuture != null) return commodityFuture;
 
     if (normalizedSymbol.contains('.')) {
       return normalizedSymbol;
@@ -255,6 +259,12 @@ class YahooFinanceMarketProvider implements MarketProvider {
 
     return '$normalizedSymbol$suffix';
   }
+
+  static const Map<String, String> _commodityFuturesSymbols = {
+    'XAG/USD': 'SI=F',
+    'XPT/USD': 'PL=F',
+    'XPD/USD': 'PA=F',
+  };
 
   double _lastClose(Map<String, dynamic> data) {
     final indicators = data['indicators'];
@@ -300,8 +310,7 @@ class YahooFinanceMarketProvider implements MarketProvider {
   }
 
   String _inferCurrency(String? exchange) {
-    return switch (
-        ProviderSymbolMapping.normalizeExchange(exchange)) {
+    return switch (ProviderSymbolMapping.normalizeExchange(exchange)) {
       'XIST' => 'TRY',
       'XLON' => 'GBP',
       'XETR' || 'XPAR' || 'XAMS' || 'XMIL' || 'XMAD' => 'EUR',

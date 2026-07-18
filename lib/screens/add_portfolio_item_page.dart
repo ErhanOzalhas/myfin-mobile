@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:flutter/services.dart';
 
 import '../models/portfolio_item.dart';
@@ -34,9 +35,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
     }
 
     setState(() => _isSearching = true);
-    final results = await _catalogService.search(
-  query: query,
-);
+    final results = await _catalogService.search(query: query);
     if (!mounted) return;
     setState(() {
       _suggestions = results;
@@ -123,6 +122,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('Varlık Ekle'),
         backgroundColor: const Color(0xFFF7F9FC),
         elevation: 0,
@@ -180,7 +180,11 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Row(
                       children: [
-                        SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                         SizedBox(width: 12),
                         Text('Varlık kataloğu aranıyor...'),
                       ],
@@ -284,10 +288,7 @@ class _SuggestionPanel extends StatelessWidget {
   final List<MarketAsset> suggestions;
   final ValueChanged<MarketAsset> onSelected;
 
-  const _SuggestionPanel({
-    required this.suggestions,
-    required this.onSelected,
-  });
+  const _SuggestionPanel({required this.suggestions, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {

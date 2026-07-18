@@ -63,7 +63,7 @@ class AuthScaffold extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           fontSize: 30,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF0F172A),
                         ),
                       ),
@@ -103,18 +103,15 @@ class AuthErrorBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFDC2626).withOpacity(.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFDC2626).withOpacity(.18),
-        ),
+        border: Border.all(color: const Color(0xFFDC2626).withOpacity(.18)),
       ),
       child: Text(
         message,
         style: const TextStyle(
           color: Color(0xFFDC2626),
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 }
-

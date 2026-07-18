@@ -14,9 +14,8 @@ class CoinGeckoMarketProvider implements MarketProvider {
     Uri? baseUri,
     this.vsCurrency = 'usd',
     this.timeout = const Duration(seconds: 12),
-  })  : _client = client ?? http.Client(),
-        _baseUri = baseUri ??
-            Uri.parse('https://api.coingecko.com/api/v3');
+  }) : _client = client ?? http.Client(),
+       _baseUri = baseUri ?? Uri.parse('https://api.coingecko.com/api/v3');
 
   final http.Client _client;
   final Uri _baseUri;
@@ -45,25 +44,19 @@ class CoinGeckoMarketProvider implements MarketProvider {
   String get id => 'coingecko';
 
   @override
-  bool supportsSymbol(
-    String symbol, {
-    String? exchange,
-  }) {
-    final normalizedExchange =
-        exchange?.trim().toUpperCase();
+  bool supportsSymbol(String symbol, {String? exchange}) {
+    final normalizedExchange = exchange?.trim().toUpperCase();
 
     return normalizedExchange == 'CRYPTO' ||
         _popularCoinIds.containsKey(_normalizeSymbol(symbol));
   }
 
   @override
-  Future<MarketQuote> getQuote(
-    String symbol, {
-    String? exchange,
-  }) async {
+  Future<MarketQuote> getQuote(String symbol, {String? exchange}) async {
     final normalized = _normalizeSymbol(symbol);
 
-    final coinId = _popularCoinIds[normalized] ??
+    final coinId =
+        _popularCoinIds[normalized] ??
         await CoinGeckoCoinIndex.instance.resolveId(normalized);
 
     if (coinId == null) {
@@ -73,10 +66,7 @@ class CoinGeckoMarketProvider implements MarketProvider {
       );
     }
 
-    return _getQuoteById(
-      coinId: coinId,
-      displaySymbol: normalized,
-    );
+    return _getQuoteById(coinId: coinId, displaySymbol: normalized);
   }
 
   @override
@@ -84,18 +74,32 @@ class CoinGeckoMarketProvider implements MarketProvider {
     List<String> symbols, {
     String? exchange,
   }) async {
+    final normalizedSymbols = symbols
+        .map(_normalizeSymbol)
+        .where((symbol) => symbol.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedSymbols.isEmpty) return const [];
+
+    final idBySymbol = <String, String>{};
+    await Future.wait(
+      normalizedSymbols.map((symbol) async {
+        final coinId =
+            _popularCoinIds[symbol] ??
+            await CoinGeckoCoinIndex.instance.resolveId(symbol);
+        if (coinId != null) idBySymbol[symbol] = coinId;
+      }),
+    );
+    if (idBySymbol.isEmpty) return const [];
+
+    final decoded = await _requestPrices(idBySymbol.values.toSet());
     final quotes = <MarketQuote>[];
-
-    for (final symbol in symbols.toSet()) {
-      try {
-        quotes.add(
-          await getQuote(symbol, exchange: exchange),
-        );
-      } on MarketProviderException {
-        // Partial success is preferred.
-      }
+    for (final entry in idBySymbol.entries) {
+      final rawCoin = decoded[entry.value];
+      if (rawCoin is! Map<String, dynamic>) continue;
+      final quote = _quoteFromRaw(rawCoin: rawCoin, displaySymbol: entry.key);
+      if (quote != null) quotes.add(quote);
     }
-
     return quotes;
   }
 
@@ -103,42 +107,64 @@ class CoinGeckoMarketProvider implements MarketProvider {
     required String coinId,
     required String displaySymbol,
   }) async {
+    final decoded = await _requestPrices([coinId]);
+    final rawCoin = decoded[coinId];
+
+    if (rawCoin is! Map<String, dynamic>) {
+      throw MarketProviderException(
+        providerId: id,
+        message: '$displaySymbol için fiyat bulunamadı.',
+      );
+    }
+
+    final quote = _quoteFromRaw(rawCoin: rawCoin, displaySymbol: displaySymbol);
+    if (quote == null) {
+      throw MarketProviderException(
+        providerId: id,
+        message: '$displaySymbol için geçerli fiyat yok.',
+      );
+    }
+    return quote;
+  }
+
+  Future<Map<String, dynamic>> _requestPrices(Iterable<String> coinIds) async {
     final uri = _baseUri.replace(
       path: '${_baseUri.path}/simple/price',
       queryParameters: {
-        'ids': coinId,
+        'ids': coinIds.join(','),
         'vs_currencies': vsCurrency.toLowerCase(),
         'include_24hr_change': 'true',
         'include_last_updated_at': 'true',
       },
     );
 
-    final headers = <String, String>{
-      'Accept': 'application/json',
-    };
+    final headers = <String, String>{'Accept': 'application/json'};
 
-    final demoKey =
-        (dotenv.env['COINGECKO_API_KEY'] ?? '').trim();
+    final demoKey = (dotenv.env['COINGECKO_API_KEY'] ?? '').trim();
     if (demoKey.isNotEmpty) {
       headers['x-cg-demo-api-key'] = demoKey;
     }
 
-    final http.Response response;
-
-    try {
-      response = await _client
-          .get(uri, headers: headers)
-          .timeout(timeout);
-    } catch (error) {
-      throw MarketProviderException(
-        providerId: id,
-        message: 'CoinGecko bağlantısı kurulamadı.',
-        cause: error,
-      );
+    late http.Response response;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await _client.get(uri, headers: headers).timeout(timeout);
+        if (response.statusCode != 429 && response.statusCode < 500) break;
+      } catch (error) {
+        if (attempt == 2) {
+          throw MarketProviderException(
+            providerId: id,
+            message: 'CoinGecko bağlantısı kurulamadı.',
+            cause: error,
+          );
+        }
+      }
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
+      }
     }
 
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw MarketProviderException(
         providerId: id,
         message:
@@ -166,30 +192,20 @@ class CoinGeckoMarketProvider implements MarketProvider {
       );
     }
 
-    final rawCoin = decoded[coinId];
+    return decoded;
+  }
 
-    if (rawCoin is! Map<String, dynamic>) {
-      throw MarketProviderException(
-        providerId: id,
-        message: '$displaySymbol için fiyat bulunamadı.',
-      );
-    }
-
+  MarketQuote? _quoteFromRaw({
+    required Map<String, dynamic> rawCoin,
+    required String displaySymbol,
+  }) {
     final currencyKey = vsCurrency.toLowerCase();
     final price = _toDouble(rawCoin[currencyKey]);
 
-    if (price <= 0) {
-      throw MarketProviderException(
-        providerId: id,
-        message: '$displaySymbol için geçerli fiyat yok.',
-      );
-    }
+    if (price <= 0) return null;
 
-    final changePercent = _toDouble(
-      rawCoin['${currencyKey}_24h_change'],
-    );
-    final lastUpdatedSeconds =
-        _toInt(rawCoin['last_updated_at']);
+    final changePercent = _toDouble(rawCoin['${currencyKey}_24h_change']);
+    final lastUpdatedSeconds = _toInt(rawCoin['last_updated_at']);
 
     return MarketQuote(
       symbol: displaySymbol,

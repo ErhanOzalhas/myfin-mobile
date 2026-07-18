@@ -21,16 +21,13 @@ class SectionTitle extends StatelessWidget {
             title,
             style: const TextStyle(
               fontSize: 19,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
             ),
           ),
         ),
         if (action != null)
-          TextButton(
-            onPressed: onActionTap,
-            child: Text(action!),
-          ),
+          TextButton(onPressed: onActionTap, child: Text(action!)),
       ],
     );
   }

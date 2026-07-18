@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../widgets/common/icon_box.dart';
 import '../../widgets/common/section_title.dart';
@@ -8,13 +9,11 @@ import '../../widgets/common/thin_divider.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../intelligence/intelligence_page.dart';
 import '../../utils/no_animation_route.dart';
+
 class SettingsPage extends StatelessWidget {
   final bool showBottomNav;
 
-  const SettingsPage({
-    super.key,
-    this.showBottomNav = true,
-  });
+  const SettingsPage({super.key, this.showBottomNav = true});
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +21,8 @@ class SettingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('Ayarlar'),
-        centerTitle: false,
       ),
       body: SafeArea(
         child: ListView(
@@ -49,7 +48,7 @@ class SettingsPage extends StatelessWidget {
                               : 'MyFin kullanıcısı',
                           style: const TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -135,9 +134,9 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
-    bottomNavigationBar: showBottomNav
-    ? const MyFinBottomNav(selectedIndex: 4)
-    : null,
+      bottomNavigationBar: showBottomNav
+          ? const MyFinBottomNav(selectedIndex: 4)
+          : null,
     );
   }
 }
@@ -172,7 +171,7 @@ class _SettingsRow extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
                   ),

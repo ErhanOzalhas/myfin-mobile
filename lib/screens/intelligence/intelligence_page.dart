@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
@@ -20,10 +21,7 @@ import '../../utils/no_animation_route.dart';
 class IntelligencePage extends StatelessWidget {
   final bool showBottomNav;
 
-  const IntelligencePage({
-    super.key,
-    this.showBottomNav = true,
-  });
+  const IntelligencePage({super.key, this.showBottomNav = true});
 
   String _statusForScore(int score) {
     if (score >= 80) return 'Güçlü';
@@ -42,8 +40,8 @@ class IntelligencePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('MyFin Intelligence'),
-        centerTitle: false,
       ),
       body: StreamBuilder<List<PortfolioItem>>(
         stream: PortfolioRepository.instance.watchPortfolio(),
@@ -64,12 +62,14 @@ class IntelligencePage extends StatelessWidget {
             history: history,
           );
 
-          final recommendationInsights =
-              const RecommendationEngineV2().generate(analysis);
-          final recommendations =
-              recommendationInsights.map((item) => item.action).toList();
-          final advisorRecommendations =
-              const AIAdvisorService().generate(analysis);
+          final recommendationInsights = const RecommendationEngineV2()
+              .generate(analysis);
+          final recommendations = recommendationInsights
+              .map((item) => item.action)
+              .toList();
+          final advisorRecommendations = const AIAdvisorService().generate(
+            analysis,
+          );
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
@@ -84,29 +84,21 @@ class IntelligencePage extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
-                    
+
                     gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
 
-  begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
 
-  end: Alignment.bottomRight,
-
-  colors: [
-
-    Color(0xFF0F172A),
-
-    Color(0xFF008DB9),
-
-  ],
-
-),
-                   boxShadow: [
-  BoxShadow(
-    color: const Color(0xFF008DB9).withOpacity(.24),
-    blurRadius: 90,
-    offset: const Offset(0, 14),
-  ),
-], 
+                      colors: [Color(0xFF0F172A), Color(0xFF008DB9)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF008DB9).withOpacity(.24),
+                        blurRadius: 90,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -121,12 +113,14 @@ class IntelligencePage extends StatelessWidget {
                               height: 170,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: const Color(0xFF6FD8FF)
-                                    .withValues(alpha: 0.10),
+                                color: const Color(
+                                  0xFF6FD8FF,
+                                ).withValues(alpha: 0.10),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF6FD8FF)
-                                        .withValues(alpha: 0.18),
+                                    color: const Color(
+                                      0xFF6FD8FF,
+                                    ).withValues(alpha: 0.18),
                                     blurRadius: 90,
                                     spreadRadius: 28,
                                   ),
@@ -141,9 +135,7 @@ class IntelligencePage extends StatelessWidget {
                             Navigator.push(
                               context,
                               noAnimationRoute(
-                                builder: (_) => AiChatPage(
-                                  analysis: analysis,
-                                ),
+                                builder: (_) => AiChatPage(analysis: analysis),
                               ),
                             );
                           },
@@ -165,8 +157,8 @@ class IntelligencePage extends StatelessWidget {
                                         'MyFin AI’ye Sor',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       SizedBox(height: 2),
@@ -194,7 +186,7 @@ class IntelligencePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 const SizedBox(height: 16),
                 IntelligenceRecommendationCard(
                   recommendations: [
@@ -210,9 +202,7 @@ class IntelligencePage extends StatelessWidget {
                   investmentStyle: analysis.investmentStyle,
                 ),
                 const SizedBox(height: 16),
-                IntelligenceMarketMoodCard(
-                  mood: _moodForRisk(analysis.risk),
-                ),
+                IntelligenceMarketMoodCard(mood: _moodForRisk(analysis.risk)),
                 const SizedBox(height: 16),
                 IntelligenceTimelineCard(events: timelineEvents),
               ],
@@ -220,9 +210,9 @@ class IntelligencePage extends StatelessWidget {
           );
         },
       ),
-     bottomNavigationBar: showBottomNav
-    ? const MyFinBottomNav(selectedIndex: 3)
-    : null,
+      bottomNavigationBar: showBottomNav
+          ? const MyFinBottomNav(selectedIndex: 3)
+          : null,
     );
   }
 }
@@ -268,10 +258,7 @@ class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
               ),
             ],
           ),
-          child: Transform.scale(
-            scale: scale,
-            child: child,
-          ),
+          child: Transform.scale(scale: scale, child: child),
         );
       },
       child: const Icon(
@@ -282,4 +269,3 @@ class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
     );
   }
 }
-

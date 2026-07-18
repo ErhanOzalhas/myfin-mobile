@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
@@ -21,8 +22,10 @@ class ProfitLossDetailPage extends StatefulWidget {
 
 class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
   Future<PortfolioValuation>? _valuationFuture;
+  PortfolioValuation? _lastValuation;
   String? _valuationFingerprint;
   _PerformanceFilter _filter = _PerformanceFilter.all;
+  bool _sortDescending = true;
 
   String _fingerprint(List<PortfolioItem> items) {
     final sorted = [...items]..sort((a, b) => a.id.compareTo(b.id));
@@ -45,6 +48,9 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
     bool forceRefresh = false,
   }) {
     final fingerprint = _fingerprint(items);
+    final cached = PortfolioValuationService.instance.peek(items);
+    if (cached != null) _lastValuation = cached;
+
     if (!forceRefresh &&
         _valuationFuture != null &&
         _valuationFingerprint == fingerprint) {
@@ -52,10 +58,12 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
     }
 
     _valuationFingerprint = fingerprint;
-    return _valuationFuture = PortfolioValuationService.instance.calculate(
-      items,
-      forceRefresh: forceRefresh,
-    );
+    return _valuationFuture = PortfolioValuationService.instance
+        .calculate(items, forceRefresh: forceRefresh)
+        .then((valuation) {
+          _lastValuation = valuation;
+          return valuation;
+        });
   }
 
   Future<void> _refresh(List<PortfolioItem> items) async {
@@ -71,6 +79,7 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('Kâr / Zarar Detayı'),
         centerTitle: false,
       ),
@@ -103,8 +112,11 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
 
             return FutureBuilder<PortfolioValuation>(
               future: _valuationFor(items),
+              initialData:
+                  PortfolioValuationService.instance.peek(items) ??
+                  _lastValuation,
               builder: (context, valuationSnapshot) {
-                final valuation = valuationSnapshot.data;
+                final valuation = valuationSnapshot.data ?? _lastValuation;
 
                 if (valuation == null) {
                   return const Center(child: CircularProgressIndicator());
@@ -122,11 +134,12 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                         _PerformanceFilter.losers =>
                           item.profitLossInBaseCurrency < 0,
                       };
-                    }).toList()..sort(
-                      (a, b) => b.profitLossInBaseCurrency.compareTo(
-                        a.profitLossInBaseCurrency,
-                      ),
-                    );
+                    }).toList()..sort((a, b) {
+                      final comparison = a.profitLossInBaseCurrency.compareTo(
+                        b.profitLossInBaseCurrency,
+                      );
+                      return _sortDescending ? -comparison : comparison;
+                    });
 
                 final winners = valuation.items
                     .where(
@@ -187,13 +200,41 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                         ],
                       ),
                       const SizedBox(height: 18),
-                      const Text(
-                        'Varlık Performansı',
-                        style: TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Varlık Performansı',
+                              style: TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const Text(
+                            'Fiyat',
+                            style: TextStyle(
+                              color: Color(0xFF475569),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          _SortIconButton(
+                            icon: Icons.arrow_downward_rounded,
+                            tooltip: 'En yüksekten en düşüğe',
+                            selected: _sortDescending,
+                            onTap: () => setState(() => _sortDescending = true),
+                          ),
+                          _SortIconButton(
+                            icon: Icons.arrow_upward_rounded,
+                            tooltip: 'En düşükten en yükseğe',
+                            selected: !_sortDescending,
+                            onTap: () =>
+                                setState(() => _sortDescending = false),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       if (visibleItems.isEmpty)
@@ -238,6 +279,39 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
   }
 }
 
+class _SortIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SortIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 20,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+          child: Icon(
+            icon,
+            size: 24,
+            color: selected ? const Color(0xFF0E7490) : const Color(0xFF94A3B8),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfitLossSummary extends StatelessWidget {
   final PortfolioValuation valuation;
 
@@ -250,8 +324,29 @@ class _ProfitLossSummary extends StatelessWidget {
         ? const Color(0xFF16A34A)
         : const Color(0xFFDC2626);
 
-    return SurfaceCard(
-      color: color.withValues(alpha: .08),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            color.withValues(alpha: .018),
+            const Color(0xFFFCFDFE),
+          ],
+        ),
+        border: Border.all(color: color.withValues(alpha: .055)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .045),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -259,8 +354,8 @@ class _ProfitLossSummary extends StatelessWidget {
             'Toplam Kâr / Zarar',
             style: TextStyle(
               color: Color(0xFF64748B),
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 7),
@@ -268,7 +363,7 @@ class _ProfitLossSummary extends StatelessWidget {
             '${valuation.totalProfit >= 0 ? '+' : ''}${formatCurrency(valuation.totalProfit)}',
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               fontSize: 26,
             ),
           ),
@@ -277,7 +372,7 @@ class _ProfitLossSummary extends StatelessWidget {
             formatPercent(valuation.profitPercent),
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               fontSize: 15,
             ),
           ),
@@ -287,7 +382,7 @@ class _ProfitLossSummary extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF475569),
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
         ],
@@ -329,7 +424,7 @@ class _FilterChip extends StatelessWidget {
               '$count',
               style: TextStyle(
                 color: selected ? Colors.white : const Color(0xFF475569),
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 fontSize: 15,
               ),
             ),
@@ -385,7 +480,7 @@ class _PerformanceTile extends StatelessWidget {
                 item.symbol.isEmpty ? '?' : item.symbol.characters.first,
                 style: const TextStyle(
                   color: Color(0xFF075985),
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),
               ),
@@ -401,7 +496,7 @@ class _PerformanceTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
                   ),
@@ -413,7 +508,7 @@ class _PerformanceTile extends StatelessWidget {
                           text: '${formatQuantity(item.quantity)} adet',
                           style: const TextStyle(
                             color: Color(0xFF0369A1),
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         TextSpan(text: ' • ${item.type}'),
@@ -447,7 +542,7 @@ class _PerformanceTile extends StatelessWidget {
                       color: valuation.hasLivePrice
                           ? color
                           : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
                   ),
@@ -457,7 +552,7 @@ class _PerformanceTile extends StatelessWidget {
                       formatPercent(valuation.profitPercent),
                       style: TextStyle(
                         color: color,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         fontSize: 11,
                       ),
                     )
@@ -466,7 +561,7 @@ class _PerformanceTile extends StatelessWidget {
                       'Hesaplanamadı',
                       style: TextStyle(
                         color: Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontSize: 10.5,
                       ),
                     ),

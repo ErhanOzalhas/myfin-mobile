@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/dashboard_summary.dart';
 import '../../models/portfolio_item.dart';
@@ -57,6 +58,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('Performans Raporu'),
         centerTitle: false,
       ),
@@ -95,7 +97,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                                 color: range == _range
                                     ? Colors.white
                                     : const Color(0xFF475569),
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                               ),
                               onSelected: (_) {
                                 setState(() => _range = range);

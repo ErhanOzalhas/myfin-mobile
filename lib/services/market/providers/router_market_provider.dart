@@ -1,5 +1,7 @@
 import '../catalog/asset_universe.dart';
 import '../models/market_quote.dart';
+import 'binance_market_provider.dart';
+import 'coinbase_market_provider.dart';
 import 'coingecko_market_provider.dart';
 import 'genel_para_provider.dart';
 import 'market_provider.dart';
@@ -12,24 +14,26 @@ import 'yahoo_finance_market_provider.dart';
 class RouterMarketProvider implements MarketProvider {
   RouterMarketProvider({
     CoinGeckoMarketProvider? coinGeckoProvider,
+    BinanceMarketProvider? binanceProvider,
+    CoinbaseMarketProvider? coinbaseProvider,
     TwelveDataMarketProvider? globalProvider,
     YahooFinanceMarketProvider? yahooProvider,
     GenelParaProvider? genelParaProvider,
     NosyTurkeyGoldProvider? turkeyGoldProvider,
     TcmbMarketProvider? tcmbProvider,
-  })  : _coinGeckoProvider =
-            coinGeckoProvider ?? CoinGeckoMarketProvider(),
-        _globalProvider =
-            globalProvider ?? TwelveDataMarketProvider(),
-        _yahooProvider =
-            yahooProvider ?? YahooFinanceMarketProvider(),
-        _genelParaProvider =
-            genelParaProvider ?? GenelParaProvider(),
-        _turkeyGoldProvider =
-            turkeyGoldProvider ?? NosyTurkeyGoldProvider(),
-        _tcmbProvider = tcmbProvider ?? TcmbMarketProvider();
+    this.enableNosyFallback = false,
+  }) : _coinGeckoProvider = coinGeckoProvider ?? CoinGeckoMarketProvider(),
+       _globalProvider = globalProvider ?? TwelveDataMarketProvider(),
+       _binanceProvider = binanceProvider ?? BinanceMarketProvider(),
+       _coinbaseProvider = coinbaseProvider ?? CoinbaseMarketProvider(),
+       _yahooProvider = yahooProvider ?? YahooFinanceMarketProvider(),
+       _genelParaProvider = genelParaProvider ?? GenelParaProvider(),
+       _turkeyGoldProvider = turkeyGoldProvider ?? NosyTurkeyGoldProvider(),
+       _tcmbProvider = tcmbProvider ?? TcmbMarketProvider();
 
   final CoinGeckoMarketProvider _coinGeckoProvider;
+  final BinanceMarketProvider _binanceProvider;
+  final CoinbaseMarketProvider _coinbaseProvider;
   final TwelveDataMarketProvider _globalProvider;
   final YahooFinanceMarketProvider _yahooProvider;
 
@@ -39,20 +43,18 @@ class RouterMarketProvider implements MarketProvider {
   /// GenelPara başarısız olduğunda devreye giren yedek sağlayıcı.
   final NosyTurkeyGoldProvider _turkeyGoldProvider;
 
+  /// NOSY istekleri kredi tükettiği için varsayılan olarak devre dışıdır.
+  /// Yalnızca GenelPara'nın karşılamadığı bir ürün gerektiğinde açılmalıdır.
+  final bool enableNosyFallback;
+
   final TcmbMarketProvider _tcmbProvider;
 
   @override
   String get id => 'market_router';
 
   @override
-  bool supportsSymbol(
-    String symbol, {
-    String? exchange,
-  }) {
-    final resolved = MarketSymbolResolver.resolve(
-      symbol,
-      exchange: exchange,
-    );
+  bool supportsSymbol(String symbol, {String? exchange}) {
+    final resolved = MarketSymbolResolver.resolve(symbol, exchange: exchange);
 
     if (resolved.requestedSymbol.isEmpty) {
       return false;
@@ -86,14 +88,8 @@ class RouterMarketProvider implements MarketProvider {
   }
 
   @override
-  Future<MarketQuote> getQuote(
-    String symbol, {
-    String? exchange,
-  }) async {
-    final resolved = MarketSymbolResolver.resolve(
-      symbol,
-      exchange: exchange,
-    );
+  Future<MarketQuote> getQuote(String symbol, {String? exchange}) async {
+    final resolved = MarketSymbolResolver.resolve(symbol, exchange: exchange);
 
     if (_isLocalGold(
       requestedSymbol: resolved.requestedSymbol,
@@ -108,11 +104,8 @@ class RouterMarketProvider implements MarketProvider {
       );
     }
 
-    if (_coinGeckoMarket(
-      resolved.providerSymbol,
-      resolved.exchange,
-    )) {
-      return _coinGeckoProvider.getQuote(
+    if (_coinGeckoMarket(resolved.providerSymbol, resolved.exchange)) {
+      return _getCryptoQuote(
         resolved.providerSymbol,
         exchange: resolved.exchange,
       );
@@ -151,8 +144,35 @@ class RouterMarketProvider implements MarketProvider {
         providerId: id,
         message:
             '${resolved.requestedSymbol} için fiyat alınamadı. '
-            'Twelve Data: ${twelveError?.message ?? "-"} | '
+            'Twelve Data: ${twelveError.message} | '
             'Yahoo: ${yahooError.message}',
+      );
+    }
+  }
+
+  Future<MarketQuote> _getCryptoQuote(String symbol, {String? exchange}) async {
+    MarketProviderException? coinGeckoError;
+    MarketProviderException? binanceError;
+    try {
+      return await _coinGeckoProvider.getQuote(symbol, exchange: exchange);
+    } on MarketProviderException catch (error) {
+      coinGeckoError = error;
+    }
+    try {
+      return await _binanceProvider.getQuote(symbol, exchange: exchange);
+    } on MarketProviderException catch (error) {
+      binanceError = error;
+    }
+    try {
+      return await _coinbaseProvider.getQuote(symbol, exchange: exchange);
+    } on MarketProviderException catch (coinbaseError) {
+      throw MarketProviderException(
+        providerId: id,
+        message:
+            '$symbol için kripto fiyatı alınamadı. '
+            'CoinGecko: ${coinGeckoError.message} | '
+            'Binance: ${binanceError.message} | '
+            'Coinbase: ${coinbaseError.message}',
       );
     }
   }
@@ -165,12 +185,9 @@ class RouterMarketProvider implements MarketProvider {
     MarketProviderException? genelParaError;
 
     final genelParaSymbol =
-        _genelParaProvider.supportsSymbol(
-      providerSymbol,
-      exchange: exchange,
-    )
-            ? providerSymbol
-            : requestedSymbol;
+        _genelParaProvider.supportsSymbol(providerSymbol, exchange: exchange)
+        ? providerSymbol
+        : requestedSymbol;
 
     if (_genelParaProvider.supportsSymbol(
       genelParaSymbol,
@@ -186,17 +203,17 @@ class RouterMarketProvider implements MarketProvider {
       }
     }
 
-    final nosySymbol = _turkeyGoldProvider.supportsSymbol(
-      providerSymbol,
-      exchange: exchange,
-    )
-        ? providerSymbol
-        : requestedSymbol;
+    final nosySymbol = enableNosyFallback
+        ? (_turkeyGoldProvider.supportsSymbol(
+                providerSymbol,
+                exchange: exchange,
+              )
+              ? providerSymbol
+              : requestedSymbol)
+        : null;
 
-    if (_turkeyGoldProvider.supportsSymbol(
-      nosySymbol,
-      exchange: exchange,
-    )) {
+    if (nosySymbol != null &&
+        _turkeyGoldProvider.supportsSymbol(nosySymbol, exchange: exchange)) {
       try {
         return await _turkeyGoldProvider.getQuote(
           nosySymbol,
@@ -239,25 +256,20 @@ class RouterMarketProvider implements MarketProvider {
           requestedSymbol,
           exchange: exchange,
         ) ||
-        _turkeyGoldProvider.supportsSymbol(
-          providerSymbol,
-          exchange: exchange,
-        ) ||
-        _turkeyGoldProvider.supportsSymbol(
-          requestedSymbol,
-          exchange: exchange,
-        );
+        (enableNosyFallback &&
+            (_turkeyGoldProvider.supportsSymbol(
+                  providerSymbol,
+                  exchange: exchange,
+                ) ||
+                _turkeyGoldProvider.supportsSymbol(
+                  requestedSymbol,
+                  exchange: exchange,
+                )));
   }
 
-  bool _coinGeckoMarket(
-    String symbol,
-    String? exchange,
-  ) {
+  bool _coinGeckoMarket(String symbol, String? exchange) {
     return exchange?.toUpperCase() == 'CRYPTO' ||
-        _coinGeckoProvider.supportsSymbol(
-          symbol,
-          exchange: exchange,
-        );
+        _coinGeckoProvider.supportsSymbol(symbol, exchange: exchange);
   }
 
   @override
@@ -265,16 +277,16 @@ class RouterMarketProvider implements MarketProvider {
     List<String> symbols, {
     String? exchange,
   }) async {
+    final normalizedExchange = exchange?.trim().toUpperCase();
+    if (normalizedExchange == 'CRYPTO') {
+      return _getCryptoQuotes(symbols);
+    }
+
     final results = <MarketQuote>[];
 
     for (final symbol in symbols.toSet()) {
       try {
-        results.add(
-          await getQuote(
-            symbol,
-            exchange: exchange,
-          ),
-        );
+        results.add(await getQuote(symbol, exchange: exchange));
       } on MarketProviderException {
         // Portföy ekranlarında kısmi başarı tercih edilir.
       }
@@ -283,14 +295,57 @@ class RouterMarketProvider implements MarketProvider {
     return results;
   }
 
+  Future<List<MarketQuote>> _getCryptoQuotes(List<String> symbols) async {
+    final normalized = symbols
+        .map((symbol) => symbol.trim().toUpperCase())
+        .where((symbol) => symbol.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    final bySymbol = <String, MarketQuote>{};
+
+    try {
+      for (final quote in await _coinGeckoProvider.getQuotes(
+        normalized,
+        exchange: 'CRYPTO',
+      )) {
+        bySymbol[quote.symbol.toUpperCase()] = quote;
+      }
+    } on MarketProviderException {
+      // Eksik semboller aşağıdaki ücretsiz yedeklerden tamamlanır.
+    }
+
+    var missing = normalized.where((symbol) => !bySymbol.containsKey(symbol));
+    for (final quote in await _binanceProvider.getQuotes(
+      missing.toList(growable: false),
+      exchange: 'CRYPTO',
+    )) {
+      bySymbol[quote.symbol.toUpperCase()] = quote;
+    }
+
+    missing = normalized.where((symbol) => !bySymbol.containsKey(symbol));
+    for (final quote in await _coinbaseProvider.getQuotes(
+      missing.toList(growable: false),
+      exchange: 'CRYPTO',
+    )) {
+      bySymbol[quote.symbol.toUpperCase()] = quote;
+    }
+
+    return normalized
+        .map((symbol) => bySymbol[symbol])
+        .whereType<MarketQuote>()
+        .toList(growable: false);
+  }
+
   bool isRegisteredLocalGold(String symbol) {
     return AssetUniverse.isLocalGold(symbol) ||
         _genelParaProvider.supportsSymbol(symbol) ||
-        _turkeyGoldProvider.supportsSymbol(symbol);
+        (enableNosyFallback && _turkeyGoldProvider.supportsSymbol(symbol));
   }
 
   void close() {
     _coinGeckoProvider.close();
+    _binanceProvider.close();
+    _coinbaseProvider.close();
     _globalProvider.close();
     _yahooProvider.close();
     _genelParaProvider.close();

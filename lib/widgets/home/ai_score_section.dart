@@ -7,6 +7,7 @@ import 'package:myfin_mobile/services/ai/portfolio_analysis_mapper.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
 import 'package:myfin_mobile/repositories/portfolio_repository.dart';
 import '../../utils/no_animation_route.dart';
+
 class AIScoreSection extends StatelessWidget {
   const AIScoreSection({super.key});
 
@@ -17,20 +18,18 @@ class AIScoreSection extends StatelessWidget {
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
 
-        final analysisResult =
-            const AIAnalysisService().analyze(items);
+        final analysisResult = const AIAnalysisService().analyze(items);
 
-        final PortfolioAnalysis portfolioAnalysis =
-            mapToPortfolioAnalysis(analysisResult);
+        final PortfolioAnalysis portfolioAnalysis = mapToPortfolioAnalysis(
+          analysisResult,
+        );
 
         return InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
             Navigator.of(context).push(
               noAnimationRoute(
-                builder: (_) => AiChatPage(
-                  analysis: portfolioAnalysis,
-                ),
+                builder: (_) => AiChatPage(analysis: portfolioAnalysis),
               ),
             );
           },
@@ -56,10 +55,7 @@ class AIScoreSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF6D5DF6),
-                        Color(0xFF00A3FF),
-                      ],
+                      colors: [Color(0xFF6D5DF6), Color(0xFF00A3FF)],
                     ),
                   ),
                   child: const Icon(
@@ -71,14 +67,13 @@ class AIScoreSection extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'MyFin Intelligence',
                         style: TextStyle(
                           fontSize: 17,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),

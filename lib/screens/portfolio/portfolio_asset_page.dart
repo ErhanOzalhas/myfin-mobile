@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
@@ -173,6 +174,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: const Text('Portföy Varlıkları'),
         centerTitle: false,
       ),
@@ -279,7 +281,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                         '${visibleItems.length} varlık • $categoryCount kategori',
                         style: const TextStyle(
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
                       ),
@@ -443,7 +445,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                             'Toplam ${_categoryLabel(_selectedCategory!)} Değeri',
                                             style: const TextStyle(
                                               fontSize: 13,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w600,
                                               color: Color(0xFF475569),
                                             ),
                                           ),
@@ -468,7 +470,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                       formatCurrency(categoryTotal, 'TRY'),
                                       style: const TextStyle(
                                         fontSize: 15,
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w700,
                                         color: Color(0xFF0F172A),
                                       ),
                                     ),
@@ -591,7 +593,7 @@ class _CategoryFilter extends StatelessWidget {
                 color: selectedCategory == null
                     ? Colors.white
                     : const Color(0xFF475569),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
               onSelected: (_) => onSelected(null),
             ),
@@ -609,7 +611,7 @@ class _CategoryFilter extends StatelessWidget {
                   color: selectedCategory == category
                       ? Colors.white
                       : const Color(0xFF475569),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
                 onSelected: (_) => onSelected(category),
               ),
@@ -666,7 +668,7 @@ class _AssetTile extends StatelessWidget {
                 item.symbol.isNotEmpty ? item.symbol.characters.first : '?',
                 style: const TextStyle(
                   color: Color(0xFF075985),
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),
               ),
@@ -681,7 +683,7 @@ class _AssetTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: Color(0xFF111827),
                     ),
@@ -694,7 +696,7 @@ class _AssetTile extends StatelessWidget {
                           text: '${formatQuantity(item.quantity)} adet',
                           style: const TextStyle(
                             color: Color(0xFF0369A1),
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         TextSpan(text: ' • ${_categoryLabel(item.type)}'),
@@ -715,7 +717,7 @@ class _AssetTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       fontSize: 10.5,
                     ),
                   ),
@@ -730,7 +732,7 @@ class _AssetTile extends StatelessWidget {
                   hasLivePrice ? 'Güncel Değer' : 'Maliyet',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 9.5,
                   ),
                 ),
@@ -740,7 +742,7 @@ class _AssetTile extends StatelessWidget {
                       ? formatCurrency(item.totalCost, item.currency)
                       : formatCurrency(valuation!.currentValueInBaseCurrency),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF111827),
                   ),
                 ),
@@ -757,7 +759,7 @@ class _AssetTile extends StatelessWidget {
                     color: hasLivePrice
                         ? performanceColor
                         : const Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 10.5,
                   ),
                 ),

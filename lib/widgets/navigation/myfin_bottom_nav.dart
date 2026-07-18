@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../screens/intelligence/intelligence_page.dart';
+import '../../screens/market/live_market_page.dart';
 import '../../screens/my_fin_home.dart';
 import '../../screens/portfolio/portfolio_page.dart';
 import '../../screens/settings/settings_page.dart';
@@ -8,7 +9,7 @@ import '../../screens/transactions/transaction_entry_page.dart';
 import '../../screens/transactions/transaction_history_page.dart';
 import '../../utils/no_animation_route.dart';
 
-enum _TransactionQuickAction { newTransaction, history, priceAlert }
+enum _TransactionQuickAction { newTransaction, history, priceAlert, liveMarket }
 
 class MyFinBottomNav extends StatelessWidget {
   final int selectedIndex;
@@ -145,6 +146,10 @@ class MyFinBottomNav extends StatelessWidget {
         Navigator.of(
           context,
         ).push(noAnimationRoute(builder: (_) => const PriceAlertPage()));
+      case _TransactionQuickAction.liveMarket:
+        Navigator.of(
+          context,
+        ).push(noAnimationRoute(builder: (_) => const LiveMarketPage()));
     }
   }
 
@@ -197,6 +202,13 @@ class _TransactionMenuBubble extends StatelessWidget {
               color: const Color(0xFF7C3AED),
               onTap: () => onSelected(_TransactionQuickAction.priceAlert),
             ),
+            const Divider(height: 1, indent: 52, endIndent: 12),
+            _TransactionMenuItem(
+              icon: Icons.show_chart_rounded,
+              label: 'Canlı Piyasa',
+              color: const Color(0xFF0F75BD),
+              onTap: () => onSelected(_TransactionQuickAction.liveMarket),
+            ),
           ],
         ),
       ),
@@ -240,9 +252,10 @@ class _TransactionMenuItem extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
+                  fontFamily: 'Inter',
                   color: Color(0xFF0F172A),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
                 ),
               ),
             ],

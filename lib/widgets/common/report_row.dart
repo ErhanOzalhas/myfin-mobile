@@ -4,11 +4,7 @@ class ReportRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const ReportRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const ReportRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +17,7 @@ class ReportRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Colors.black54,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -29,7 +25,7 @@ class ReportRow extends StatelessWidget {
             value,
             style: const TextStyle(
               color: Color(0xFF0F172A),
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

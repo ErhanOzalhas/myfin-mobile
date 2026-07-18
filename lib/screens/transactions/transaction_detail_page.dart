@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_rebuild_service.dart';
@@ -57,7 +58,10 @@ class TransactionDetailPage extends StatelessWidget {
     final color = isSell ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('İşlem Detayı'), centerTitle: false),
+      appBar: AppBar(
+        leading: const MyFinBackButton(),
+        title: const Text('İşlem Detayı'),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
@@ -72,7 +76,7 @@ class TransactionDetailPage extends StatelessWidget {
                         : '$symbol • $assetName',
                     style: const TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF0F172A),
                     ),
                   ),
@@ -81,7 +85,7 @@ class TransactionDetailPage extends StatelessWidget {
                     type,
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),
                   ),
@@ -205,7 +209,7 @@ class _TransactionChangeHistoryCard extends StatelessWidget {
             'Değişiklik Geçmişi',
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -290,7 +294,7 @@ class _TransactionVersionCard extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 14,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 10),

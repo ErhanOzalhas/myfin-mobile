@@ -2,14 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DistributionCard extends StatelessWidget {
-  const DistributionCard({
-    super.key,
-    required this.title,
-    required this.items,
-    this.onItemTap,
-  });
+  const DistributionCard({super.key, required this.items, this.onItemTap});
 
-  final String title;
   final List<DistributionItem> items;
   final ValueChanged<DistributionItem>? onItemTap;
 
@@ -33,16 +27,6 @@ class DistributionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'Helvetica Neue',
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 18),
           if (items.isEmpty || total <= 0)
             const Text(
               'Dağılım verisi bekleniyor.',
@@ -157,7 +141,7 @@ class _DistributionRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Helvetica Neue',
+                      fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF334155),
@@ -169,7 +153,7 @@ class _DistributionRow extends StatelessWidget {
                   '${_currencyFormatter.format(item.value)} TL',
                   maxLines: 1,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica Neue',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
@@ -191,10 +175,10 @@ class _DistributionRow extends StatelessWidget {
                           overflow: TextOverflow.clip,
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            fontFamily: 'Helvetica Neue',
+                            fontFamily: 'Inter',
                             fontSize: 11.5,
                             fontWeight: isPositive || isNegative
-                                ? FontWeight.w700
+                                ? FontWeight.w600
                                 : FontWeight.w400,
                             color: changeColor,
                           ),
@@ -227,7 +211,7 @@ class _DistributionRow extends StatelessWidget {
                     maxLines: 1,
                     textAlign: TextAlign.right,
                     style: const TextStyle(
-                      fontFamily: 'Helvetica Neue',
+                      fontFamily: 'Inter',
                       fontSize: 9,
                       fontWeight: FontWeight.w400,
                       color: Color(0xFF64748B),

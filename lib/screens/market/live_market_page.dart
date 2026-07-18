@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../services/market/market_service.dart';
 import '../../services/market/market_favorites_service.dart';
@@ -473,9 +474,40 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
     required bool forceRefresh,
   }) async {
     final definitions = _definitionsForCategory(category);
+    final cryptoDefinitions = definitions
+        .where((asset) => asset.exchange.toUpperCase() == 'CRYPTO')
+        .toList(growable: false);
+    final cryptoQuotes = <String, MarketQuote>{};
+    Object? cryptoError;
+    if (cryptoDefinitions.isNotEmpty) {
+      try {
+        final quotes = await MarketService.instance.getQuotes(
+          cryptoDefinitions
+              .map((asset) => asset.symbol)
+              .toList(growable: false),
+          exchange: 'CRYPTO',
+          forceRefresh: forceRefresh,
+        );
+        for (final quote in quotes) {
+          cryptoQuotes[quote.symbol.toUpperCase()] = quote;
+        }
+      } catch (error) {
+        cryptoError = error;
+      }
+    }
 
     final results = await Future.wait(
       definitions.map((asset) async {
+        if (asset.exchange.toUpperCase() == 'CRYPTO') {
+          final quote = cryptoQuotes[asset.symbol.toUpperCase()];
+          return _MarketAssetResult(
+            definition: asset,
+            quote: quote,
+            error: quote == null
+                ? cryptoError ?? 'Kripto fiyatı bulunamadı.'
+                : null,
+          );
+        }
         try {
           final quote = await MarketService.instance.getQuote(
             asset.symbol,
@@ -704,17 +736,8 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F9FC),
-        centerTitle: false,
-        title: const Text(
-          'Canlı Piyasa',
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -.6,
-          ),
-        ),
+        leading: const MyFinBackButton(),
+        title: const Text('Canlı Piyasa'),
         actions: [
           IconButton(
             tooltip: 'Piyasayı yenile',
@@ -822,7 +845,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                             color: selected
                                 ? Colors.white
                                 : const Color(0xFF475569),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                           onSelected: (_) => _selectCategory(category),
                         );
@@ -836,7 +859,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 22,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: -.3,
                   ),
                 ),
@@ -857,7 +880,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   )
@@ -875,7 +898,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   )
@@ -992,7 +1015,7 @@ class _MarketStatusHero extends StatelessWidget {
                   'Piyasalar hareket halinde',
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 20,
                     height: 1.15,
                   ),
@@ -1020,7 +1043,7 @@ class _MarketStatusHero extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .82),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           fontSize: 12.5,
                         ),
                       ),
@@ -1094,19 +1117,21 @@ class _LiveMarketRow extends StatelessWidget {
         : const Color(0xFFDC2626);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 14, 14, 13),
+      padding: const EdgeInsets.fromLTRB(10, 9, 14, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(
             tooltip: favorite ? 'Favorilerden çıkar' : 'Favorilere ekle',
             onPressed: onFavorite,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 42, height: 42),
             icon: Icon(
               favorite ? Icons.star_rounded : Icons.star_border_rounded,
               color: favorite
                   ? const Color(0xFFF59E0B)
                   : const Color(0xFFCBD5E1),
-              size: 27,
+              size: 25,
             ),
           ),
           const SizedBox(width: 2),
@@ -1120,11 +1145,11 @@ class _LiveMarketRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     Flexible(
@@ -1134,8 +1159,8 @@ class _LiveMarketRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10.5,
                         ),
                       ),
                     ),
@@ -1153,14 +1178,14 @@ class _LiveMarketRow extends StatelessWidget {
                         definition.category,
                         style: const TextStyle(
                           color: Color(0xFF0369A1),
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                           fontSize: 9.5,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 4),
                 Text(
                   isPriceLoading
                       ? 'Fiyat alınıyor...'
@@ -1173,8 +1198,8 @@ class _LiveMarketRow extends StatelessWidget {
                         : quote == null
                         ? const Color(0xFFDC2626)
                         : const Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 9.5,
                   ),
                 ),
               ],
@@ -1197,16 +1222,16 @@ class _LiveMarketRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 4),
                 if (quote != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
-                      vertical: 5,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: .10),
@@ -1216,12 +1241,12 @@ class _LiveMarketRow extends StatelessWidget {
                       formatPercent(quote.changePercent),
                       style: TextStyle(
                         color: color,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 9.5,
                       ),
                     ),
                   ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 TextButton.icon(
                   onPressed: onAddTransaction,
                   style: TextButton.styleFrom(
@@ -1235,7 +1260,7 @@ class _LiveMarketRow extends StatelessWidget {
                   icon: const Icon(Icons.add_rounded, size: 17),
                   label: const Text(
                     'İşlem Ekle',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

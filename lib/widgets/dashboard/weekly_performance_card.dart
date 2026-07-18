@@ -51,7 +51,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -61,7 +61,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.black54,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -186,7 +186,7 @@ class _TrendBadge extends StatelessWidget {
         style: TextStyle(
           color: color,
           fontSize: 12,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -225,7 +225,7 @@ class _PulseStat extends StatelessWidget {
           style: TextStyle(
             color: color,
             fontSize: 13,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],
@@ -264,12 +264,16 @@ class _WeeklyTrendPainter extends CustomPainter {
     Offset pointAt(int index) {
       final x = size.width * (index / (values.length - 1));
       final normalized = (values[index] - minValue) / range;
-      final y = size.height - (normalized * size.height * .78) - (size.height * .11);
+      final y =
+          size.height - (normalized * size.height * .78) - (size.height * .11);
       return Offset(x, y);
     }
 
     final points = List<Offset>.generate(values.length, pointAt);
-    final visibleSegments = ((points.length - 1) * progress).clamp(0, points.length - 1);
+    final visibleSegments = ((points.length - 1) * progress).clamp(
+      0,
+      points.length - 1,
+    );
     final fullSegments = visibleSegments.floor();
     final partial = visibleSegments - fullSegments;
 
@@ -295,10 +299,7 @@ class _WeeklyTrendPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: .18),
-          color.withValues(alpha: .02),
-        ],
+        colors: [color.withValues(alpha: .18), color.withValues(alpha: .02)],
       ).createShader(Offset.zero & size);
 
     canvas.drawPath(areaPath, areaPaint);
@@ -316,7 +317,11 @@ class _WeeklyTrendPainter extends CustomPainter {
     for (var i = 0; i < points.length; i++) {
       if (i / (points.length - 1) <= progress) {
         canvas.drawCircle(points[i], 4, dotPaint);
-        canvas.drawCircle(points[i], 7, Paint()..color = color.withValues(alpha: .12));
+        canvas.drawCircle(
+          points[i],
+          7,
+          Paint()..color = color.withValues(alpha: .12),
+        );
       }
     }
   }

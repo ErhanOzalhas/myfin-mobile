@@ -14,7 +14,7 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      fontFamily: null,
+      fontFamily: 'Inter',
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
       colorScheme: colorScheme.copyWith(
@@ -80,10 +80,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
-          borderSide: BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         labelStyle: AppTypography.body,
         hintStyle: AppTypography.caption,
@@ -93,9 +90,7 @@ abstract final class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.textOnDark,
           textStyle: AppTypography.label,
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppRadius.medium,
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.medium),
           minimumSize: const Size(0, 50),
         ),
       ),
@@ -107,9 +102,7 @@ abstract final class AppTheme {
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.medium,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
       ),
       navigationBarTheme: const NavigationBarThemeData(
         backgroundColor: AppColors.surface,

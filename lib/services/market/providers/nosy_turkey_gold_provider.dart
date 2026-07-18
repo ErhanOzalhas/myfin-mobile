@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -16,10 +15,9 @@ class NosyTurkeyGoldProvider implements MarketProvider {
     http.Client? client,
     Uri? baseUri,
     this.timeout = const Duration(seconds: 15),
-  })  : _apiKeyOverride = apiKey?.trim(),
-        _client = client ?? http.Client(),
-        _baseUri = baseUri ??
-            Uri.parse('https://www.nosyapi.com/apiv2/service');
+  }) : _apiKeyOverride = apiKey?.trim(),
+       _client = client ?? http.Client(),
+       _baseUri = baseUri ?? Uri.parse('https://www.nosyapi.com/apiv2/service');
 
   final String? _apiKeyOverride;
   final http.Client _client;
@@ -29,28 +27,19 @@ class NosyTurkeyGoldProvider implements MarketProvider {
   final Map<String, String> _resolvedCodeCache = {};
 
   String get _apiKey {
-    return (_apiKeyOverride ??
-            dotenv.env['NOSY_API_KEY'] ??
-            '')
-        .trim();
+    return (_apiKeyOverride ?? dotenv.env['NOSY_API_KEY'] ?? '').trim();
   }
 
   @override
   String get id => 'nosy_turkey_gold';
 
   @override
-  bool supportsSymbol(
-    String symbol, {
-    String? exchange,
-  }) {
+  bool supportsSymbol(String symbol, {String? exchange}) {
     return AssetUniverse.find(symbol)?.isLocalTurkishGold == true;
   }
 
   @override
-  Future<MarketQuote> getQuote(
-    String symbol, {
-    String? exchange,
-  }) async {
+  Future<MarketQuote> getQuote(String symbol, {String? exchange}) async {
     if (_apiKey.isEmpty) {
       throw const MarketProviderException(
         providerId: 'nosy_turkey_gold',
@@ -59,8 +48,7 @@ class NosyTurkeyGoldProvider implements MarketProvider {
     }
 
     final definition = AssetUniverse.find(symbol);
-    final canonical =
-        definition?.symbol ?? symbol.trim().toUpperCase();
+    final canonical = definition?.symbol ?? symbol.trim().toUpperCase();
 
     final code = await _resolveProviderCode(canonical);
 
@@ -73,10 +61,7 @@ class NosyTurkeyGoldProvider implements MarketProvider {
 
     final uri = _baseUri.replace(
       path: '${_baseUri.path}/economy/live-exchange-rates',
-      queryParameters: {
-        'code': code,
-        'apiKey': _apiKey,
-      },
+      queryParameters: {'code': code, 'apiKey': _apiKey},
     );
 
     final payload = await _requestJson(uri);
@@ -95,10 +80,9 @@ class NosyTurkeyGoldProvider implements MarketProvider {
       if (item is! Map) continue;
 
       final mapped = Map<String, dynamic>.from(item);
-      final returnedCode =
-          (mapped['currencyCode'] ?? mapped['code'] ?? '')
-              .toString()
-              .toUpperCase();
+      final returnedCode = (mapped['currencyCode'] ?? mapped['code'] ?? '')
+          .toString()
+          .toUpperCase();
 
       if (returnedCode == code.toUpperCase()) {
         row = mapped;
@@ -120,9 +104,7 @@ class NosyTurkeyGoldProvider implements MarketProvider {
     }
 
     final changePercent = _toDouble(
-      row['changeRate'] ??
-          row['changePercent'] ??
-          row['rate'],
+      row['changeRate'] ?? row['changePercent'] ?? row['rate'],
     );
     final previousClose = _toDouble(row['prevClose']);
     final change = previousClose > 0
@@ -131,8 +113,7 @@ class NosyTurkeyGoldProvider implements MarketProvider {
 
     return MarketQuote(
       symbol: canonical,
-      name: definition?.name ??
-          (row['description'] ?? canonical).toString(),
+      name: definition?.name ?? (row['description'] ?? canonical).toString(),
       category: AssetCategory.commodity,
       exchange: 'TR_GOLD',
       currency: 'TRY',
@@ -153,9 +134,7 @@ class NosyTurkeyGoldProvider implements MarketProvider {
 
     for (final symbol in symbols.toSet()) {
       try {
-        results.add(
-          await getQuote(symbol, exchange: exchange),
-        );
+        results.add(await getQuote(symbol, exchange: exchange));
       } on MarketProviderException {
         // Partial success.
       }
@@ -164,30 +143,23 @@ class NosyTurkeyGoldProvider implements MarketProvider {
     return results;
   }
 
-  Future<String?> _resolveProviderCode(
-    String canonical,
-  ) async {
+  Future<String?> _resolveProviderCode(String canonical) async {
     final cached = _resolvedCodeCache[canonical];
     if (cached != null) return cached;
 
-    final fallback =
-        ProviderSymbolMapping.nosyGoldFallbackCode(canonical);
+    final fallback = ProviderSymbolMapping.nosyGoldFallbackCode(canonical);
 
     try {
       final uri = _baseUri.replace(
-        path:
-            '${_baseUri.path}/economy/live-exchange-rates/list',
-        queryParameters: {
-          'apiKey': _apiKey,
-        },
+        path: '${_baseUri.path}/economy/live-exchange-rates/list',
+        queryParameters: {'apiKey': _apiKey},
       );
 
       final payload = await _requestJson(uri);
       final data = payload['data'];
 
       if (data is List) {
-        final searchTerms =
-            ProviderSymbolMapping.localGoldSearchTerms(
+        final searchTerms = ProviderSymbolMapping.localGoldSearchTerms(
           canonical,
         );
 
@@ -196,19 +168,13 @@ class NosyTurkeyGoldProvider implements MarketProvider {
 
           final mapped = Map<String, dynamic>.from(item);
           final code = (mapped['code'] ?? '').toString();
-          final fullName =
-              (mapped['FullName'] ?? mapped['fullName'] ?? '')
-                  .toString();
-          final baseCurrency =
-              (mapped['baseCurrency'] ?? '').toString();
+          final fullName = (mapped['FullName'] ?? mapped['fullName'] ?? '')
+              .toString();
+          final baseCurrency = (mapped['baseCurrency'] ?? '').toString();
 
-          final haystack = _normalize(
-            '$code $fullName $baseCurrency',
-          );
+          final haystack = _normalize('$code $fullName $baseCurrency');
 
-          if (searchTerms.any(
-            (term) => haystack.contains(_normalize(term)),
-          )) {
+          if (searchTerms.any((term) => haystack.contains(_normalize(term)))) {
             _resolvedCodeCache[canonical] = code;
             return code;
           }
@@ -226,34 +192,19 @@ class NosyTurkeyGoldProvider implements MarketProvider {
   }
 
   Future<Map<String, dynamic>> _requestJson(Uri uri) async {
-    final keyPreview = _apiKey.length >= 8
-
-      ? _apiKey.substring(0, 8)
-
-      : _apiKey;
-
-  debugPrint('NOSY KEY = $keyPreview...');
-
-  debugPrint('NOSY URL = $uri');
-    debugPrint('================ NOSY REQUEST ================');
-    debugPrint('URL    : $uri');
-    debugPrint('APIKEY : ${_apiKey.isNotEmpty ? "OK" : "MISSING"}');
-
     final http.Response response;
 
     try {
-      response = await _client.get(
-        uri,
-        headers: {
-          'X-NSYP': _apiKey,
-          'Authorization': 'Bearer $_apiKey',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeout);
-
-      debugPrint('STATUS : ${response.statusCode}');
-      debugPrint('BODY   : ${response.body}');
-      debugPrint('==============================================');
+      response = await _client
+          .get(
+            uri,
+            headers: {
+              'X-NSYP': _apiKey,
+              'Authorization': 'Bearer $_apiKey',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeout);
     } catch (error) {
       throw MarketProviderException(
         providerId: id,
@@ -262,12 +213,10 @@ class NosyTurkeyGoldProvider implements MarketProvider {
       );
     }
 
-    if (response.statusCode < 200 ||
-        response.statusCode >= 300) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw MarketProviderException(
         providerId: id,
-        message:
-            'NosyAPI HTTP ${response.statusCode}: ${response.body}',
+        message: 'NosyAPI HTTP ${response.statusCode}: ${response.body}',
       );
     }
 
@@ -283,8 +232,6 @@ class NosyTurkeyGoldProvider implements MarketProvider {
       );
     }
 
-    debugPrint('NOSY JSON: $decoded');
-
     if (decoded is! Map<String, dynamic>) {
       throw MarketProviderException(
         providerId: id,
@@ -292,16 +239,14 @@ class NosyTurkeyGoldProvider implements MarketProvider {
       );
     }
 
-    final status =
-        (decoded['status'] ?? '').toString().toLowerCase();
+    final status = (decoded['status'] ?? '').toString().toLowerCase();
 
     if (status.isNotEmpty && status != 'success') {
       throw MarketProviderException(
         providerId: id,
-        message: (decoded['messageTR'] ??
-                decoded['message'] ??
-                'NosyAPI hatası')
-            .toString(),
+        message:
+            (decoded['messageTR'] ?? decoded['message'] ?? 'NosyAPI hatası')
+                .toString(),
       );
     }
 

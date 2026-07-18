@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
 import '../../services/market/market_service.dart';
@@ -129,6 +130,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: Text(item.symbol),
         centerTitle: false,
         backgroundColor: const Color(0xFFF7F9FC),
@@ -232,7 +234,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           : '?',
                       style: const TextStyle(
                         color: Color(0xFF0284C7),
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         fontSize: 20,
                       ),
                     ),
@@ -249,7 +251,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           style: const TextStyle(
                             color: Color(0xFF0F172A),
                             fontSize: 21,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: -.3,
                           ),
                         ),
@@ -258,7 +260,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           '${item.symbol} • ${item.type} • $displayCurrency',
                           style: const TextStyle(
                             color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             fontSize: 12.5,
                           ),
                         ),
@@ -286,7 +288,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 31,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: -.6,
                   ),
                 ),
@@ -295,7 +297,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                 quote == null ? 'Maliyet bazlı değer' : 'Güncel değer',
                 style: const TextStyle(
                   color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   fontSize: 12.5,
                 ),
               ),
@@ -329,7 +331,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                               '${formatCurrency(profitLoss, displayCurrency)}',
                               style: TextStyle(
                                 color: profitColor,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w700,
                                 fontSize: 16,
                               ),
                             ),
@@ -338,7 +340,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                             formatPercent(profitPercent),
                             style: TextStyle(
                               color: profitColor,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               fontSize: 16,
                             ),
                           ),
@@ -390,7 +392,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                   style: TextStyle(
                     color: Color(0xFF0284C7),
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Spacer(),
@@ -435,7 +437,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                 'Varlık Detayları',
                 style: TextStyle(
                   fontSize: 17,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -515,7 +517,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                 'Canlı piyasa verisi alınıyor...',
                 style: TextStyle(
                   color: Color(0xFF334155),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -541,7 +543,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                 'Bu varlık için canlı fiyat henüz alınamadı.',
                 style: TextStyle(
                   color: Color(0xFF9A3412),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   fontSize: 12.5,
                 ),
               ),
@@ -552,6 +554,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
       );
     }
 
+    final hasKnownStatus = quote!.marketStatus != MarketStatus.unknown;
     final statusColor = _marketStatusColor(quote!.marketStatus);
 
     return Container(
@@ -562,38 +565,44 @@ class _LiveMarketStatusCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFCDEED8)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: hasKnownStatus
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            margin: const EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
+          if (hasKnownStatus) ...[
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _marketStatusLabel(quote!.marketStatus),
-                  style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
+                if (hasKnownStatus) ...[
+                  Text(
+                    _marketStatusLabel(quote!.marketStatus),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
+                  const SizedBox(height: 3),
+                ],
                 Text(
                   'Son güncelleme: '
                   '${_formatUpdatedAt(quote!.updatedAt)} • '
                   '${quote!.exchange}',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 11.5,
                   ),
                 ),
@@ -646,7 +655,7 @@ class _MetricCard extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 11.5,
                   ),
                 ),
@@ -657,7 +666,7 @@ class _MetricCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14.5,
                   ),
                 ),
@@ -688,7 +697,7 @@ class _AssetDetailRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Color(0xFF64748B),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
             ),
@@ -704,7 +713,7 @@ class _AssetDetailRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: const TextStyle(
                 color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
             ),

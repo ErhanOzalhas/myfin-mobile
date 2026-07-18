@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class IntelligenceMarketMoodCard extends StatelessWidget {
   final String mood;
 
-  const IntelligenceMarketMoodCard({
-    super.key,
-    required this.mood,
-  });
+  const IntelligenceMarketMoodCard({super.key, required this.mood});
 
   @override
   Widget build(BuildContext context) {
@@ -35,17 +32,14 @@ class IntelligenceMarketMoodCard extends StatelessWidget {
         children: [
           const Text(
             'Market Mood',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Text(
             mood,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
               color: color,
             ),
           ),

@@ -17,20 +17,20 @@ class IntelligenceScoreCard extends StatelessWidget {
     final Color scoreColor = normalizedScore >= 71
         ? const Color(0xFF16A34A)
         : normalizedScore >= 41
-            ? const Color(0xFFD97706)
-            : const Color(0xFFDC2626);
+        ? const Color(0xFFD97706)
+        : const Color(0xFFDC2626);
 
     final Color cardBaseColor = normalizedScore >= 71
         ? const Color(0xFFF6FCF8)
         : normalizedScore >= 41
-            ? const Color(0xFFFFFBF3)
-            : const Color(0xFFFFF7F7);
+        ? const Color(0xFFFFFBF3)
+        : const Color(0xFFFFF7F7);
 
     final String aiMessage = normalizedScore >= 71
         ? 'AI bugün portföyünü güçlü buluyor.'
         : normalizedScore >= 41
-            ? 'AI portföyünde iyileştirilebilecek alanlar görüyor.'
-            : 'AI portföyünde dikkat edilmesi gereken riskler görüyor.';
+        ? 'AI portföyünde iyileştirilebilecek alanlar görüyor.'
+        : 'AI portföyünde dikkat edilmesi gereken riskler görüyor.';
 
     return Container(
       width: double.infinity,
@@ -38,9 +38,7 @@ class IntelligenceScoreCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBaseColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: scoreColor.withValues(alpha: 0.14),
-        ),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.14)),
         boxShadow: [
           BoxShadow(
             color: scoreColor.withValues(alpha: 0.08),
@@ -108,8 +106,8 @@ class IntelligenceScoreCard extends StatelessWidget {
                       child: Text(
                         'Portföy AI Skoru',
                         style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                           color: Color(0xFF172033),
                           letterSpacing: -0.2,
                         ),
@@ -132,7 +130,7 @@ class IntelligenceScoreCard extends StatelessWidget {
                         style: TextStyle(
                           color: scoreColor,
                           fontSize: 12,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -145,17 +143,14 @@ class IntelligenceScoreCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 50,
                       height: 1,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       color: scoreColor,
                       letterSpacing: -1.8,
                     ),
                   ),
                 ),
                 const SizedBox(height: 14),
-                _ScoreScale(
-                  score: normalizedScore,
-                  scoreColor: scoreColor,
-                ),
+                _ScoreScale(score: normalizedScore, scoreColor: scoreColor),
                 const SizedBox(height: 15),
                 Row(
                   children: [
@@ -220,10 +215,7 @@ class _ScoreScale extends StatelessWidget {
   final int score;
   final Color scoreColor;
 
-  const _ScoreScale({
-    required this.score,
-    required this.scoreColor,
-  });
+  const _ScoreScale({required this.score, required this.scoreColor});
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +245,7 @@ class _ScoreScale extends StatelessWidget {
                         '$value',
                         style: TextStyle(
                           fontSize: 9,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: value >= 75
                               ? scoreColor.withValues(alpha: 0.80)
                               : const Color(0xFF9AA3B2),
@@ -285,7 +277,8 @@ class _ScoreScale extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   const markerSize = 12.0;
-                  final markerLeft = (constraints.maxWidth - markerSize) *
+                  final markerLeft =
+                      (constraints.maxWidth - markerSize) *
                       progress.clamp(0.0, 1.0);
 
                   return SizedBox(
@@ -318,10 +311,7 @@ class _ScoreScale extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: scoreColor,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 2,
-                              ),
+                              border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
                                   color: scoreColor.withValues(alpha: 0.28),
@@ -358,24 +348,15 @@ class _HeroMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE7EBF1),
-        ),
+        border: Border.all(color: const Color(0xFFE7EBF1)),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 19,
-            color: const Color(0xFF485466),
-          ),
+          Icon(icon, size: 19, color: const Color(0xFF485466)),
           const SizedBox(height: 5),
           Text(
             title,

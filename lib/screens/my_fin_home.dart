@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
@@ -531,7 +532,7 @@ class _HomeAIScoreSection extends StatelessWidget {
           return const SurfaceCard(
             child: Text(
               'AI skoru hesaplanırken bir hata oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           );
         }
@@ -569,7 +570,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
                       'Portföy AI Skoru',
                       style: TextStyle(
                         fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -807,7 +808,7 @@ class _HomeShortcut extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF475569),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
             ),
@@ -877,7 +878,7 @@ class _MiniScoreTile extends StatelessWidget {
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
@@ -942,10 +943,10 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Benim Finans',
+                'My Finans',
                 style: TextStyle(
                   fontSize: 28,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -.7,
                   color: Color(0xFF0F172A),
                 ),
@@ -990,7 +991,7 @@ class _Header extends StatelessWidget {
                   Text(
                     isLoggedIn ? displayName : 'Misafir kullanıcı',
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF0F172A),
                     ),
                   ),
@@ -1176,7 +1177,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .74),
                     fontSize: 17,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1226,7 +1227,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
                                   style: TextStyle(
                                     color: trendColor,
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -1710,7 +1711,6 @@ class _DistributionCard extends StatelessWidget {
               valuation,
             );
             return DistributionCard(
-              title: 'Portföy Dağılımı',
               items: distribution.segments
                   .map(
                     (segment) => DistributionItem(
@@ -2561,7 +2561,7 @@ class _RecentTransactions extends StatelessWidget {
             padding: EdgeInsets.all(18),
             child: Text(
               'Son işlemler alınırken bir sorun oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           );
         }
@@ -2597,7 +2597,7 @@ class _RecentTransactions extends StatelessWidget {
                             'Henüz işlem yok',
                             style: TextStyle(
                               color: Color(0xFF0F172A),
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               fontSize: 16,
                             ),
                           ),
@@ -2746,7 +2746,7 @@ class _TransactionRow extends StatelessWidget {
                     type,
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
                   ),
@@ -2825,7 +2825,10 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Alarm Kur'), centerTitle: false),
+      appBar: AppBar(
+        leading: const MyFinBackButton(),
+        title: const Text('Alarm Kur'),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -3040,10 +3043,10 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Color(0xFF0F172A),
-                                fontSize: 21,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -.3,
-                                height: 1.28,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -.15,
+                                height: 1.24,
                               ),
                             ),
                           ),
@@ -3063,8 +3066,8 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                           '$aiScore/100',
                           style: TextStyle(
                             color: scoreColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -3079,8 +3082,8 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.black45,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -3091,7 +3094,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF334155),
-                      fontSize: 15,
+                      fontSize: 14,
                       height: 1.35,
                       fontWeight: FontWeight.w400,
                     ),
@@ -3145,8 +3148,8 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                                       "MyFin AI'ye Sor",
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ],

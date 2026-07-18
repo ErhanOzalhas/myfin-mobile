@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_rebuild_service.dart';
@@ -140,6 +141,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const MyFinBackButton(),
         title: Text(
           widget.symbolFilter == null || widget.symbolFilter!.isEmpty
               ? 'İşlem Geçmişi'
@@ -176,7 +178,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                         : '$_periodSummary ${visibleDocs.length} işlem kaydı bulundu.',
                     style: const TextStyle(
                       color: Colors.black54,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       height: 1.35,
                     ),
                   ),
@@ -336,7 +338,7 @@ class _TurkishDateRangeSheetState extends State<_TurkishDateRangeSheet> {
                       'Tarih Aralığı Seç',
                       style: TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -409,7 +411,7 @@ class _TurkishDateRangeSheetState extends State<_TurkishDateRangeSheet> {
       datePickerTheme: base.datePickerTheme.copyWith(
         headerHeadlineStyle: const TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
         weekdayStyle: const TextStyle(
           fontSize: 12,
@@ -534,7 +536,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         fontSize: 14,
                         color: Color(0xFF0F172A),
                       ),
@@ -561,7 +563,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                     formatCurrency(total, currency),
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
                   ),
@@ -570,7 +572,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                     'İşlem Tutarı',
                     style: TextStyle(
                       color: Colors.black45,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       fontSize: 10,
                     ),
                   ),

@@ -16,18 +16,14 @@ class EmptyStateLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(
-          icon,
-          size: 46,
-          color: Colors.black26,
-        ),
+        Icon(icon, size: 46, color: Colors.black26),
         const SizedBox(height: 14),
         Text(
           title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF0F172A),
           ),
         ),
