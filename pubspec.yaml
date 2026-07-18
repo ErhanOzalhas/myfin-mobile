@@ -26,6 +26,9 @@ dependencies:
   pdf: ^3.12.0
   excel: ^4.0.6
   share_plus: ^13.2.1
+  shared_preferences: ^2.5.5
+  flutter_local_notifications: ^22.0.1
+  firebase_admin_sdk: ^0.5.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

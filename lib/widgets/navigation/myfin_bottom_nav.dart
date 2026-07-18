@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../screens/intelligence/intelligence_page.dart';
 import '../../screens/market/live_market_page.dart';
+import '../../screens/market/price_alert_page.dart';
 import '../../screens/my_fin_home.dart';
 import '../../screens/portfolio/portfolio_page.dart';
 import '../../screens/settings/settings_page.dart';

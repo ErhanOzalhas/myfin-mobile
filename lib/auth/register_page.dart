@@ -1,4 +1,3 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
@@ -13,6 +12,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final passwordAgainController = TextEditingController();
@@ -21,11 +21,15 @@ class _RegisterPageState extends State<RegisterPage> {
   String? errorMessage;
 
   Future<void> register() async {
+    final displayName = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
     final passwordAgain = passwordAgainController.text;
 
-    if (email.isEmpty || password.isEmpty || passwordAgain.isEmpty) {
+    if (displayName.length < 2 ||
+        email.isEmpty ||
+        password.isEmpty ||
+        passwordAgain.isEmpty) {
       setState(() {
         errorMessage = 'Lütfen tüm alanları doldurun.';
       });
@@ -52,20 +56,34 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       final user = credential.user;
       if (user != null) {
-        await FirestoreService.instance.createOrUpdateUserProfile(
-          email: user.email ?? '',displayName: user.displayName,
-        );
+        await user.updateDisplayName(displayName);
+        try {
+          await FirestoreService.instance.createOrUpdateUserProfile(
+            email: user.email ?? '',
+            displayName: displayName,
+          );
+        } catch (error) {
+          debugPrint('REGISTER PROFILE WRITE ERROR: $error');
+        }
+        await user.sendEmailVerification();
+        await FirebaseAuth.instance.signOut();
       }
 
       if (mounted) {
         Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Hesabın oluşturuldu. E-postandaki bağlantıyla hesabını doğruladıktan sonra giriş yapabilirsin.',
+            ),
+            duration: Duration(seconds: 6),
+          ),
+        );
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -99,6 +117,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     passwordAgainController.dispose();
@@ -112,6 +131,18 @@ class _RegisterPageState extends State<RegisterPage> {
       subtitle: 'MyFin hesabını oluştur',
       showBackButton: true,
       children: [
+        TextField(
+          controller: nameController,
+          keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            labelText: 'Ad soyad',
+            prefixIcon: Icon(Icons.person_outline_rounded),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
@@ -145,8 +176,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         const SizedBox(height: 14),
-        if (errorMessage != null)
-          AuthErrorBox(message: errorMessage!),
+        if (errorMessage != null) AuthErrorBox(message: errorMessage!),
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,
@@ -166,4 +196,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-

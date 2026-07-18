@@ -1,6 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../auth/login_page.dart';
 import '../services/app_startup_coordinator.dart';
+import '../services/price_alert_service.dart';
 import '../widgets/navigation/myfin_bottom_nav.dart';
 import 'intelligence/intelligence_page.dart';
 import 'my_fin_home.dart';
@@ -15,7 +18,7 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
   late final List<Widget> _pages = [
@@ -29,9 +32,24 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppStartupCoordinator.instance.preloadSecondary();
+      PriceAlertService.instance.checkNow();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      PriceAlertService.instance.checkNow();
+    }
   }
 
   void _selectPage(int index) {
@@ -41,12 +59,19 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: MyFinBottomNav(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _selectPage,
-      ),
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, snapshot) {
+        if (snapshot.data == null) return const LoginPage();
+        return Scaffold(
+          body: IndexedStack(index: _selectedIndex, children: _pages),
+          bottomNavigationBar: MyFinBottomNav(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _selectPage,
+          ),
+        );
+      },
     );
   }
 }

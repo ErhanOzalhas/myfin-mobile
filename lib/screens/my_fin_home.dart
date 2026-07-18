@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:myfin_mobile/screens/intelligence/intelligence_page.dart';
 import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
@@ -891,7 +890,14 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.userChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, snapshot) => _buildHeader(context, snapshot.data),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, User? user) {
     final isLoggedIn = user != null;
     final displayName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!.trim()
@@ -960,6 +966,11 @@ class _Header extends StatelessWidget {
 
             if (value == 'logout') {
               await FirebaseAuth.instance.signOut();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                noAnimationRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
             }
           },
           itemBuilder: (context) => [
@@ -2720,145 +2731,6 @@ class _TransactionRow extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class PriceAlertPage extends StatefulWidget {
-  const PriceAlertPage({super.key});
-
-  @override
-  State<PriceAlertPage> createState() => _PriceAlertPageState();
-}
-
-class _PriceAlertPageState extends State<PriceAlertPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _symbolController = TextEditingController();
-  final _targetController = TextEditingController();
-  String _direction = 'Üstüne çıkarsa';
-
-  @override
-  void dispose() {
-    _symbolController.dispose();
-    _targetController.dispose();
-    super.dispose();
-  }
-
-  void _saveAlert() {
-    if (!_formKey.currentState!.validate()) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${_symbolController.text.toUpperCase()} alarmı oluşturuldu.',
-        ),
-      ),
-    );
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: const MyFinBackButton(),
-        title: const Text('Alarm Kur'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          children: [
-            const SectionTitle(title: 'Fiyat Alarmı'),
-            const SizedBox(height: 12),
-            SurfaceCard(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Takip etmek istediğin fiyat seviyesini belirle. Bildirim altyapısı bağlandığında bu ekran canlı alarma dönüşecek.',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    TextFormField(
-                      controller: _symbolController,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
-                        labelText: 'Sembol / Varlık',
-                        hintText: 'Örn: GARAN, BTC, AAPL',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Varlık adı gerekli.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _direction,
-                      decoration: const InputDecoration(
-                        labelText: 'Koşul',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Üstüne çıkarsa',
-                          child: Text('Üstüne çıkarsa'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Altına inerse',
-                          child: Text('Altına inerse'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _direction = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _targetController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Hedef Fiyat',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        final parsed = double.tryParse(
-                          (value ?? '').replaceAll(',', '.'),
-                        );
-                        if (parsed == null || parsed <= 0) {
-                          return 'Geçerli bir hedef fiyat gir.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _saveAlert,
-                        icon: const Icon(Icons.notifications_active_rounded),
-                        label: const Text('Alarmı Kaydet'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: const MyFinBottomNav(selectedIndex: 2),
     );
   }
 }
