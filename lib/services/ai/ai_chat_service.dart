@@ -2,6 +2,8 @@ import 'package:myfin_mobile/services/ai/ai_context_builder.dart';
 import 'package:myfin_mobile/services/ai/ai_orchestrator.dart';
 import 'package:myfin_mobile/services/ai/ai_service.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
+import 'package:myfin_mobile/services/ai/portfolio_ai_context_service.dart';
+import 'package:myfin_mobile/services/portfolio_valuation_service.dart';
 
 /// Compatibility layer for the existing AI chat screen.
 ///
@@ -13,21 +15,28 @@ class AIChatService {
     AIProvider? provider,
     AIService? service,
     AIOrchestrator? orchestrator,
-  }) : _orchestrator = orchestrator ??
-            AIOrchestrator(
-              service: service,
-              provider: provider,
-            );
+  }) : _orchestrator =
+           orchestrator ?? AIOrchestrator(service: service, provider: provider);
 
   final AIOrchestrator _orchestrator;
   final AIContextBuilder _contextBuilder = const AIContextBuilder();
+  final PortfolioAIContextService _portfolioContextService =
+      const PortfolioAIContextService();
 
   Future<String> ask({
     required PortfolioAnalysis analysis,
+    PortfolioValuation? valuation,
     required String question,
   }) async {
     final AIResponse response = await _orchestrator.ask(
-      message: _buildMessage(analysis: analysis, question: question),
+      message: _buildMessage(
+        analysis: analysis,
+        valuation: valuation,
+        question: question,
+      ),
+      portfolioInput: valuation == null
+          ? null
+          : _portfolioContextService.buildInput(valuation),
       userContext: const UserFinancialContext(
         name: 'MyFin User',
         baseCurrency: 'TRY',
@@ -44,10 +53,18 @@ class AIChatService {
 
   Stream<String> askStream({
     required PortfolioAnalysis analysis,
+    PortfolioValuation? valuation,
     required String question,
   }) {
     return _orchestrator.askStream(
-      message: _buildMessage(analysis: analysis, question: question),
+      message: _buildMessage(
+        analysis: analysis,
+        valuation: valuation,
+        question: question,
+      ),
+      portfolioInput: valuation == null
+          ? null
+          : _portfolioContextService.buildInput(valuation),
       userContext: const UserFinancialContext(
         name: 'MyFin User',
         baseCurrency: 'TRY',
@@ -57,17 +74,72 @@ class AIChatService {
 
   String _buildMessage({
     required PortfolioAnalysis analysis,
+    PortfolioValuation? valuation,
     required String question,
   }) {
     final String context = _contextBuilder.build(analysis).trim();
+    final String valuationContext = valuation == null
+        ? 'Gerçek portföy değerlemesi bu istekte mevcut değil.'
+        : _portfolioContextService.buildDetailedFacts(valuation);
+    final String searchDirective = _needsCurrentNews(question)
+        ? '=== ENABLE_WEB_SEARCH ===\nBu soru güncel haber/gelişme gerektiriyor. Güncel web kaynaklarını ara; haber tarihlerini ve kaynak bağlantılarını ver. Eski haberleri güncelmiş gibi sunma.'
+        : '';
+    final String chartDirective = _needsChart(question)
+        ? '=== NATIVE_CHART_ENABLED ===\nUygulama grafiği gerçek portföy verisinden yerel olarak çizecek. Yanıtta kod bloğu, ASCII çubuk, metin tabanlı grafik veya grafik tablosu üretme; yalnızca grafiği açıklayan kısa yorumu ver.'
+        : '';
 
     return '''
 $context
+
+$valuationContext
+
+$searchDirective
+
+$chartDirective
 
 === USER QUESTION ===
 $question
 '''
         .trim();
+  }
+
+  bool _needsChart(String question) {
+    final value = question.toLowerCase();
+    return value.contains('grafik') ||
+        value.contains('grafiğ') ||
+        value.contains('görsel') ||
+        value.contains('pasta') ||
+        value.contains('sütun') ||
+        value.contains('dağılım') ||
+        value.contains('dagilim') ||
+        value.contains('karşılaştır') ||
+        value.contains('karsilastir') ||
+        value.contains('yoğunlaş') ||
+        value.contains('yogunlas');
+  }
+
+  bool _needsCurrentNews(String question) {
+    final value = question.toLowerCase();
+    final explicitNewsRequest =
+        value.contains('haber') ||
+        value.contains('gündem') ||
+        value.contains('gelişme') ||
+        value.contains('son durum') ||
+        value.contains('bugün ne oldu') ||
+        value.contains('ne oldu');
+    final asksForReason =
+        value.contains('neden') ||
+        value.contains('niye') ||
+        value.contains('sebep');
+    final mentionsMarketMovement =
+        value.contains('düş') ||
+        value.contains('yüks') ||
+        value.contains('gerile') ||
+        value.contains('arttı') ||
+        value.contains('artıyor') ||
+        value.contains('değer kayb') ||
+        value.contains('değer kazan');
+    return explicitNewsRequest || (asksForReason && mentionsMarketMovement);
   }
 
   void resetConversation() {

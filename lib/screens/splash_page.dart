@@ -27,7 +27,11 @@ class _MyFinLaunchAppState extends State<MyFinLaunchApp> {
         .prepareCriticalData()
         .timeout(const Duration(milliseconds: 2400), onTimeout: () {});
 
-    await Future.wait([minimumSplash, preload]);
+    try {
+      await Future.wait([minimumSplash, preload]);
+    } catch (error, stackTrace) {
+      debugPrint('Açılış verileri hazırlanamadı: $error\n$stackTrace');
+    }
 
     if (!mounted) return;
     setState(() => _showApp = true);

@@ -18,7 +18,9 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordAgainController = TextEditingController();
 
   bool isLoading = false;
+  bool isRegistered = false;
   String? errorMessage;
+  String? successMessage;
 
   Future<void> register() async {
     final displayName = nameController.text.trim();
@@ -53,6 +55,7 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() {
       isLoading = true;
       errorMessage = null;
+      successMessage = null;
     });
 
     try {
@@ -75,15 +78,11 @@ class _RegisterPageState extends State<RegisterPage> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Hesabın oluşturuldu. E-postandaki bağlantıyla hesabını doğruladıktan sonra giriş yapabilirsin.',
-            ),
-            duration: Duration(seconds: 6),
-          ),
-        );
+        setState(() {
+          isRegistered = true;
+          successMessage =
+              'Hesabın oluşturuldu. $email adresine gönderdiğimiz bağlantıyla hesabını doğrula. E-posta görünmüyorsa Spam veya Gereksiz klasörünü de kontrol et.';
+        });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -127,12 +126,13 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      title: 'Kayıt Ol',
-      subtitle: 'MyFin hesabını oluştur',
+      title: 'MyFin’e Katıl',
+      subtitle: 'Finansal geleceğini tek yerde yönetmeye başla',
       showBackButton: true,
       children: [
         TextField(
           controller: nameController,
+          enabled: !isRegistered,
           keyboardType: TextInputType.name,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
@@ -145,6 +145,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 12),
         TextField(
           controller: emailController,
+          enabled: !isRegistered,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
@@ -156,6 +157,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 12),
         TextField(
           controller: passwordController,
+          enabled: !isRegistered,
           obscureText: true,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
@@ -167,6 +169,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 12),
         TextField(
           controller: passwordAgainController,
+          enabled: !isRegistered,
           obscureText: true,
           onSubmitted: (_) => isLoading ? null : register(),
           decoration: const InputDecoration(
@@ -177,19 +180,24 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         const SizedBox(height: 14),
         if (errorMessage != null) AuthErrorBox(message: errorMessage!),
+        if (successMessage != null) AuthSuccessBox(message: successMessage!),
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,
           height: 52,
           child: FilledButton(
-            onPressed: isLoading ? null : register,
+            onPressed: isLoading
+                ? null
+                : isRegistered
+                ? () => Navigator.of(context).pop()
+                : register,
             child: isLoading
                 ? const SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Kayıt Ol'),
+                : Text(isRegistered ? 'Giriş ekranına dön' : 'Kayıt Ol'),
           ),
         ),
       ],

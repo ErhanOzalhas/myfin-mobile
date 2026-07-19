@@ -13,7 +13,7 @@ class YahooFinanceMarketProvider implements MarketProvider {
     Uri? baseUri,
     this.timeout = const Duration(seconds: 12),
   }) : _client = client ?? http.Client(),
-       _baseUri = baseUri ?? Uri.parse('https://query1.finance.yahoo.com');
+       _baseUri = baseUri ?? Uri.parse('https://query2.finance.yahoo.com');
 
   final http.Client _client;
   final Uri _baseUri;
@@ -138,32 +138,40 @@ class YahooFinanceMarketProvider implements MarketProvider {
 
     final metaMap = Map<String, dynamic>.from(meta);
 
-    final currentPrice = _firstPositive([
+    final rawCurrentPrice = _firstPositive([
       _toDouble(metaMap['regularMarketPrice']),
       _toDouble(metaMap['previousClose']),
       _lastClose(data),
     ]);
 
-    if (currentPrice <= 0) {
+    if (rawCurrentPrice <= 0) {
       throw MarketProviderException(
         providerId: id,
         message: '$symbol için Yahoo Finance fiyatı bulunamadı.',
       );
     }
 
-    final previousClose = _firstPositive([
+    final rawPreviousClose = _firstPositive([
       _toDouble(metaMap['chartPreviousClose']),
       _toDouble(metaMap['previousClose']),
     ]);
+
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    // Yahoo quotes wheat futures in US cents per bushel (USX). The asset is
+    // exposed as WHEAT/USD, so normalize cents to dollars before returning it.
+    final quoteScale = normalizedSymbol == 'WHEAT/USD' ? 0.01 : 1.0;
+    final currentPrice = rawCurrentPrice * quoteScale;
+    final previousClose = rawPreviousClose * quoteScale;
 
     final change = previousClose > 0 ? currentPrice - previousClose : 0.0;
     final changePercent = previousClose > 0
         ? (change / previousClose) * 100
         : 0.0;
 
-    final currency = (metaMap['currency'] ?? _inferCurrency(exchange))
+    final rawCurrency = (metaMap['currency'] ?? _inferCurrency(exchange))
         .toString()
         .toUpperCase();
+    final currency = normalizedSymbol == 'WHEAT/USD' ? 'USD' : rawCurrency;
 
     final exchangeName =
         (metaMap['exchangeName'] ??
@@ -175,7 +183,7 @@ class YahooFinanceMarketProvider implements MarketProvider {
     final timestamp = _toInt(metaMap['regularMarketTime']);
 
     return MarketQuote(
-      symbol: symbol.trim().toUpperCase(),
+      symbol: normalizedSymbol,
       name:
           (metaMap['longName'] ??
                   metaMap['shortName'] ??
@@ -264,6 +272,10 @@ class YahooFinanceMarketProvider implements MarketProvider {
     'XAG/USD': 'SI=F',
     'XPT/USD': 'PL=F',
     'XPD/USD': 'PA=F',
+    // API Ninjas free access rotates weekly. Keep liquid front-month
+    // contracts as fallbacks so these portfolio assets remain usable.
+    'BRENT/USD': 'BZ=F',
+    'WHEAT/USD': 'ZW=F',
   };
 
   double _lastClose(Map<String, dynamic> data) {

@@ -948,9 +948,7 @@ class _Header extends StatelessWidget {
         PopupMenuButton<String>(
           tooltip: 'Hesap',
           offset: const Offset(0, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
+          constraints: const BoxConstraints(minWidth: 250, maxWidth: 300),
           onSelected: (value) async {
             if (value == 'settings') {
               Navigator.of(
@@ -976,23 +974,43 @@ class _Header extends StatelessWidget {
           itemBuilder: (context) => [
             PopupMenuItem<String>(
               enabled: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    isLoggedIn ? displayName : 'Misafir kullanıcı',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
+                  CircleAvatar(
+                    radius: 19,
+                    backgroundColor: const Color(0xFFE7F6FB),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: Color(0xFF008DB9),
+                      size: 21,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    email,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isLoggedIn ? displayName : 'Misafir kullanıcı',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -2917,8 +2935,10 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                             onTap: () {
                               Navigator.of(context).push(
                                 noAnimationRoute(
-                                  builder: (_) =>
-                                      AiChatPage(analysis: analysis),
+                                  builder: (_) => AiChatPage(
+                                    analysis: analysis,
+                                    portfolioItems: items,
+                                  ),
                                 ),
                               );
                             },

@@ -47,11 +47,7 @@ class AssetUniverse {
       category: AssetCategory.commodity,
       exchange: 'TR_GOLD',
       currency: 'TRY',
-      aliases: [
-        'CUMHURIYET',
-        'CUMHURIYET ALTINI',
-        'REPUBLIC_GOLD',
-      ],
+      aliases: ['CUMHURIYET', 'CUMHURIYET ALTINI', 'REPUBLIC_GOLD'],
       isLocalTurkishGold: true,
     ),
     AssetDefinition(
@@ -105,16 +101,20 @@ class AssetUniverse {
       category: AssetCategory.commodity,
       exchange: 'TR_GOLD',
       currency: 'TRY',
-      aliases: [
-        '22 AYAR',
-        '22 AYAR BILEZIK',
-        '22_AYAR_BILEZIK',
-      ],
+      aliases: ['22 AYAR', '22 AYAR BILEZIK', '22_AYAR_BILEZIK'],
       isLocalTurkishGold: true,
     ),
   ];
 
   static const List<AssetDefinition> globalCommodities = [
+    AssetDefinition(
+      symbol: 'GRAM_GUMUS',
+      name: 'Gram Gümüş',
+      category: AssetCategory.commodity,
+      exchange: 'COMMODITY',
+      currency: 'TRY',
+      aliases: ['GRAM GÜMÜŞ', 'GRAM GUMUS', 'GÜMÜŞ GRAM', 'SILVER GRAM'],
+    ),
     AssetDefinition(
       symbol: 'XAU/USD',
       name: 'Ons Altın',
@@ -162,6 +162,14 @@ class AssetUniverse {
       exchange: 'COMMODITY',
       currency: 'USD',
       aliases: ['BRENT', 'UKOIL', 'BRENT PETROL'],
+    ),
+    AssetDefinition(
+      symbol: 'WHEAT/USD',
+      name: 'Buğday',
+      category: AssetCategory.commodity,
+      exchange: 'COMMODITY',
+      currency: 'USD',
+      aliases: ['WHEAT', 'BUĞDAY', 'BUGDAY', 'BUĞDAY VADELİ'],
     ),
     AssetDefinition(
       symbol: 'NG/USD',
@@ -391,13 +399,13 @@ class AssetUniverse {
   ];
 
   static List<AssetDefinition> get all => [
-        ...localGold,
-        ...globalCommodities,
-        ...forex,
-        ...indices,
-        ...etfs,
-        ...popularBist,
-      ];
+    ...localGold,
+    ...globalCommodities,
+    ...forex,
+    ...indices,
+    ...etfs,
+    ...popularBist,
+  ];
 
   static AssetDefinition? find(String query) {
     for (final asset in all) {

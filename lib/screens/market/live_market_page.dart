@@ -291,6 +291,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
       ),
     ],
     'Metal': [
+      _MarketAssetDefinition('GRAM_GUMUS', 'Gram Gümüş', 'Metal', 'COMMODITY'),
       _MarketAssetDefinition('XAG/USD', 'Ons Gümüş', 'Metal', 'COMMODITY'),
       _MarketAssetDefinition('XPT/USD', 'Ons Platin', 'Metal', 'COMMODITY'),
       _MarketAssetDefinition('XPD/USD', 'Ons Paladyum', 'Metal', 'COMMODITY'),
@@ -326,6 +327,10 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
       _MarketAssetDefinition('COPJ', 'Junior Copper Miners', 'Metal', 'NASDAQ'),
       _MarketAssetDefinition('XME', 'Metals & Mining ETF', 'Metal', 'ARCX'),
       _MarketAssetDefinition('XLB', 'Materials Select Sector', 'Metal', 'ARCX'),
+    ],
+    'Emtia': [
+      _MarketAssetDefinition('BRENT/USD', 'Brent Petrol', 'Emtia', 'COMMODITY'),
+      _MarketAssetDefinition('WHEAT/USD', 'Buğday', 'Emtia', 'COMMODITY'),
     ],
     'Kripto': [
       _MarketAssetDefinition('BTC', 'Bitcoin', 'Kripto', 'CRYPTO'),
@@ -363,6 +368,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
     'Döviz',
     'Altın',
     'Metal',
+    'Emtia',
     'Kripto',
     'Tümü',
   ];
@@ -1339,6 +1345,7 @@ class _MarketAssetDefinition {
       'Döviz' => AssetCategory.currency,
       'Altın' => AssetCategory.commodity,
       'Metal' => AssetCategory.commodity,
+      'Emtia' => AssetCategory.commodity,
       'Kripto' => AssetCategory.crypto,
       _ => AssetCategory.unknown,
     };

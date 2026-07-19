@@ -13,6 +13,19 @@ import '../portfolio/asset_detail_page.dart';
 
 enum _PerformanceFilter { all, winners, losers }
 
+const _allCategoriesKey = '__all__';
+
+String _categoryKey(String type) {
+  final normalized = type.trim().toLowerCase();
+  return normalized.isEmpty ? 'diğer' : normalized;
+}
+
+String _categoryLabel(String type) {
+  final trimmed = type.trim();
+  if (trimmed.isEmpty) return 'Diğer';
+  return '${trimmed.characters.first.toUpperCase()}${trimmed.characters.skip(1)}';
+}
+
 class ProfitLossDetailPage extends StatefulWidget {
   const ProfitLossDetailPage({super.key});
 
@@ -25,6 +38,7 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
   PortfolioValuation? _lastValuation;
   String? _valuationFingerprint;
   _PerformanceFilter _filter = _PerformanceFilter.all;
+  String _selectedCategory = _allCategoriesKey;
   bool _sortDescending = true;
 
   String _fingerprint(List<PortfolioItem> items) {
@@ -122,24 +136,55 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                final categoryLabels = <String, String>{};
+                for (final item in valuation.items) {
+                  categoryLabels.putIfAbsent(
+                    _categoryKey(item.item.type),
+                    () => _categoryLabel(item.item.type),
+                  );
+                }
+                final categoryEntries = categoryLabels.entries.toList()
+                  ..sort((a, b) => a.value.compareTo(b.value));
+                final effectiveCategory =
+                    categoryLabels.containsKey(_selectedCategory)
+                    ? _selectedCategory
+                    : _allCategoriesKey;
+
+                final performanceItems = valuation.items.where((item) {
+                  if (!item.hasLivePrice) {
+                    return _filter == _PerformanceFilter.all;
+                  }
+                  return switch (_filter) {
+                    _PerformanceFilter.all => true,
+                    _PerformanceFilter.winners =>
+                      item.profitLossInBaseCurrency > 0,
+                    _PerformanceFilter.losers =>
+                      item.profitLossInBaseCurrency < 0,
+                  };
+                }).toList();
+
                 final visibleItems =
-                    valuation.items.where((item) {
-                      if (!item.hasLivePrice) {
-                        return _filter == _PerformanceFilter.all;
-                      }
-                      return switch (_filter) {
-                        _PerformanceFilter.all => true,
-                        _PerformanceFilter.winners =>
-                          item.profitLossInBaseCurrency > 0,
-                        _PerformanceFilter.losers =>
-                          item.profitLossInBaseCurrency < 0,
-                      };
-                    }).toList()..sort((a, b) {
-                      final comparison = a.profitLossInBaseCurrency.compareTo(
-                        b.profitLossInBaseCurrency,
-                      );
-                      return _sortDescending ? -comparison : comparison;
-                    });
+                    performanceItems
+                        .where(
+                          (item) =>
+                              effectiveCategory == _allCategoriesKey ||
+                              _categoryKey(item.item.type) == effectiveCategory,
+                        )
+                        .toList()
+                      ..sort((a, b) {
+                        final comparison = a.profitLossInBaseCurrency.compareTo(
+                          b.profitLossInBaseCurrency,
+                        );
+                        return _sortDescending ? -comparison : comparison;
+                      });
+
+                final categorySummary = _CategoryPerformanceSummary.from(
+                  visibleItems,
+                );
+                final selectedCategoryLabel =
+                    effectiveCategory == _allCategoriesKey
+                    ? 'Tümü'
+                    : categoryLabels[effectiveCategory] ?? 'Tümü';
 
                 final winners = valuation.items
                     .where(
@@ -198,6 +243,37 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _CategoryChip(
+                              label: 'Tümü',
+                              selected: effectiveCategory == _allCategoriesKey,
+                              onTap: () => setState(
+                                () => _selectedCategory = _allCategoriesKey,
+                              ),
+                            ),
+                            for (final entry in categoryEntries) ...[
+                              const SizedBox(width: 8),
+                              _CategoryChip(
+                                label: entry.value,
+                                selected: effectiveCategory == entry.key,
+                                onTap: () => setState(
+                                  () => _selectedCategory = entry.key,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _CategorySummaryCard(
+                        label: selectedCategoryLabel,
+                        summary: categorySummary,
+                        baseCurrency: valuation.baseCurrency,
                       ),
                       const SizedBox(height: 18),
                       Row(
@@ -443,6 +519,204 @@ class _FilterChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        constraints: const BoxConstraints(minWidth: 76),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF0F73C5) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFF0F73C5) : const Color(0xFFD7E0EA),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFF475569),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryPerformanceSummary {
+  final double totalCost;
+  final double currentValue;
+  final double profitLoss;
+  final double profitPercent;
+
+  const _CategoryPerformanceSummary({
+    required this.totalCost,
+    required this.currentValue,
+    required this.profitLoss,
+    required this.profitPercent,
+  });
+
+  factory _CategoryPerformanceSummary.from(List<PortfolioItemValuation> items) {
+    final totalCost = items.fold<double>(
+      0,
+      (sum, item) => sum + item.costInBaseCurrency,
+    );
+    final currentValue = items.fold<double>(
+      0,
+      (sum, item) => sum + item.currentValueInBaseCurrency,
+    );
+    final profitLoss = currentValue - totalCost;
+    return _CategoryPerformanceSummary(
+      totalCost: totalCost,
+      currentValue: currentValue,
+      profitLoss: profitLoss,
+      profitPercent: totalCost <= 0 ? 0 : (profitLoss / totalCost) * 100,
+    );
+  }
+}
+
+class _CategorySummaryCard extends StatelessWidget {
+  final String label;
+  final _CategoryPerformanceSummary summary;
+  final String baseCurrency;
+
+  const _CategorySummaryCard({
+    required this.label,
+    required this.summary,
+    required this.baseCurrency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = summary.profitLoss >= 0;
+    final profitColor = isPositive
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFDC2626);
+    final prefix = isPositive ? '+' : '-';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8EEF5)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SummaryValueLine(
+                  label: 'Maliyet',
+                  value: formatCurrency(summary.totalCost, baseCurrency),
+                ),
+                const SizedBox(height: 4),
+                _SummaryValueLine(
+                  label: 'Güncel',
+                  value: formatCurrency(summary.currentValue, baseCurrency),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$prefix${formatCurrency(summary.profitLoss.abs(), baseCurrency)}',
+                style: TextStyle(
+                  color: profitColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                formatPercent(summary.profitPercent),
+                style: TextStyle(
+                  color: profitColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryValueLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryValueLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 47,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

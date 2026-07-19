@@ -10,14 +10,15 @@ class AIService {
   AIService({
     ConversationMemory? memory,
     AIProvider? provider,
-    int maxPromptLength = 4000,
-  })  : memory = memory ??
-            ConversationMemory(
-              maxMessages: 50,
-              systemPrompt: _defaultSystemPrompt,
-            ),
-        provider = provider ?? const LocalMyFinAIProvider(),
-        _maxPromptLength = maxPromptLength < 500 ? 500 : maxPromptLength;
+    int maxPromptLength = 12000,
+  }) : memory =
+           memory ??
+           ConversationMemory(
+             maxMessages: 50,
+             systemPrompt: _defaultSystemPrompt,
+           ),
+       provider = provider ?? const LocalMyFinAIProvider(),
+       _maxPromptLength = maxPromptLength < 500 ? 500 : maxPromptLength;
 
   final ConversationMemory memory;
   final AIProvider provider;
@@ -60,11 +61,7 @@ class AIService {
 
       memory.addAssistant(answer);
 
-      return response.copyWith(
-        content: answer,
-        success: true,
-        prompt: prompt,
-      );
+      return response.copyWith(content: answer, success: true, prompt: prompt);
     } catch (error) {
       const String fallbackMessage =
           'AI yanıtı oluşturulurken bir sorun oluştu. Bağlantı veya servis yapılandırması kontrol edildikten sonra tekrar deneyebilirsin.';
@@ -76,7 +73,6 @@ class AIService {
       );
     }
   }
-
 
   /// Streaming entry point used by chat screens.
   ///
@@ -143,9 +139,7 @@ class AIService {
     UserFinancialContext? userContext,
     List<IntelligenceSignal> signals = const <IntelligenceSignal>[],
   }) {
-    final String systemPrompt = buildSystemPrompt(
-      userContext: userContext,
-    );
+    final String systemPrompt = buildSystemPrompt(userContext: userContext);
     final String conversationContext = buildConversationContext();
     final String portfolioText = buildPortfolioContext(portfolioContext);
     final String userText = buildUserContext(userContext);
@@ -156,7 +150,8 @@ class AIService {
       if (userText.isNotEmpty) 'USER CONTEXT:\n$userText',
       if (portfolioText.isNotEmpty) 'PORTFOLIO CONTEXT:\n$portfolioText',
       if (signalText.isNotEmpty) 'INTELLIGENCE SIGNALS:\n$signalText',
-      if (conversationContext.isNotEmpty) 'CONVERSATION MEMORY:\n$conversationContext',
+      if (conversationContext.isNotEmpty)
+        'CONVERSATION MEMORY:\n$conversationContext',
       'CURRENT USER MESSAGE:\n$userMessage',
     ].join('\n\n');
 
@@ -178,27 +173,36 @@ class AIService {
     buffer.writeln('- Be concise, specific, and action-oriented.');
     buffer.writeln('- Use Turkish unless the user writes in another language.');
     buffer.writeln('- Explain uncertainty clearly.');
-    buffer.writeln('- Never claim real-time market data unless provided in context.');
-    buffer.writeln('- For investment topics, frame ideas as analysis, not as guaranteed advice.');
+    buffer.writeln(
+      '- Never claim real-time market data unless provided in context.',
+    );
+    buffer.writeln(
+      '- For investment topics, frame ideas as analysis, not as guaranteed advice.',
+    );
 
     if (userContext?.riskProfile != null &&
         userContext!.riskProfile!.trim().isNotEmpty) {
-      buffer.writeln('- User risk profile: ${userContext.riskProfile!.trim()}.');
+      buffer.writeln(
+        '- User risk profile: ${userContext.riskProfile!.trim()}.',
+      );
     }
 
     return buffer.toString().trim();
   }
 
   String buildConversationContext({int lastMessages = 12}) {
-    final List<ConversationMessage> messages = memory.lastMessages(lastMessages);
+    final List<ConversationMessage> messages = memory.lastMessages(
+      lastMessages,
+    );
     if (messages.isEmpty) return '';
 
     return messages
         .where((ConversationMessage message) => !message.isSystem)
         .map((ConversationMessage message) {
-      final String role = message.role.toUpperCase();
-      return '$role: ${message.content.trim()}';
-    }).join('\n');
+          final String role = message.role.toUpperCase();
+          return '$role: ${message.content.trim()}';
+        })
+        .join('\n');
   }
 
   String buildPortfolioContext(PortfolioContext? context) {
@@ -251,9 +255,12 @@ class AIService {
   String buildSignalsContext(List<IntelligenceSignal> signals) {
     if (signals.isEmpty) return '';
 
-    return signals.take(10).map((IntelligenceSignal signal) {
-      return '- [${signal.priority}] ${signal.title}: ${signal.description}';
-    }).join('\n');
+    return signals
+        .take(10)
+        .map((IntelligenceSignal signal) {
+          return '- [${signal.priority}] ${signal.title}: ${signal.description}';
+        })
+        .join('\n');
   }
 
   PromptValidation validatePrompt(String userMessage) {
@@ -271,7 +278,8 @@ class AIService {
 
   void resetConversation({bool keepSystemPrompt = true}) {
     memory.clear(keepSystemMessages: keepSystemPrompt);
-    if (keepSystemPrompt && memory.messagesByRole(ConversationRole.system).isEmpty) {
+    if (keepSystemPrompt &&
+        memory.messagesByRole(ConversationRole.system).isEmpty) {
       memory.addSystem(_defaultSystemPrompt);
     }
   }
@@ -317,7 +325,6 @@ class LocalMyFinAIProvider implements AIProvider {
       prompt: prompt,
     );
   }
-
 
   @override
   Stream<String> stream(AIPrompt prompt) async* {
@@ -426,10 +433,7 @@ class AIResponse {
 }
 
 class PromptValidation {
-  const PromptValidation._({
-    required this.isValid,
-    required this.message,
-  });
+  const PromptValidation._({required this.isValid, required this.message});
 
   final bool isValid;
   final String message;
@@ -437,7 +441,7 @@ class PromptValidation {
   const PromptValidation.valid() : this._(isValid: true, message: '');
 
   const PromptValidation.invalid(String message)
-      : this._(isValid: false, message: message);
+    : this._(isValid: false, message: message);
 }
 
 class UserFinancialContext {

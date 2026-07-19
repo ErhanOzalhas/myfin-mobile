@@ -135,7 +135,10 @@ class IntelligencePage extends StatelessWidget {
                             Navigator.push(
                               context,
                               noAnimationRoute(
-                                builder: (_) => AiChatPage(analysis: analysis),
+                                builder: (_) => AiChatPage(
+                                  analysis: analysis,
+                                  portfolioItems: items,
+                                ),
                               ),
                             );
                           },

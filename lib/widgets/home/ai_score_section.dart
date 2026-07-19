@@ -29,7 +29,10 @@ class AIScoreSection extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               noAnimationRoute(
-                builder: (_) => AiChatPage(analysis: portfolioAnalysis),
+                builder: (_) => AiChatPage(
+                  analysis: portfolioAnalysis,
+                  portfolioItems: items,
+                ),
               ),
             );
           },

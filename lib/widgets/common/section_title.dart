@@ -27,7 +27,17 @@ class SectionTitle extends StatelessWidget {
           ),
         ),
         if (action != null)
-          TextButton(onPressed: onActionTap, child: Text(action!)),
+          TextButton(
+            onPressed: onActionTap,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(action!),
+                const SizedBox(width: 1),
+                const Icon(Icons.chevron_right_rounded, size: 18),
+              ],
+            ),
+          ),
       ],
     );
   }

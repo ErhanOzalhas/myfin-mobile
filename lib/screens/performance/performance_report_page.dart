@@ -136,23 +136,67 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
     return Scaffold(
       appBar: AppBar(
         leading: const MyFinBackButton(),
-        title: const Text('Performans Raporu'),
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text('Performans Raporu'),
+        ),
         centerTitle: false,
         actions: [
           PopupMenuButton<ReportFileType>(
             tooltip: 'Rapor oluştur',
-            icon: const Icon(Icons.ios_share_rounded),
             onSelected: _exportReport,
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: ReportFileType.pdf,
-                child: Text('PDF Raporu'),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: Color(0xFFDC2626),
+                    ),
+                    SizedBox(width: 12),
+                    Text('PDF Raporu'),
+                  ],
+                ),
               ),
               PopupMenuItem(
                 value: ReportFileType.excel,
-                child: Text('Excel Raporu'),
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart_rounded, color: Color(0xFF16A34A)),
+                    SizedBox(width: 12),
+                    Text('Excel Raporu'),
+                  ],
+                ),
               ),
             ],
+            child: const Padding(
+              padding: EdgeInsets.only(left: 6, right: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Rapor oluştur',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF087EA4),
+                    ),
+                  ),
+                  SizedBox(width: 1),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 17,
+                    color: Color(0xFF087EA4),
+                  ),
+                  SizedBox(width: 5),
+                  Icon(Icons.ios_share_rounded),
+                ],
+              ),
+            ),
           ),
         ],
       ),

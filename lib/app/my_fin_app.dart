@@ -57,6 +57,21 @@ class MyFinApp extends StatelessWidget {
             letterSpacing: -0.4,
           ),
         ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 10,
+          shadowColor: const Color(0xFF0F172A).withValues(alpha: .16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFFE8EEF5)),
+          ),
+          textStyle: const TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFF008DB9).withValues(alpha: .14),

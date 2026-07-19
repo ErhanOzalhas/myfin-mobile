@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/portfolio_item.dart';
 import 'market/currency_conversion_service.dart';
@@ -29,6 +34,8 @@ class PortfolioValuation {
   final double totalValue;
   final double totalProfit;
   final double profitPercent;
+  final DateTime? updatedAt;
+  final bool isStale;
 
   const PortfolioValuation({
     required this.baseCurrency,
@@ -37,6 +44,8 @@ class PortfolioValuation {
     required this.totalValue,
     required this.totalProfit,
     required this.profitPercent,
+    this.updatedAt,
+    this.isStale = false,
   });
 
   int get assetCount => items.length;
@@ -49,14 +58,40 @@ class PortfolioValuationService {
       PortfolioValuationService._();
 
   static const String baseCurrency = 'TRY';
+  static const String _offlineStorageKey = 'myfin_offline_valuations_v1';
 
   final Map<String, _ValuationCacheEntry> _valuationCache = {};
   final Map<String, Future<PortfolioValuation>> _inFlight = {};
+  final Map<String, _PersistedValuation> _persistedValuations = {};
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
+  bool _initialized = false;
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final raw = preferences.getString(_offlineStorageKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      for (final entry in decoded.entries) {
+        if (entry.value is! Map) continue;
+        final snapshot = _PersistedValuation.fromJson(
+          Map<String, dynamic>.from(entry.value as Map),
+        );
+        if (snapshot != null) {
+          _persistedValuations[entry.key.toString()] = snapshot;
+        }
+      }
+    } catch (error) {
+      debugPrint('OFFLINE PORTFOLIO SNAPSHOT okunamadı: $error');
+    }
+  }
 
   String _fingerprint(List<PortfolioItem> items) {
     final sorted = [...items]..sort((a, b) => a.id.compareTo(b.id));
-    return sorted
+    final portfolioFingerprint = sorted
         .map(
           (item) => [
             item.id,
@@ -68,10 +103,22 @@ class PortfolioValuationService {
           ].join('|'),
         )
         .join('::');
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'signed-out';
+    return '$userId::$portfolioFingerprint';
   }
 
   PortfolioValuation? peek(List<PortfolioItem> items) {
-    return _valuationCache[_fingerprint(items)]?.valuation;
+    final fingerprint = _fingerprint(items);
+    final cached = _valuationCache[fingerprint]?.valuation;
+    if (cached != null) return cached;
+    final restored = _restorePersisted(items, fingerprint);
+    if (restored == null) return null;
+    _valuationCache[fingerprint] = _ValuationCacheEntry(
+      valuation: restored,
+      savedAt: restored.updatedAt ?? DateTime.now(),
+      hasAnyLivePrice: false,
+    );
+    return restored;
   }
 
   Future<PortfolioValuation> calculate(
@@ -102,6 +149,9 @@ class PortfolioValuationService {
                 _valuationCache.remove(_valuationCache.keys.first);
               }
               revision.value++;
+              if (valuation.items.any((item) => item.hasLivePrice)) {
+                unawaited(_persist(fingerprint, valuation));
+              }
               return valuation;
             })
             .whenComplete(() => _inFlight.remove(fingerprint));
@@ -127,6 +177,38 @@ class PortfolioValuationService {
       await Future<void>.delayed(const Duration(milliseconds: 700));
       valuations = await _calculateItems(portfolioItems, forceRefresh: true);
     }
+
+    final fingerprint = _fingerprint(portfolioItems);
+    final persisted = _restorePersisted(portfolioItems, fingerprint);
+    final persistedById = <String, PortfolioItemValuation>{
+      for (final item in persisted?.items ?? const <PortfolioItemValuation>[])
+        item.item.id: item,
+    };
+    var usedOfflineValue = false;
+    valuations = valuations
+        .map((valuation) {
+          if (valuation.hasLivePrice) return valuation;
+          final previous = persistedById[valuation.item.id];
+          if (previous == null || previous.currentValueInBaseCurrency <= 0) {
+            return valuation;
+          }
+          usedOfflineValue = true;
+          return PortfolioItemValuation(
+            item: valuation.item,
+            costInBaseCurrency: valuation.costInBaseCurrency > 0
+                ? valuation.costInBaseCurrency
+                : previous.costInBaseCurrency,
+            currentValueInBaseCurrency: previous.currentValueInBaseCurrency,
+            profitLossInBaseCurrency:
+                previous.currentValueInBaseCurrency -
+                (valuation.costInBaseCurrency > 0
+                    ? valuation.costInBaseCurrency
+                    : previous.costInBaseCurrency),
+            profitPercent: previous.profitPercent,
+            hasLivePrice: false,
+          );
+        })
+        .toList(growable: false);
 
     final totalCost = valuations.fold<double>(
       0,
@@ -155,7 +237,80 @@ class PortfolioValuationService {
       totalValue: totalValue,
       totalProfit: totalProfit,
       profitPercent: profitPercent,
+      updatedAt: valuations.any((item) => item.hasLivePrice)
+          ? DateTime.now()
+          : persisted?.updatedAt,
+      isStale:
+          usedOfflineValue || valuations.every((item) => !item.hasLivePrice),
     );
+  }
+
+  PortfolioValuation? _restorePersisted(
+    List<PortfolioItem> items,
+    String fingerprint,
+  ) {
+    final snapshot = _persistedValuations[fingerprint];
+    if (snapshot == null) return null;
+    final itemsById = {for (final item in items) item.id: item};
+    final restoredItems = <PortfolioItemValuation>[];
+    for (final stored in snapshot.items) {
+      final item = itemsById[stored.id];
+      if (item == null) continue;
+      restoredItems.add(
+        PortfolioItemValuation(
+          item: item,
+          costInBaseCurrency: stored.cost,
+          currentValueInBaseCurrency: stored.value,
+          profitLossInBaseCurrency: stored.profit,
+          profitPercent: stored.percent,
+          hasLivePrice: false,
+        ),
+      );
+    }
+    if (restoredItems.length != items.length) return null;
+    final totalCost = restoredItems.fold<double>(
+      0,
+      (sum, item) => sum + item.costInBaseCurrency,
+    );
+    final totalValue = restoredItems.fold<double>(
+      0,
+      (sum, item) => sum + item.currentValueInBaseCurrency,
+    );
+    final totalProfit = totalValue - totalCost;
+    return PortfolioValuation(
+      baseCurrency: baseCurrency,
+      items: restoredItems,
+      totalCost: totalCost,
+      totalValue: totalValue,
+      totalProfit: totalProfit,
+      profitPercent: totalCost <= 0 ? 0 : (totalProfit / totalCost) * 100,
+      updatedAt: snapshot.updatedAt,
+      isStale: true,
+    );
+  }
+
+  Future<void> _persist(
+    String fingerprint,
+    PortfolioValuation valuation,
+  ) async {
+    try {
+      _persistedValuations[fingerprint] = _PersistedValuation.fromValuation(
+        valuation,
+      );
+      while (_persistedValuations.length > 6) {
+        _persistedValuations.remove(_persistedValuations.keys.first);
+      }
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        _offlineStorageKey,
+        jsonEncode({
+          for (final entry in _persistedValuations.entries)
+            entry.key: entry.value.toJson(),
+        }),
+      );
+    } catch (error) {
+      debugPrint('OFFLINE PORTFOLIO SNAPSHOT yazılamadı: $error');
+    }
   }
 
   Future<List<PortfolioItemValuation>> _calculateItems(
@@ -333,4 +488,85 @@ class _ValuationCacheEntry {
     if (!hasAnyLivePrice) return false;
     return DateTime.now().difference(savedAt) < const Duration(seconds: 30);
   }
+}
+
+class _PersistedValuation {
+  final DateTime updatedAt;
+  final List<_PersistedValuationItem> items;
+
+  const _PersistedValuation({required this.updatedAt, required this.items});
+
+  factory _PersistedValuation.fromValuation(PortfolioValuation valuation) {
+    return _PersistedValuation(
+      updatedAt: valuation.updatedAt ?? DateTime.now(),
+      items: valuation.items
+          .map(
+            (item) => _PersistedValuationItem(
+              id: item.item.id,
+              cost: item.costInBaseCurrency,
+              value: item.currentValueInBaseCurrency,
+              profit: item.profitLossInBaseCurrency,
+              percent: item.profitPercent,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  static _PersistedValuation? fromJson(Map<String, dynamic> json) {
+    final updatedAt = DateTime.tryParse(json['updatedAt']?.toString() ?? '');
+    final rawItems = json['items'];
+    if (updatedAt == null || rawItems is! List) return null;
+    final items = rawItems
+        .whereType<Map>()
+        .map(
+          (item) =>
+              _PersistedValuationItem.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .whereType<_PersistedValuationItem>()
+        .toList(growable: false);
+    if (items.isEmpty) return null;
+    return _PersistedValuation(updatedAt: updatedAt, items: items);
+  }
+
+  Map<String, dynamic> toJson() => {
+    'updatedAt': updatedAt.toIso8601String(),
+    'items': items.map((item) => item.toJson()).toList(growable: false),
+  };
+}
+
+class _PersistedValuationItem {
+  final String id;
+  final double cost;
+  final double value;
+  final double profit;
+  final double percent;
+
+  const _PersistedValuationItem({
+    required this.id,
+    required this.cost,
+    required this.value,
+    required this.profit,
+    required this.percent,
+  });
+
+  static _PersistedValuationItem? fromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
+    if (id.isEmpty) return null;
+    return _PersistedValuationItem(
+      id: id,
+      cost: (json['cost'] as num?)?.toDouble() ?? 0,
+      value: (json['value'] as num?)?.toDouble() ?? 0,
+      profit: (json['profit'] as num?)?.toDouble() ?? 0,
+      percent: (json['percent'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'cost': cost,
+    'value': value,
+    'profit': profit,
+    'percent': percent,
+  };
 }

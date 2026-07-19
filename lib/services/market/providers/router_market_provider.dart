@@ -1,5 +1,6 @@
 import '../catalog/asset_universe.dart';
 import '../models/market_quote.dart';
+import 'api_ninjas_commodity_provider.dart';
 import 'binance_market_provider.dart';
 import 'coinbase_market_provider.dart';
 import 'coingecko_market_provider.dart';
@@ -21,6 +22,7 @@ class RouterMarketProvider implements MarketProvider {
     GenelParaProvider? genelParaProvider,
     NosyTurkeyGoldProvider? turkeyGoldProvider,
     TcmbMarketProvider? tcmbProvider,
+    ApiNinjasCommodityProvider? commodityProvider,
     this.enableNosyFallback = false,
   }) : _coinGeckoProvider = coinGeckoProvider ?? CoinGeckoMarketProvider(),
        _globalProvider = globalProvider ?? TwelveDataMarketProvider(),
@@ -29,7 +31,8 @@ class RouterMarketProvider implements MarketProvider {
        _yahooProvider = yahooProvider ?? YahooFinanceMarketProvider(),
        _genelParaProvider = genelParaProvider ?? GenelParaProvider(),
        _turkeyGoldProvider = turkeyGoldProvider ?? NosyTurkeyGoldProvider(),
-       _tcmbProvider = tcmbProvider ?? TcmbMarketProvider();
+       _tcmbProvider = tcmbProvider ?? TcmbMarketProvider(),
+       _commodityProvider = commodityProvider ?? ApiNinjasCommodityProvider();
 
   final CoinGeckoMarketProvider _coinGeckoProvider;
   final BinanceMarketProvider _binanceProvider;
@@ -48,6 +51,7 @@ class RouterMarketProvider implements MarketProvider {
   final bool enableNosyFallback;
 
   final TcmbMarketProvider _tcmbProvider;
+  final ApiNinjasCommodityProvider _commodityProvider;
 
   @override
   String get id => 'market_router';
@@ -65,6 +69,13 @@ class RouterMarketProvider implements MarketProvider {
       providerSymbol: resolved.providerSymbol,
       exchange: resolved.exchange,
       resolverMarkedLocal: resolved.isLocalTurkishGold,
+    )) {
+      return true;
+    }
+
+    if (_commodityProvider.supportsSymbol(
+      resolved.providerSymbol,
+      exchange: resolved.exchange,
     )) {
       return true;
     }
@@ -109,6 +120,20 @@ class RouterMarketProvider implements MarketProvider {
         resolved.providerSymbol,
         exchange: resolved.exchange,
       );
+    }
+
+    if (_commodityProvider.supportsSymbol(
+      resolved.providerSymbol,
+      exchange: resolved.exchange,
+    )) {
+      try {
+        return await _commodityProvider.getQuote(
+          resolved.providerSymbol,
+          exchange: resolved.exchange,
+        );
+      } on MarketProviderException {
+        // Yapılandırma tamamlanana kadar mevcut global sağlayıcılara düş.
+      }
     }
 
     final isTryPair = _tcmbProvider.supportsSymbol(

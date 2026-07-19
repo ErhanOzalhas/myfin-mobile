@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/main_shell.dart';
 import '../utils/no_animation_route.dart';
 import 'auth_widgets.dart';
+import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -76,35 +77,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _resetPassword() async {
-    final email = emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      setState(() {
-        errorMessage = 'Önce geçerli e-posta adresini yaz.';
-        showVerificationHelp = false;
-      });
-      return;
-    }
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      if (!mounted) return;
-      setState(() {
-        errorMessage = null;
-        showVerificationHelp = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Şifre yenileme bağlantısı e-posta adresine gönderildi.',
-          ),
-        ),
-      );
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      setState(() => errorMessage = _resetErrorMessage(error));
-    }
-  }
-
   String _authErrorMessage(FirebaseAuthException error) {
     switch (error.code) {
       case 'invalid-email':
@@ -122,13 +94,6 @@ class _LoginPageState extends State<LoginPage> {
       default:
         return 'Giriş başarısız: ${error.message ?? error.code}';
     }
-  }
-
-  String _resetErrorMessage(FirebaseAuthException error) {
-    if (error.code == 'too-many-requests') {
-      return 'Çok fazla istek gönderildi. Biraz bekleyip tekrar dene.';
-    }
-    return 'Şifre yenileme bağlantısı gönderilemedi.';
   }
 
   @override
@@ -177,7 +142,15 @@ class _LoginPageState extends State<LoginPage> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: isLoading ? null : _resetPassword,
+            onPressed: isLoading
+                ? null
+                : () => Navigator.of(context).push(
+                    noAnimationRoute(
+                      builder: (_) => ForgotPasswordPage(
+                        initialEmail: emailController.text.trim(),
+                      ),
+                    ),
+                  ),
             child: const Text('Şifremi unuttum'),
           ),
         ),
@@ -186,7 +159,8 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 6),
           const Text(
             'Bağlantı birkaç dakika gecikebilir. Doğruladıktan sonra yeniden giriş yapabilirsin.',
-            style: TextStyle(color: Colors.black54, fontSize: 12),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFFBDEFFF), fontSize: 12),
           ),
         ],
         const SizedBox(height: 14),

@@ -542,8 +542,19 @@ class _TransactionHistoryTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '$type • ${formatQuantity(quantity)} adet • Birim: ${formatCurrency(price, currency)} • $formattedDate',
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: type,
+                            style: TextStyle(color: color),
+                          ),
+                          TextSpan(
+                            text:
+                                ' • ${formatQuantity(quantity)} adet • Birim: ${formatCurrency(price, currency)} • $formattedDate',
+                          ),
+                        ],
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -561,8 +572,8 @@ class _TransactionHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     formatCurrency(total, currency),
-                    style: TextStyle(
-                      color: color,
+                    style: const TextStyle(
+                      color: Color(0xFF0F3150),
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),

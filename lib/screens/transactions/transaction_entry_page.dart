@@ -360,8 +360,29 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       return;
     }
 
+    // Only offer assets that can currently be priced. A selected asset still
+    // keeps the manual-price fallback if its provider becomes unavailable
+    // after selection.
+    final pricedResults = await Future.wait(
+      results.map((asset) async {
+        try {
+          final quote = await MarketService.instance.getQuote(
+            asset.symbol,
+            exchange: asset.exchange,
+          );
+          return quote.price > 0 ? asset : null;
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+
+    if (!mounted || requestId != _searchRequestId) {
+      return;
+    }
+
     setState(() {
-      _suggestions = results;
+      _suggestions = pricedResults.whereType<AssetInfo>().toList();
       _isSearching = false;
     });
   }
@@ -956,7 +977,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         leading: MyFinBackButton(onPressed: _goBack),
-        title: Text(widget.isEdit ? 'İşlemi Düzenle' : 'Yeni İşlem'),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(widget.isEdit ? 'İşlemi Düzenle' : 'Yeni İşlem'),
+        ),
         actions: [
           _HeaderShortcutButton(
             label: 'Portföyüm',

@@ -192,10 +192,43 @@ class _PortfolioPageState extends State<PortfolioPage> {
         .join('::');
   }
 
+  PortfolioValuation _costBasedValuation(List<PortfolioItem> items) {
+    final values = items
+        .map(
+          (item) => PortfolioItemValuation(
+            item: item,
+            costInBaseCurrency: item.totalCost,
+            currentValueInBaseCurrency: item.totalCost,
+            profitLossInBaseCurrency: 0,
+            profitPercent: 0,
+            hasLivePrice: false,
+          ),
+        )
+        .toList(growable: false);
+    final totalCost = values.fold<double>(
+      0,
+      (sum, item) => sum + item.costInBaseCurrency,
+    );
+
+    return PortfolioValuation(
+      baseCurrency: PortfolioValuationService.baseCurrency,
+      items: values,
+      totalCost: totalCost,
+      totalValue: totalCost,
+      totalProfit: 0,
+      profitPercent: 0,
+      isStale: true,
+    );
+  }
+
   Future<PortfolioValuation> _valuationFor(List<PortfolioItem> items) {
     final fingerprint = _fingerprint(items);
     final cached = PortfolioValuationService.instance.peek(items);
-    if (cached != null) _lastValuation = cached;
+    final previousMatches = _valuationFingerprint == fingerprint;
+    _lastValuation =
+        cached ??
+        (previousMatches ? _lastValuation : null) ??
+        _costBasedValuation(items);
 
     // Bu sayfa instance'ında aynı hesap zaten kullanılıyorsa tekrar başlatma.
     if (_valuationFuture != null && _valuationFingerprint == fingerprint) {
@@ -208,7 +241,12 @@ class _PortfolioPageState extends State<PortfolioPage> {
     final future = PortfolioValuationService.instance.calculate(items).then((
       valuation,
     ) {
-      _lastValuation = valuation;
+      if (_valuationFingerprint != fingerprint) return valuation;
+      if (mounted) {
+        setState(() => _lastValuation = valuation);
+      } else {
+        _lastValuation = valuation;
+      }
       return valuation;
     });
 
@@ -252,18 +290,58 @@ class _PortfolioPageState extends State<PortfolioPage> {
         actions: [
           PopupMenuButton<ReportFileType>(
             tooltip: 'Rapor oluştur',
-            icon: const Icon(Icons.ios_share_rounded),
             onSelected: _exportReport,
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: ReportFileType.pdf,
-                child: Text('PDF Raporu'),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: Color(0xFFDC2626),
+                    ),
+                    SizedBox(width: 12),
+                    Text('PDF Raporu'),
+                  ],
+                ),
               ),
               PopupMenuItem(
                 value: ReportFileType.excel,
-                child: Text('Excel Raporu'),
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart_rounded, color: Color(0xFF16A34A)),
+                    SizedBox(width: 12),
+                    Text('Excel Raporu'),
+                  ],
+                ),
               ),
             ],
+            child: const Padding(
+              padding: EdgeInsets.only(left: 6, right: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Rapor oluştur',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF087EA4),
+                    ),
+                  ),
+                  SizedBox(width: 1),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 17,
+                    color: Color(0xFF087EA4),
+                  ),
+                  SizedBox(width: 5),
+                  Icon(Icons.ios_share_rounded),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -292,12 +370,14 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
             final items = snapshot.data ?? <PortfolioItem>[];
             final valuationFuture = _valuationFor(items);
+            final initialValuation =
+                PortfolioValuationService.instance.peek(items) ??
+                _lastValuation ??
+                _costBasedValuation(items);
 
             return FutureBuilder<PortfolioValuation>(
               future: valuationFuture,
-              initialData:
-                  PortfolioValuationService.instance.peek(items) ??
-                  _lastValuation,
+              initialData: initialValuation,
               builder: (context, summarySnapshot) {
                 final valuation = summarySnapshot.data ?? _lastValuation;
 
@@ -490,16 +570,17 @@ class _PortfolioSectionHeader extends StatelessWidget {
                   Text(
                     actionLabel!,
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0284C7),
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF087EA4),
                     ),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 1),
                   const Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
-                    color: Color(0xFF0284C7),
+                    color: Color(0xFF087EA4),
                   ),
                 ],
               ),
@@ -898,41 +979,56 @@ class _AssetsHeader extends StatelessWidget {
           initialValue: sort,
           onSelected: onSortSelected,
           position: PopupMenuPosition.under,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
           itemBuilder: (context) => const [
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.nameAsc,
-              child: Text('A – Z'),
+              child: _SortMenuLabel(
+                icon: Icons.sort_by_alpha_rounded,
+                text: 'A – Z',
+              ),
             ),
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.nameDesc,
-              child: Text('Z – A'),
+              child: _SortMenuLabel(
+                icon: Icons.sort_by_alpha_rounded,
+                text: 'Z – A',
+              ),
             ),
-            PopupMenuDivider(height: 4),
+            PopupMenuDivider(height: 8),
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.quantityDesc,
-              child: Text('Adet ↓'),
+              child: _SortMenuLabel(
+                icon: Icons.south_rounded,
+                text: 'Adet yüksek',
+              ),
             ),
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.quantityAsc,
-              child: Text('Adet ↑'),
+              child: _SortMenuLabel(
+                icon: Icons.north_rounded,
+                text: 'Adet düşük',
+              ),
             ),
-            PopupMenuDivider(height: 4),
+            PopupMenuDivider(height: 8),
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.costDesc,
-              child: Text('Maliyet ↓'),
+              child: _SortMenuLabel(
+                icon: Icons.south_rounded,
+                text: 'Maliyet yüksek',
+              ),
             ),
             PopupMenuItem(
-              height: 32,
+              height: 44,
               value: _AssetSort.costAsc,
-              child: Text('Maliyet ↑'),
+              child: _SortMenuLabel(
+                icon: Icons.north_rounded,
+                text: 'Maliyet düşük',
+              ),
             ),
           ],
           child: IgnorePointer(
@@ -943,6 +1039,24 @@ class _AssetsHeader extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _SortMenuLabel extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _SortMenuLabel({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 19, color: const Color(0xFF008DB9)),
+        const SizedBox(width: 11),
+        Text(text),
       ],
     );
   }
@@ -1152,8 +1266,26 @@ class _PortfolioSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFE),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFCFDFE), Color(0xFFFAFBFD)],
+          stops: [0, .58, 1],
+        ),
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2EAF4)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2563EB).withValues(alpha: .09),
+            blurRadius: 26,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: .035),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1179,6 +1311,37 @@ class _PortfolioSummaryCard extends StatelessWidget {
               letterSpacing: -.7,
             ),
           ),
+          if (summary.isStale) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7E6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 14,
+                    color: Color(0xFFB45309),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _offlineValueLabel(summary.updatedAt),
+                      style: const TextStyle(
+                        color: Color(0xFF92400E),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -1283,6 +1446,16 @@ class _PortfolioSummaryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _offlineValueLabel(DateTime? updatedAt) {
+    if (updatedAt == null) return 'Canlı fiyat bekleniyor';
+    final local = updatedAt.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return 'Son kayıtlı değer • $day.$month $hour:$minute';
   }
 }
 
