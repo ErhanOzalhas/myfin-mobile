@@ -40,7 +40,7 @@ class AISimulationCard extends StatelessWidget {
                 style: TextStyle(
                   color: Color(0xFF0F172A),
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -51,7 +51,7 @@ class AISimulationCard extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF0F172A),
               fontSize: 18,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 8),
@@ -110,7 +110,7 @@ class AISimulationCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF4C1D95),
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
@@ -180,7 +180,7 @@ class _ScoreBox extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 30,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -219,7 +219,7 @@ class _RiskLine extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],

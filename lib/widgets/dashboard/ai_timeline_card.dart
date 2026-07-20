@@ -42,7 +42,7 @@ class AITimelineCard extends StatelessWidget {
                 style: TextStyle(
                   color: Color(0xFF0F172A),
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -146,7 +146,7 @@ Widget build(BuildContext context) {
                             style: TextStyle(
                               color: color,
                               fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ),
@@ -158,7 +158,7 @@ Widget build(BuildContext context) {
                       style: const TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 22,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 6),

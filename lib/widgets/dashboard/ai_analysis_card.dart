@@ -44,7 +44,7 @@ class AIAnalysisCard extends StatelessWidget {
                 'AI Analizi',
                 style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -112,7 +112,7 @@ class AIAnalysisCard extends StatelessWidget {
               const Text(
                 'AI Güven Skoru',
                 style: TextStyle(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF334155),
                 ),
               ),
@@ -120,7 +120,7 @@ class AIAnalysisCard extends StatelessWidget {
               Text(
                 '$confidence%',
                 style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF2563EB),
                 ),
               ),
@@ -161,7 +161,7 @@ class _Section extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

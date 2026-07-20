@@ -30,7 +30,7 @@ class IntelligenceAIDecisionCard extends StatelessWidget {
                 SizedBox(width: 8),
                 Text(
                   'AI Decision',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
                 ),
               ],
             ),
@@ -40,7 +40,7 @@ class IntelligenceAIDecisionCard extends StatelessWidget {
             if (strengths.isNotEmpty) ...[
               const Text(
                 '🟢 Güçlü Yönler',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 8),
 
@@ -62,7 +62,7 @@ class IntelligenceAIDecisionCard extends StatelessWidget {
             if (warnings.isNotEmpty) ...[
               const Text(
                 '🟡 Dikkat',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 8),
 
@@ -87,14 +87,14 @@ class IntelligenceAIDecisionCard extends StatelessWidget {
 
             Text(
               "Risk Seviyesi : $riskLevel",
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
             ),
 
             const SizedBox(height: 6),
 
             Text(
               "Yatırım Stili : $investmentStyle",
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
             ),
           ],
         ),

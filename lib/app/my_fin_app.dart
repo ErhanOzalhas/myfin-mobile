@@ -52,7 +52,7 @@ class MyFinApp extends StatelessWidget {
             color: Color(0xFF0F172A),
             fontFamily: 'Inter',
             fontSize: 27,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
             height: 1.15,
             letterSpacing: -0.4,
           ),
@@ -69,14 +69,14 @@ class MyFinApp extends StatelessWidget {
           textStyle: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFF008DB9).withValues(alpha: .14),
           labelTextStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
           ),
         ),
       ),

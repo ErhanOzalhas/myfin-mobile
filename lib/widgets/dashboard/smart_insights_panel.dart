@@ -57,7 +57,7 @@ class SmartInsightsPanel extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                           color: Color(0xFF0F172A),
                         ),
                       ),
@@ -76,7 +76,7 @@ class SmartInsightsPanel extends StatelessWidget {
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ),
@@ -88,7 +88,7 @@ class SmartInsightsPanel extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.black54,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     height: 1.25,
                   ),
                 ),
@@ -139,7 +139,7 @@ class _SmartInsightAction extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
@@ -150,7 +150,7 @@ class _SmartInsightAction extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF334155),
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               height: 1.25,
             ),
           ),

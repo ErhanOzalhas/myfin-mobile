@@ -314,13 +314,13 @@ class _SuggestionPanel extends StatelessWidget {
                 item.symbol.characters.first,
                 style: const TextStyle(
                   color: Color(0xFF008DB9),
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
             title: Text(
               '${item.symbol} • ${item.name}',
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(fontWeight: FontWeight.w400),
             ),
             subtitle: Text('${item.market} • ${item.currency}'),
             onTap: () => onSelected(item),

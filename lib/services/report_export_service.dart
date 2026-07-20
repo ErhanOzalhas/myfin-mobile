@@ -78,7 +78,7 @@ class ReportExportService {
           pw.SizedBox(height: 22),
           pw.Text(
             'Varlık Detayı',
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.normal),
           ),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
@@ -108,7 +108,7 @@ class ReportExportService {
             headerStyle: pw.TextStyle(
               color: PdfColors.white,
               fontSize: 8,
-              fontWeight: pw.FontWeight.bold,
+              fontWeight: pw.FontWeight.normal,
             ),
             cellStyle: const pw.TextStyle(fontSize: 7.5),
             cellPadding: const pw.EdgeInsets.symmetric(
@@ -160,7 +160,7 @@ class ReportExportService {
           pw.SizedBox(height: 22),
           pw.Text(
             'Günlük Kapanışlar',
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.normal),
           ),
           pw.SizedBox(height: 8),
           if (performance.snapshots.isEmpty)
@@ -191,7 +191,7 @@ class ReportExportService {
               headerStyle: pw.TextStyle(
                 color: PdfColors.white,
                 fontSize: 9,
-                fontWeight: pw.FontWeight.bold,
+                fontWeight: pw.FontWeight.normal,
               ),
               cellStyle: const pw.TextStyle(fontSize: 8.5),
               cellPadding: const pw.EdgeInsets.all(6),
@@ -332,13 +332,13 @@ class ReportExportService {
             'MyFin',
             style: pw.TextStyle(
               fontSize: 18,
-              fontWeight: pw.FontWeight.bold,
+              fontWeight: pw.FontWeight.normal,
               color: const PdfColor.fromInt(0xFF0F73C5),
             ),
           ),
           pw.Text(
             title,
-            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.normal),
           ),
         ],
       ),
@@ -402,7 +402,7 @@ class ReportExportService {
                       entry.$2,
                       style: pw.TextStyle(
                         fontSize: 11,
-                        fontWeight: pw.FontWeight.bold,
+                        fontWeight: pw.FontWeight.normal,
                       ),
                     ),
                   ],

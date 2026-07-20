@@ -48,7 +48,7 @@ class AuthScaffold extends StatelessWidget {
                         fillColor: Colors.white.withValues(alpha: .10),
                         labelStyle: TextStyle(
                           color: Colors.white.withValues(alpha: .72),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                         ),
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: .48),
@@ -86,7 +86,7 @@ class AuthScaffold extends StatelessWidget {
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF8FEAFF),
                           textStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),
@@ -102,7 +102,7 @@ class AuthScaffold extends StatelessWidget {
                           ),
                           textStyle: const TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),
@@ -134,7 +134,7 @@ class AuthScaffold extends StatelessWidget {
                             fontSize: 34,
                             height: 1.05,
                             letterSpacing: -.7,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         const SizedBox(height: 7),
@@ -144,7 +144,7 @@ class AuthScaffold extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: .72),
                             fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -179,7 +179,7 @@ class AuthScaffold extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: .58),
                             fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -291,7 +291,7 @@ class AuthErrorBox extends StatelessWidget {
         message,
         style: const TextStyle(
           color: Color(0xFFFFD1D1),
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -319,7 +319,7 @@ class AuthSuccessBox extends StatelessWidget {
         message,
         style: const TextStyle(
           color: Color(0xFFD7FFEA),
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );

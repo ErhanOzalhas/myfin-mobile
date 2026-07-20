@@ -17,7 +17,7 @@ class ReportRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Colors.black54,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -25,7 +25,7 @@ class ReportRow extends StatelessWidget {
             value,
             style: const TextStyle(
               color: Color(0xFF0F172A),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

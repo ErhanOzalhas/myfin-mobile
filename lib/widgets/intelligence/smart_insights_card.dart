@@ -44,7 +44,7 @@ class SmartInsightsCard extends StatelessWidget {
                 'Akıllı İçgörüler',
                 style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -120,7 +120,7 @@ class _InsightTile extends StatelessWidget {
                         insight.title,
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: Color(0xFF0F172A),
                         ),
                       ),
@@ -140,7 +140,7 @@ class _InsightTile extends StatelessWidget {
                           style: TextStyle(
                             color: color,
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),

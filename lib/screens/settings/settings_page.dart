@@ -112,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const ListTile(
               title: Text(
                 'Ana para birimi',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
               ),
               subtitle: Text('Yeni özet ve raporlarda kullanılacak tercih.'),
             ),
@@ -217,7 +217,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     : 'MyFin kullanıcısı',
                                 style: const TextStyle(
                                   fontSize: 17,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -225,7 +225,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 user?.email ?? 'E-posta bağlı değil',
                                 style: const TextStyle(
                                   color: Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                               const SizedBox(height: 5),
@@ -234,7 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 style: TextStyle(
                                   color: Color(0xFF008DB9),
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ],
@@ -346,8 +346,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   const ThinDivider(),
                   const _SettingsRow(
                     icon: Icons.info_outline_rounded,
-                    title: 'Uygulama sürümü',
-                    subtitle: '1.0.0',
+                    title: 'Uygulama hakkında',
+                    subtitle: 'Myfin v1.0.0 / © ',
                   ),
                 ],
               ),
@@ -407,7 +407,7 @@ class _SettingsRow extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: destructive ? color : const Color(0xFF0F172A),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 15,
                     ),
                   ),
@@ -416,7 +416,7 @@ class _SettingsRow extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
                   ),

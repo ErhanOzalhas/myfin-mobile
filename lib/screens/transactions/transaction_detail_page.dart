@@ -76,7 +76,7 @@ class TransactionDetailPage extends StatelessWidget {
                         : '$symbol • $assetName',
                     style: const TextStyle(
                       fontSize: 22,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF0F172A),
                     ),
                   ),
@@ -85,7 +85,7 @@ class TransactionDetailPage extends StatelessWidget {
                     type,
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 16,
                     ),
                   ),
@@ -209,7 +209,7 @@ class _TransactionChangeHistoryCard extends StatelessWidget {
             'Değişiklik Geçmişi',
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -222,7 +222,7 @@ class _TransactionChangeHistoryCard extends StatelessWidget {
                 'Bu işlem düzenlendi. Önceki değişiklik ayrıntısı kaydedilmemiş.',
                 style: TextStyle(
                   color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   height: 1.35,
                 ),
               ),
@@ -294,7 +294,7 @@ class _TransactionVersionCard extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 10),
@@ -337,7 +337,7 @@ class _VersionRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
             ),
@@ -349,7 +349,7 @@ class _VersionRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: const TextStyle(
                 color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
             ),

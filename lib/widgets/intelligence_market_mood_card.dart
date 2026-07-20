@@ -32,14 +32,14 @@ class IntelligenceMarketMoodCard extends StatelessWidget {
         children: [
           const Text(
             'Market Mood',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 12),
           Text(
             mood,
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               color: color,
             ),
           ),

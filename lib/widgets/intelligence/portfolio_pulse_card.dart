@@ -41,7 +41,7 @@ class PortfolioPulseCard extends StatelessWidget {
                 style: TextStyle(
                   color: Color(0xFF0F172A),
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -192,7 +192,7 @@ class _PulseMetric extends StatelessWidget {
                   style: TextStyle(
                     color: color,
                     fontSize: 22,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -253,7 +253,7 @@ class _CompactPulseBox extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 18,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 4),

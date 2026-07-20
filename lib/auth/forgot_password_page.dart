@@ -83,7 +83,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           onSubmitted: (_) => _sending ? null : _send(),
           style: const TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
           ),
           decoration: const InputDecoration(
             labelText: 'E-posta',

@@ -47,7 +47,7 @@ class IntelligenceHeroCard extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(height: 8),
@@ -74,7 +74,7 @@ class IntelligenceHeroCard extends StatelessWidget {
                   "${score.toStringAsFixed(0)}/100",
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w400,
                     fontSize: 18,
                   ),
                 ),

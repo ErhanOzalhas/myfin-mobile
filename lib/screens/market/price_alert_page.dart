@@ -136,7 +136,7 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                             'Henüz fiyat alarmın yok',
                             style: TextStyle(
                               fontSize: 17,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -160,7 +160,7 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 20,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -243,7 +243,7 @@ class _AlertSummary extends StatelessWidget {
               children: [
                 const Text(
                   'Fiyat Takibi',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -304,13 +304,13 @@ class _AlertCard extends StatelessWidget {
                   '${alert.symbol} • ${alert.name}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${above ? 'Üstüne çıkarsa' : 'Altına inerse'}  '
                   '${formatCurrency(alert.targetPrice, alert.currency)}',
-                  style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -508,7 +508,7 @@ class _PriceAlertEditorState extends State<_PriceAlertEditor> {
                         'Yeni Fiyat Alarmı',
                         style: TextStyle(
                           fontSize: 21,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ),
@@ -563,7 +563,7 @@ class _PriceAlertEditorState extends State<_PriceAlertEditor> {
                             title: Text(
                               asset.symbol,
                               style: const TextStyle(
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                             subtitle: Text('${asset.name} • ${asset.exchange}'),
@@ -589,7 +589,7 @@ class _PriceAlertEditorState extends State<_PriceAlertEditor> {
                           : _livePrice == null
                           ? 'Canlı fiyat alınamadı; hedefi elle girebilirsin.'
                           : 'Güncel fiyat: ${formatCurrency(_livePrice!, _currency)}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontWeight: FontWeight.w400),
                     ),
                   ),
                 ],
@@ -660,7 +660,7 @@ class _PriceAlertEditorState extends State<_PriceAlertEditor> {
                       _saveError!,
                       style: const TextStyle(
                         color: Color(0xFFDC2626),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),

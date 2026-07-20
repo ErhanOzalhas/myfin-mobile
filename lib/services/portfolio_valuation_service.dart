@@ -249,7 +249,9 @@ class PortfolioValuationService {
     List<PortfolioItem> items,
     String fingerprint,
   ) {
-    final snapshot = _persistedValuations[fingerprint];
+    final snapshot =
+        _persistedValuations[fingerprint] ??
+        _latestCompatibleSnapshot(items, fingerprint);
     if (snapshot == null) return null;
     final itemsById = {for (final item in items) item.id: item};
     final restoredItems = <PortfolioItemValuation>[];
@@ -287,6 +289,42 @@ class PortfolioValuationService {
       updatedAt: snapshot.updatedAt,
       isStale: true,
     );
+  }
+
+  _PersistedValuation? _latestCompatibleSnapshot(
+    List<PortfolioItem> items,
+    String fingerprint,
+  ) {
+    if (items.isEmpty) return null;
+
+    final separatorIndex = fingerprint.indexOf('::');
+    final userPrefix = separatorIndex < 0
+        ? fingerprint
+        : fingerprint.substring(0, separatorIndex);
+    final currentIds = items.map((item) => item.id).toSet();
+    _PersistedValuation? latest;
+
+    for (final entry in _persistedValuations.entries) {
+      if (!entry.key.startsWith('$userPrefix::')) continue;
+
+      final snapshotIds = entry.value.items.map((item) => item.id).toSet();
+      if (snapshotIds.length != currentIds.length ||
+          !snapshotIds.containsAll(currentIds)) {
+        continue;
+      }
+
+      if (latest == null || entry.value.updatedAt.isAfter(latest.updatedAt)) {
+        latest = entry.value;
+      }
+    }
+
+    if (latest != null) {
+      debugPrint(
+        'OFFLINE PORTFOLIO SNAPSHOT: aynı varlıklar için son başarılı '
+        'değer anında gösteriliyor.',
+      );
+    }
+    return latest;
   }
 
   Future<void> _persist(

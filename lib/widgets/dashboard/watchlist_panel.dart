@@ -32,7 +32,7 @@ class WatchlistPanel extends StatelessWidget {
             'Takip Listesi',
             style: TextStyle(
               fontSize: 17,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -44,7 +44,7 @@ class WatchlistPanel extends StatelessWidget {
               'Canlı Piyasa ekranından favori varlık ekleyebilirsin.',
               style: TextStyle(
                 color: Colors.black54,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
               ),
             )
           else
@@ -102,7 +102,7 @@ class _WatchlistRow extends StatelessWidget {
           child: Text(
             item.symbol.characters.take(2).toString().toUpperCase(),
             style: const TextStyle(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -115,7 +115,7 @@ class _WatchlistRow extends StatelessWidget {
               Text(
                 item.symbol,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -126,7 +126,7 @@ class _WatchlistRow extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -138,7 +138,7 @@ class _WatchlistRow extends StatelessWidget {
             Text(
               item.price,
               style: const TextStyle(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 color: Color(0xFF0F172A),
               ),
             ),
@@ -149,7 +149,7 @@ class _WatchlistRow extends StatelessWidget {
                   : '—',
               style: TextStyle(
                 color: color,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
             ),

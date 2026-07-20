@@ -842,11 +842,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       labelStyle: const TextStyle(
         color: Color(0xFF111827),
         fontSize: 13,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
       ),
       hintStyle: const TextStyle(
         color: Color(0xFF7B8494),
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w400,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -874,7 +874,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
       textStyle: WidgetStateProperty.all(
-        const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
       ),
       side: WidgetStateProperty.resolveWith((states) {
         return BorderSide(
@@ -927,7 +927,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           label,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
             letterSpacing: -.1,
           ),
         ),
@@ -1175,7 +1175,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                                   softWrap: false,
                                   style: const TextStyle(
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ),
@@ -1205,7 +1205,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                               '$currentLength/${maxLength ?? 200}',
                               style: const TextStyle(
                                 color: Color(0xFF596273),
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w400,
                               ),
                             );
                           },
@@ -1267,7 +1267,7 @@ class _HeaderShortcutButton extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         minimumSize: const Size(0, 38),
-        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w400),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
       ),
     );
@@ -1304,13 +1304,13 @@ class _TransactionDateSheetState extends State<_TransactionDateSheet> {
       datePickerTheme: base.datePickerTheme.copyWith(
         headerHeadlineStyle: const TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
         weekdayStyle: const TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
-        dayStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        dayStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         yearStyle: const TextStyle(fontSize: 14),
       ),
     );
@@ -1347,7 +1347,7 @@ class _TransactionDateSheetState extends State<_TransactionDateSheet> {
                       'İşlem Tarihi Seç',
                       style: TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -1375,7 +1375,7 @@ class _TransactionDateSheetState extends State<_TransactionDateSheet> {
                   child: Text(
                     _dateLabel(_selectedDate),
                     style: const TextStyle(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -1631,7 +1631,7 @@ class _AssetSuggestionTile extends StatelessWidget {
           asset.symbol.characters.first,
           style: const TextStyle(
             color: Color(0xFF008DB9),
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),
@@ -1641,7 +1641,7 @@ class _AssetSuggestionTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Color(0xFF0F172A),
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w400,
         ),
       ),
       subtitle: Padding(
@@ -1652,7 +1652,7 @@ class _AssetSuggestionTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF64748B),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
             fontSize: 12,
           ),
         ),
@@ -1715,7 +1715,7 @@ class _SelectedAssetCard extends StatelessWidget {
                   asset.symbol.characters.first,
                   style: const TextStyle(
                     color: Color(0xFF0284C7),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: 17,
                   ),
                 ),
@@ -1731,7 +1731,7 @@ class _SelectedAssetCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: 14,
                       ),
                     ),
@@ -1742,7 +1742,7 @@ class _SelectedAssetCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 11.5,
                       ),
                     ),
@@ -1760,7 +1760,7 @@ class _SelectedAssetCard extends StatelessWidget {
                   statusText,
                   style: TextStyle(
                     color: statusColor,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                     fontSize: 10.5,
                   ),
                 ),
@@ -1796,7 +1796,7 @@ class _SelectedAssetCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFF334155),
                       fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),

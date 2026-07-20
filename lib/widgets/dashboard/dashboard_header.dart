@@ -85,7 +85,7 @@ class DashboardHeader extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 42,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
               letterSpacing: -.6,
             ),
           ),
@@ -111,7 +111,7 @@ class DashboardHeader extends StatelessWidget {
                   '$profitText ($profitPercentText)',
                   style: TextStyle(
                     color: accent,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                     fontSize: 13,
                   ),
                 ),

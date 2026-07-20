@@ -23,7 +23,7 @@ class EmptyStateLine extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
             color: Color(0xFF0F172A),
           ),
         ),
@@ -33,7 +33,7 @@ class EmptyStateLine extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.black54,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
             height: 1.4,
           ),
         ),

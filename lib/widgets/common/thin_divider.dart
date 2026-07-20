@@ -6,7 +6,7 @@ class ThinDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Divider(
-      height: 1,
+      height: 0,
       thickness: 1,
       color: Color(0xFFF1F5F9),
     );

@@ -161,7 +161,7 @@ class IntelligencePage extends StatelessWidget {
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                       SizedBox(height: 2),
@@ -170,7 +170,7 @@ class IntelligencePage extends StatelessWidget {
                                         style: TextStyle(
                                           color: Colors.white70,
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w400,
                                         ),
                                       ),
                                     ],

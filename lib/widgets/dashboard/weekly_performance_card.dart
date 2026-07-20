@@ -53,7 +53,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -63,7 +63,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.black54,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -98,7 +98,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFF64748B),
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -200,7 +200,7 @@ class _TrendBadge extends StatelessWidget {
         style: TextStyle(
           color: color,
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -228,7 +228,7 @@ class _PulseStat extends StatelessWidget {
           style: const TextStyle(
             color: Colors.black45,
             fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 4),
@@ -239,7 +239,7 @@ class _PulseStat extends StatelessWidget {
           style: TextStyle(
             color: color,
             fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],

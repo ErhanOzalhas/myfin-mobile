@@ -76,7 +76,7 @@ class AIScoreSection extends StatelessWidget {
                         'MyFin Intelligence',
                         style: TextStyle(
                           fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -96,7 +96,7 @@ class AIScoreSection extends StatelessWidget {
                         style: const TextStyle(
                           color: Color(0xFF1D9BF0),
                           fontSize: 13,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],

@@ -38,7 +38,7 @@ class AIAdvisorCard extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -50,7 +50,7 @@ class AIAdvisorCard extends StatelessWidget {
               color: Colors.white,
               fontSize: 22,
               height: 1.15,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 10),

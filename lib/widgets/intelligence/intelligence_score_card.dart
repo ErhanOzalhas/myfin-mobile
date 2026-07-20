@@ -107,7 +107,7 @@ class IntelligenceScoreCard extends StatelessWidget {
                         'Portföy AI Skoru',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: Color(0xFF172033),
                           letterSpacing: -0.2,
                         ),
@@ -130,7 +130,7 @@ class IntelligenceScoreCard extends StatelessWidget {
                         style: TextStyle(
                           color: scoreColor,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ),
@@ -143,7 +143,7 @@ class IntelligenceScoreCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 50,
                       height: 1,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       color: scoreColor,
                       letterSpacing: -1.8,
                     ),
@@ -195,7 +195,7 @@ class IntelligenceScoreCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 13,
                           height: 1.35,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: Color(0xFF4B5565),
                         ),
                       ),
@@ -231,7 +231,7 @@ class _ScoreScale extends StatelessWidget {
                 '%',
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                   color: scoreColor.withValues(alpha: 0.82),
                 ),
               ),
@@ -245,7 +245,7 @@ class _ScoreScale extends StatelessWidget {
                         '$value',
                         style: TextStyle(
                           fontSize: 9,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: value >= 75
                               ? scoreColor.withValues(alpha: 0.80)
                               : const Color(0xFF9AA3B2),
@@ -364,7 +364,7 @@ class _HeroMetric extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 10,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF7B8493),
             ),
           ),
@@ -375,7 +375,7 @@ class _HeroMetric extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF1E293B),
             ),
           ),

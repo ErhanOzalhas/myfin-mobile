@@ -89,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -98,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     user?.email ?? 'E-posta bulunamadı',
                     style: const TextStyle(
                       color: Color(0xFF475569),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -107,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: TextStyle(
                       color: Color(0xFF008DB9),
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -124,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       'Kişisel bilgiler',
                       style: TextStyle(
                         fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -178,7 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             color: _messageIsError
                                 ? const Color(0xFFDC2626)
                                 : const Color(0xFF15803D),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),

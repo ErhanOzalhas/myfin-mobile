@@ -57,7 +57,7 @@ class _DashboardHero extends StatelessWidget {
             'Genel Finans Özeti',
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: DashboardPage._text,
             ),
           ),
@@ -85,7 +85,7 @@ class _DashboardHero extends StatelessWidget {
                   child: Text(
                     'Dashboard Pro altyapısı hazır.',
                     style: TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: DashboardPage._text,
                     ),
                   ),
@@ -180,7 +180,7 @@ class _MetricCard extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: DashboardPage._text,
             ),
           ),
@@ -189,7 +189,7 @@ class _MetricCard extends StatelessWidget {
             title,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               color: DashboardPage._muted,
             ),
           ),
@@ -212,7 +212,7 @@ class _HealthCard extends StatelessWidget {
             'Dengeli başlangıç modu',
             style: TextStyle(
               fontSize: 17,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
               color: DashboardPage._text,
             ),
           ),
@@ -321,7 +321,7 @@ class _ActionButton extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: DashboardPage._text,
                 ),
               ),
@@ -344,7 +344,7 @@ class _SectionTitle extends StatelessWidget {
       title,
       style: const TextStyle(
         fontSize: 18,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w400,
         color: DashboardPage._text,
       ),
     );

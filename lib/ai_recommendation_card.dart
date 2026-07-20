@@ -36,7 +36,7 @@ class AIRecommendationCard extends StatelessWidget {
             'AI Portfolio Insights',
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 14),
@@ -74,7 +74,7 @@ class _RecommendationRow extends StatelessWidget {
                 Text(
                   item.title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                     fontSize: 14,
                   ),
                 ),

@@ -851,7 +851,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                             color: selected
                                 ? Colors.white
                                 : const Color(0xFF475569),
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                           onSelected: (_) => _selectCategory(category),
                         );
@@ -865,7 +865,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 22,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     letterSpacing: -.3,
                   ),
                 ),
@@ -886,7 +886,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   )
@@ -904,7 +904,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   )
@@ -1021,7 +1021,7 @@ class _MarketStatusHero extends StatelessWidget {
                   'Piyasalar hareket halinde',
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: 20,
                     height: 1.15,
                   ),
@@ -1049,7 +1049,7 @@ class _MarketStatusHero extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .82),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           fontSize: 12.5,
                         ),
                       ),
@@ -1088,7 +1088,7 @@ class _InformationLine extends StatelessWidget {
             style: TextStyle(
               color: Color(0xFF94A3B8),
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               height: 1.4,
             ),
           ),
@@ -1151,7 +1151,7 @@ class _LiveMarketRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 13.5,
                   ),
                 ),
@@ -1165,7 +1165,7 @@ class _LiveMarketRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           fontSize: 10.5,
                         ),
                       ),
@@ -1184,7 +1184,7 @@ class _LiveMarketRow extends StatelessWidget {
                         definition.category,
                         style: const TextStyle(
                           color: Color(0xFF0369A1),
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                           fontSize: 9.5,
                         ),
                       ),
@@ -1204,7 +1204,7 @@ class _LiveMarketRow extends StatelessWidget {
                         : quote == null
                         ? const Color(0xFFDC2626)
                         : const Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 9.5,
                   ),
                 ),
@@ -1228,7 +1228,7 @@ class _LiveMarketRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 13,
                   ),
                 ),
@@ -1247,7 +1247,7 @@ class _LiveMarketRow extends StatelessWidget {
                       formatPercent(quote.changePercent),
                       style: TextStyle(
                         color: color,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 9.5,
                       ),
                     ),
@@ -1266,7 +1266,7 @@ class _LiveMarketRow extends StatelessWidget {
                   icon: const Icon(Icons.add_rounded, size: 17),
                   label: const Text(
                     'İşlem Ekle',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
                   ),
                 ),
               ],
@@ -1296,7 +1296,7 @@ class _MarketErrorCard extends StatelessWidget {
           const SizedBox(height: 10),
           const Text(
             'Piyasa verileri alınamadı.',
-            style: TextStyle(fontWeight: FontWeight.w800),
+            style: TextStyle(fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 8),
           TextButton.icon(

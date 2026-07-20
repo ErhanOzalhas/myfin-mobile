@@ -100,7 +100,7 @@ abstract final class AppTheme {
         contentTextStyle: TextStyle(
           color: AppColors.textOnDark,
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
         ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
       ),
@@ -111,7 +111,7 @@ abstract final class AppTheme {
         labelTextStyle: WidgetStatePropertyAll(
           TextStyle(
             fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
             color: AppColors.textSecondary,
           ),
         ),

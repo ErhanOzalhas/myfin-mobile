@@ -119,14 +119,14 @@ class _MarketTickerState extends State<MarketTicker> {
                                   text: row.name,
                                   style: const TextStyle(
                                     color: Color(0xFF0F172A),
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                                 TextSpan(
                                   text: '  ${row.value}',
                                   style: const TextStyle(
                                     color: Color(0xFF475569),
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
@@ -151,7 +151,7 @@ class _MarketTickerState extends State<MarketTicker> {
                               style: TextStyle(
                                 color: color,
                                 fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ),

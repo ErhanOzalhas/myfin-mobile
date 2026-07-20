@@ -33,7 +33,7 @@ class DistributionCard extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Helvetica Neue',
                 color: Colors.black54,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
               ),
             )
           else
@@ -143,7 +143,7 @@ class _DistributionRow extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF334155),
                     ),
                   ),
@@ -155,7 +155,7 @@ class _DistributionRow extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -178,7 +178,7 @@ class _DistributionRow extends StatelessWidget {
                             fontFamily: 'Inter',
                             fontSize: 11.5,
                             fontWeight: isPositive || isNegative
-                                ? FontWeight.w600
+                                ? FontWeight.w400
                                 : FontWeight.w400,
                             color: changeColor,
                           ),

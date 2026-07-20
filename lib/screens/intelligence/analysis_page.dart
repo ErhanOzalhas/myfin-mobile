@@ -91,7 +91,7 @@ class _AnalysisSectionTitle extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 20,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 4),
@@ -141,7 +141,7 @@ class _ComingSoonPanel extends StatelessWidget {
                 style: TextStyle(
                   color: Color(0xFF0F172A),
                   fontSize: 18,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],

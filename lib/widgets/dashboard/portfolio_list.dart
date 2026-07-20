@@ -69,13 +69,13 @@ class _PortfolioRow extends StatelessWidget {
       leading: CircleAvatar(
         child: Text(item.title.characters.first.toUpperCase()),
       ),
-      title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w400)),
       subtitle: Text(item.subtitle),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(item.value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(item.value, style: const TextStyle(fontWeight: FontWeight.w400)),
           Text(item.pnl, style: TextStyle(color: color)),
         ],
       ),

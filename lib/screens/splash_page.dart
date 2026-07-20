@@ -139,7 +139,7 @@ class _MyFinSplashScreenState extends State<_MyFinSplashScreen>
                           color: Colors.white,
                           fontSize: 52,
                           height: 1,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                           letterSpacing: -.8,
                         ),
                       ),
@@ -163,7 +163,7 @@ class _MyFinSplashScreenState extends State<_MyFinSplashScreen>
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .70),
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 22),
@@ -230,7 +230,7 @@ class _StepRow extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),

@@ -178,7 +178,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                         : '$_periodSummary ${visibleDocs.length} işlem kaydı bulundu.',
                     style: const TextStyle(
                       color: Colors.black54,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       height: 1.35,
                     ),
                   ),
@@ -253,7 +253,7 @@ class _PeriodSelector extends StatelessWidget {
                         color: selected == periods[index].$1
                             ? Colors.white
                             : const Color(0xFF334155),
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                         fontSize: 14,
                       ),
                     ),
@@ -338,7 +338,7 @@ class _TurkishDateRangeSheetState extends State<_TurkishDateRangeSheet> {
                       'Tarih Aralığı Seç',
                       style: TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -411,13 +411,13 @@ class _TurkishDateRangeSheetState extends State<_TurkishDateRangeSheet> {
       datePickerTheme: base.datePickerTheme.copyWith(
         headerHeadlineStyle: const TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
         weekdayStyle: const TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
         ),
-        dayStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        dayStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         yearStyle: const TextStyle(fontSize: 14),
       ),
     );
@@ -448,7 +448,7 @@ class _DateValue extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 12),
           ),
         ],
       ),
@@ -536,7 +536,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: 14,
                         color: Color(0xFF0F172A),
                       ),
@@ -559,7 +559,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.black54,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 11,
                       ),
                     ),
@@ -574,7 +574,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                     formatCurrency(total, currency),
                     style: const TextStyle(
                       color: Color(0xFF0F3150),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -583,7 +583,7 @@ class _TransactionHistoryTile extends StatelessWidget {
                     'İşlem Tutarı',
                     style: TextStyle(
                       color: Colors.black45,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 10,
                     ),
                   ),

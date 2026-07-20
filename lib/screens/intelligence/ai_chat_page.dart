@@ -354,6 +354,8 @@ class _AiChatPageState extends State<AiChatPage> {
         value.contains('karşılaştır') ||
         value.contains('karsilastir') ||
         value.contains('yoğunlaş') ||
+        value.contains('artıyo') ||
+        value.contains('arttı') ||
         value.contains('yogunlas');
     if (!wantsChart) return null;
     final mentionsProfitLoss =
@@ -365,6 +367,8 @@ class _AiChatPageState extends State<AiChatPage> {
     if (value.contains('kazandır') ||
         value.contains('kaybettir') ||
         value.contains('pozitif') ||
+        value.contains('artıyo') ||
+        value.contains('arttı') ||
         value.contains('negatif')) {
       return _PortfolioChartType.winnersLosers;
     }
@@ -564,7 +568,7 @@ class _HeroPanel extends StatelessWidget {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -576,7 +580,7 @@ class _HeroPanel extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               letterSpacing: -0.4,
             ),
           ),
@@ -587,7 +591,7 @@ class _HeroPanel extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.78),
               fontSize: 14,
               height: 1.42,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 16),
@@ -655,7 +659,7 @@ class _PromptChips extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -665,7 +669,7 @@ class _PromptChips extends StatelessWidget {
                     style: TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -751,7 +755,7 @@ class _MessageBubble extends StatelessWidget {
                             ? Colors.white.withValues(alpha: 0.72)
                             : const Color(0xFF94A3B8),
                         fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     if (!isUser) ...<Widget>[
@@ -845,7 +849,7 @@ class _Composer extends StatelessWidget {
                 hintText: 'MyFin AI’ya sor...',
                 hintStyle: const TextStyle(
                   color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
                 filled: true,
                 fillColor: const Color(0xFFF8FAFC),
@@ -1079,7 +1083,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
       children: [
         const Text(
           'Kategori Dağılımı',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -1099,7 +1103,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
                     titleStyle: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
               ],
@@ -1144,7 +1148,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
       children: [
         const Text(
           'Oran(%) Bazında Kar / Zarar',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 16),
         for (final entry in visible) ...[
@@ -1203,7 +1207,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
       children: [
         const Text(
           'Maliyet / Güncel Değer',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 14),
         for (final entry in visible) ...[
@@ -1335,7 +1339,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 14),
         for (final entry in entries) ...[
@@ -1362,7 +1366,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -1381,7 +1385,7 @@ class _PortfolioChartState extends State<_PortfolioChart> {
                     titleStyle: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
               ],
@@ -1465,7 +1469,7 @@ class _MetricBarRow extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFF334155),
                   fontSize: 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -1475,7 +1479,7 @@ class _MetricBarRow extends StatelessWidget {
               style: TextStyle(
                 color: entry.color,
                 fontSize: 10,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
@@ -1528,7 +1532,7 @@ class _ComparisonBarRow extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFF334155),
                   fontSize: 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -1537,7 +1541,7 @@ class _ComparisonBarRow extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF475569),
                 fontSize: 9,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
@@ -1613,7 +1617,7 @@ class _ChartLegend extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF475569),
             fontSize: 10,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -1646,7 +1650,7 @@ class _ProfitLossRow extends StatelessWidget {
                 style: const TextStyle(
                   color: Color(0xFF334155),
                   fontSize: 10,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -1655,7 +1659,7 @@ class _ProfitLossRow extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 10,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const Spacer(),
@@ -1666,7 +1670,7 @@ class _ProfitLossRow extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 10,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

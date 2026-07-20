@@ -182,7 +182,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF087EA4),
                     ),
                   ),
@@ -244,7 +244,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                                     color: range == _range
                                         ? Colors.white
                                         : const Color(0xFF475569),
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                   onSelected: (_) => _selectRange(range),
                                 ),

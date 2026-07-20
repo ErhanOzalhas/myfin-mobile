@@ -143,7 +143,7 @@ class _MyFinBootstrapAppState extends State<_MyFinBootstrapApp> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 48,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -154,7 +154,7 @@ class _MyFinBootstrapAppState extends State<_MyFinBootstrapApp> {
                         'Güvenli başlangıç hazırlanıyor',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .78),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ] else ...[
@@ -163,7 +163,7 @@ class _MyFinBootstrapAppState extends State<_MyFinBootstrapApp> {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 8),

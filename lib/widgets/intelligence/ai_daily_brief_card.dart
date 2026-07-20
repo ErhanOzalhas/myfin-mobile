@@ -41,7 +41,7 @@ class AIDailyBriefCard extends StatelessWidget {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -168,7 +168,7 @@ class _DarkMetricBox extends StatelessWidget {
               color: Colors.white,
               fontSize: 32,
               height: 1,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 6),
@@ -177,7 +177,7 @@ class _DarkMetricBox extends StatelessWidget {
             style: TextStyle(
               color: accent,
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

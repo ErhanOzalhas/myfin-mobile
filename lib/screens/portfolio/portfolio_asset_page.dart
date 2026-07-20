@@ -192,7 +192,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                 child: SurfaceCard(
                   child: Text(
                     'Portföy verisi alınırken bir hata oluştu.',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w400),
                   ),
                 ),
               );
@@ -281,7 +281,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                         '${visibleItems.length} varlık • $categoryCount kategori',
                         style: const TextStyle(
                           color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           fontSize: 13,
                         ),
                       ),
@@ -346,7 +346,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                   : '${_categoryLabel(_selectedCategory!)} Varlıkları',
                               style: const TextStyle(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w400,
                                 color: Color(0xFF0F172A),
                               ),
                             ),
@@ -405,7 +405,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                     _sortLabel(_selectedSort),
                                     style: const TextStyle(
                                       color: Color(0xFF0369A1),
-                                      fontWeight: FontWeight.w800,
+                                      fontWeight: FontWeight.w400,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -445,7 +445,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                             'Toplam ${_categoryLabel(_selectedCategory!)} Değeri',
                                             style: const TextStyle(
                                               fontSize: 13,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w400,
                                               color: Color(0xFF475569),
                                             ),
                                           ),
@@ -455,7 +455,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                             '(${formatPercent(categoryCost <= 0 ? 0 : categoryProfit / categoryCost * 100)})',
                                             style: TextStyle(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: FontWeight.w400,
                                               color: categoryProfit > 0
                                                   ? const Color(0xFF16A34A)
                                                   : categoryProfit < 0
@@ -470,7 +470,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                       formatCurrency(categoryTotal, 'TRY'),
                                       style: const TextStyle(
                                         fontSize: 15,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w400,
                                         color: Color(0xFF0F172A),
                                       ),
                                     ),
@@ -492,7 +492,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                               const Text(
                                 'Eşleşen varlık bulunamadı',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w400,
                                   color: Color(0xFF334155),
                                 ),
                               ),
@@ -503,7 +503,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
@@ -593,7 +593,7 @@ class _CategoryFilter extends StatelessWidget {
                 color: selectedCategory == null
                     ? Colors.white
                     : const Color(0xFF475569),
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
               ),
               onSelected: (_) => onSelected(null),
             ),
@@ -611,7 +611,7 @@ class _CategoryFilter extends StatelessWidget {
                   color: selectedCategory == category
                       ? Colors.white
                       : const Color(0xFF475569),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
                 onSelected: (_) => onSelected(category),
               ),
@@ -668,7 +668,7 @@ class _AssetTile extends StatelessWidget {
                 item.symbol.isNotEmpty ? item.symbol.characters.first : '?',
                 style: const TextStyle(
                   color: Color(0xFF075985),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   fontSize: 16,
                 ),
               ),
@@ -683,7 +683,7 @@ class _AssetTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 14,
                       color: Color(0xFF111827),
                     ),
@@ -696,7 +696,7 @@ class _AssetTile extends StatelessWidget {
                           text: '${formatQuantity(item.quantity)} adet',
                           style: const TextStyle(
                             color: Color(0xFF0369A1),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         TextSpan(text: ' • ${_categoryLabel(item.type)}'),
@@ -706,7 +706,7 @@ class _AssetTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.black54,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 11,
                     ),
                   ),
@@ -717,7 +717,7 @@ class _AssetTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 10.5,
                     ),
                   ),
@@ -732,7 +732,7 @@ class _AssetTile extends StatelessWidget {
                   hasLivePrice ? 'Güncel Değer' : 'Maliyet',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 9.5,
                   ),
                 ),
@@ -742,7 +742,7 @@ class _AssetTile extends StatelessWidget {
                       ? formatCurrency(item.totalCost, item.currency)
                       : formatCurrency(valuation!.currentValueInBaseCurrency),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     color: Color(0xFF111827),
                   ),
                 ),
@@ -759,7 +759,7 @@ class _AssetTile extends StatelessWidget {
                     color: hasLivePrice
                         ? performanceColor
                         : const Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 10.5,
                   ),
                 ),

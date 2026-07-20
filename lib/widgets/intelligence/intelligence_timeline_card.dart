@@ -20,7 +20,7 @@ class IntelligenceTimelineCard extends StatelessWidget {
         children: [
           const Text(
             'AI Timeline',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 12),
           if (events.isEmpty)
@@ -56,7 +56,7 @@ class IntelligenceTimelineCard extends StatelessWidget {
                             e.label,
                             style: const TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                               color: Colors.blue,
                             ),
                           ),
@@ -65,7 +65,7 @@ class IntelligenceTimelineCard extends StatelessWidget {
                             e.title,
                             style: const TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           const SizedBox(height: 2),

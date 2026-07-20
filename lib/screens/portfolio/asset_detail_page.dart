@@ -234,7 +234,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           : '?',
                       style: const TextStyle(
                         color: Color(0xFF0284C7),
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: 20,
                       ),
                     ),
@@ -251,7 +251,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           style: const TextStyle(
                             color: Color(0xFF0F172A),
                             fontSize: 21,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                             letterSpacing: -.3,
                           ),
                         ),
@@ -260,7 +260,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                           '${item.symbol} • ${item.type} • $displayCurrency',
                           style: const TextStyle(
                             color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                             fontSize: 12.5,
                           ),
                         ),
@@ -288,7 +288,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
                     fontSize: 31,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     letterSpacing: -.6,
                   ),
                 ),
@@ -297,7 +297,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                 quote == null ? 'Maliyet bazlı değer' : 'Güncel değer',
                 style: const TextStyle(
                   color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   fontSize: 12.5,
                 ),
               ),
@@ -331,7 +331,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                               '${formatCurrency(profitLoss, displayCurrency)}',
                               style: TextStyle(
                                 color: profitColor,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w400,
                                 fontSize: 16,
                               ),
                             ),
@@ -340,7 +340,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                             formatPercent(profitPercent),
                             style: TextStyle(
                               color: profitColor,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: 16,
                             ),
                           ),
@@ -359,7 +359,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                               'Maliyet ve canlı fiyat farklı para birimlerinde.',
                               style: TextStyle(
                                 color: Color(0xFF9A3412),
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w400,
                                 fontSize: 12.5,
                               ),
                             ),
@@ -392,7 +392,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                   style: TextStyle(
                     color: Color(0xFF0284C7),
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 Spacer(),
@@ -437,7 +437,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                 'Varlık Detayları',
                 style: TextStyle(
                   fontSize: 17,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -517,7 +517,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                 'Canlı piyasa verisi alınıyor...',
                 style: TextStyle(
                   color: Color(0xFF334155),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -543,7 +543,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                 'Bu varlık için canlı fiyat henüz alınamadı.',
                 style: TextStyle(
                   color: Color(0xFF9A3412),
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   fontSize: 12.5,
                 ),
               ),
@@ -590,7 +590,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                     _marketStatusLabel(quote!.marketStatus),
                     style: const TextStyle(
                       color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -602,7 +602,7 @@ class _LiveMarketStatusCard extends StatelessWidget {
                   '${quote!.exchange}',
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 11.5,
                   ),
                 ),
@@ -655,7 +655,7 @@ class _MetricCard extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 11.5,
                   ),
                 ),
@@ -666,7 +666,7 @@ class _MetricCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF0F172A),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                     fontSize: 14.5,
                   ),
                 ),
@@ -697,7 +697,7 @@ class _AssetDetailRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 fontSize: 13,
               ),
             ),
@@ -713,7 +713,7 @@ class _AssetDetailRow extends StatelessWidget {
               textAlign: TextAlign.right,
               style: const TextStyle(
                 color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 fontSize: 13,
               ),
             ),

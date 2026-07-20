@@ -25,7 +25,7 @@ class IntelligenceSectionHeader extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               if (subtitle != null) ...[

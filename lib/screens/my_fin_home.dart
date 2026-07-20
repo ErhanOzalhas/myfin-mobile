@@ -511,7 +511,7 @@ class _HomeAIScoreSection extends StatelessWidget {
           return const SurfaceCard(
             child: Text(
               'AI skoru hesaplanırken bir hata oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w400),
             ),
           );
         }
@@ -549,7 +549,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
                       'Portföy AI Skoru',
                       style: TextStyle(
                         fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -571,7 +571,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
               fontSize: 14,
               height: 1.35,
               color: Color(0xFF334155),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 16),
@@ -632,7 +632,7 @@ class _PortfolioIntelligenceCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: Color(0xFF475569),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -787,7 +787,7 @@ class _HomeShortcut extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF475569),
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
             ),
@@ -815,7 +815,7 @@ class _ScorePill extends StatelessWidget {
         '$score/100',
         style: const TextStyle(
           color: Color(0xFF6D28D9),
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w400,
           fontSize: 13,
         ),
       ),
@@ -857,7 +857,7 @@ class _MiniScoreTile extends StatelessWidget {
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 8),
@@ -866,7 +866,7 @@ class _MiniScoreTile extends StatelessWidget {
             style: TextStyle(
               color: scoreColor,
               fontSize: 24,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 3),
@@ -876,7 +876,7 @@ class _MiniScoreTile extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF64748B),
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -932,7 +932,7 @@ class _Header extends StatelessWidget {
                 'My Finans',
                 style: TextStyle(
                   fontSize: 28,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: -.7,
                   color: Color(0xFF0F172A),
                 ),
@@ -940,7 +940,7 @@ class _Header extends StatelessWidget {
               SizedBox(height: 2),
               Text(
                 'Akıllı yatırım takibi',
-                style: TextStyle(fontSize: 14, color: Colors.black54),
+                style: TextStyle(fontSize: 14, color: Colors.black87),
               ),
             ],
           ),
@@ -995,7 +995,7 @@ class _Header extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                             color: Color(0xFF0F172A),
                           ),
                         ),
@@ -1007,7 +1007,7 @@ class _Header extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -1160,8 +1160,8 @@ class _PrimaryDashboardCard extends StatelessWidget {
                         'Portföy Özeti',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: -.6,
                         ),
                       ),
@@ -1180,13 +1180,13 @@ class _PrimaryDashboardCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 10),
                 Text(
                   'Toplam Portföy',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .74),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1201,14 +1201,14 @@ class _PrimaryDashboardCard extends StatelessWidget {
                       softWrap: false,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 33,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: -1.6,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: Material(
@@ -1236,7 +1236,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
                                   style: TextStyle(
                                     color: trendColor,
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
@@ -1444,7 +1444,7 @@ class _MetricCard extends StatelessWidget {
                       softWrap: false,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                       ),
                     ),
@@ -1458,7 +1458,7 @@ class _MetricCard extends StatelessWidget {
                   style: TextStyle(
                     color: color,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -1824,7 +1824,7 @@ class _MiniInsightCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1835,7 +1835,7 @@ class _MiniInsightCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Color(0xFF0F172A),
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -1846,7 +1846,7 @@ class _MiniInsightCard extends StatelessWidget {
                         style: TextStyle(
                           color: color,
                           fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
@@ -2525,7 +2525,7 @@ class _RecentTransactions extends StatelessWidget {
             padding: EdgeInsets.all(18),
             child: Text(
               'Son işlemler alınırken bir sorun oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w400),
             ),
           );
         }
@@ -2561,7 +2561,7 @@ class _RecentTransactions extends StatelessWidget {
                             'Henüz işlem yok',
                             style: TextStyle(
                               color: Color(0xFF0F172A),
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                               fontSize: 16,
                             ),
                           ),
@@ -2570,7 +2570,7 @@ class _RecentTransactions extends StatelessWidget {
                             'Alış veya satış işlemi eklediğinde burada görünecek.',
                             style: TextStyle(
                               color: Colors.black54,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -2687,7 +2687,7 @@ class _TransactionRow extends StatelessWidget {
               backgroundColor: color.withValues(alpha: .12),
               child: Text(
                 avatarText,
-                style: TextStyle(color: color, fontWeight: FontWeight.w800),
+                style: TextStyle(color: color, fontWeight: FontWeight.w400),
               ),
             ),
             const SizedBox(width: 12),
@@ -2700,7 +2700,7 @@ class _TransactionRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                       fontSize: 15,
                       color: Color(0xFF0F172A),
                     ),
@@ -2710,7 +2710,7 @@ class _TransactionRow extends StatelessWidget {
                     type,
                     style: TextStyle(
                       color: color,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
                   ),
@@ -2724,7 +2724,7 @@ class _TransactionRow extends StatelessWidget {
                 Text(
                   amount,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                     fontSize: 15,
                     color: Color(0xFF0F172A),
                   ),
@@ -2734,7 +2734,7 @@ class _TransactionRow extends StatelessWidget {
                   detail,
                   style: const TextStyle(
                     color: Colors.black45,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     fontSize: 12,
                   ),
                 ),
@@ -2868,8 +2868,8 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Color(0xFF0F172A),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w400,
                                 letterSpacing: -.15,
                                 height: 1.24,
                               ),
@@ -2892,7 +2892,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                           style: TextStyle(
                             color: scoreColor,
                             fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),
@@ -2906,9 +2906,9 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.black45,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -2976,7 +2976,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.w400,
                                       ),
                                     ),
                                   ],

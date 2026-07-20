@@ -284,7 +284,7 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                               style: TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 19,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                           ),
@@ -293,7 +293,7 @@ class _ProfitLossDetailPageState extends State<ProfitLossDetailPage> {
                             style: TextStyle(
                               color: Color(0xFF475569),
                               fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           const SizedBox(width: 3),
@@ -431,7 +431,7 @@ class _ProfitLossSummary extends StatelessWidget {
             'Toplam Kâr / Zarar',
             style: TextStyle(
               color: Color(0xFF64748B),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               fontSize: 14,
             ),
           ),
@@ -440,7 +440,7 @@ class _ProfitLossSummary extends StatelessWidget {
             '${valuation.totalProfit >= 0 ? '+' : ''}${formatCurrency(valuation.totalProfit)}',
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               fontSize: 26,
             ),
           ),
@@ -449,7 +449,7 @@ class _ProfitLossSummary extends StatelessWidget {
             formatPercent(valuation.profitPercent),
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               fontSize: 15,
             ),
           ),
@@ -458,7 +458,7 @@ class _ProfitLossSummary extends StatelessWidget {
             'Güncel portföy değeri ${formatCurrency(valuation.totalValue)}',
             style: const TextStyle(
               color: Color(0xFF475569),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               fontSize: 13,
             ),
           ),
@@ -501,7 +501,7 @@ class _FilterChip extends StatelessWidget {
               '$count',
               style: TextStyle(
                 color: selected ? Colors.white : const Color(0xFF475569),
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 fontSize: 15,
               ),
             ),
@@ -512,7 +512,7 @@ class _FilterChip extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: selected ? Colors.white : const Color(0xFF64748B),
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
                 fontSize: 10.5,
               ),
             ),
@@ -556,7 +556,7 @@ class _CategoryChip extends StatelessWidget {
           style: TextStyle(
             color: selected ? Colors.white : const Color(0xFF475569),
             fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),
@@ -633,7 +633,7 @@ class _CategorySummaryCard extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF475569),
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -663,7 +663,7 @@ class _CategorySummaryCard extends StatelessWidget {
                 style: TextStyle(
                   color: profitColor,
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               const SizedBox(height: 4),
@@ -672,7 +672,7 @@ class _CategorySummaryCard extends StatelessWidget {
                 style: TextStyle(
                   color: profitColor,
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -700,7 +700,7 @@ class _SummaryValueLine extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF64748B),
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
@@ -712,7 +712,7 @@ class _SummaryValueLine extends StatelessWidget {
             style: const TextStyle(
               color: Color(0xFF0F172A),
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
@@ -755,7 +755,7 @@ class _PerformanceTile extends StatelessWidget {
                 item.symbol.isEmpty ? '?' : item.symbol.characters.first,
                 style: const TextStyle(
                   color: Color(0xFF075985),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   fontSize: 16,
                 ),
               ),
@@ -771,7 +771,7 @@ class _PerformanceTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 14,
                     ),
                   ),
@@ -783,7 +783,7 @@ class _PerformanceTile extends StatelessWidget {
                           text: '${formatQuantity(item.quantity)} adet',
                           style: const TextStyle(
                             color: Color(0xFF0369A1),
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         TextSpan(text: ' • ${item.type}'),
@@ -793,7 +793,7 @@ class _PerformanceTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       fontSize: 10.5,
                     ),
                   ),
@@ -817,7 +817,7 @@ class _PerformanceTile extends StatelessWidget {
                       color: valuation.hasLivePrice
                           ? color
                           : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -827,7 +827,7 @@ class _PerformanceTile extends StatelessWidget {
                       formatPercent(valuation.profitPercent),
                       style: TextStyle(
                         color: color,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         fontSize: 11,
                       ),
                     )
@@ -836,7 +836,7 @@ class _PerformanceTile extends StatelessWidget {
                       'Hesaplanamadı',
                       style: TextStyle(
                         color: Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 10.5,
                       ),
                     ),

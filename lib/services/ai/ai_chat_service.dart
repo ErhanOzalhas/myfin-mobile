@@ -114,6 +114,10 @@ $question
         value.contains('dagilim') ||
         value.contains('karşılaştır') ||
         value.contains('karsilastir') ||
+        value.contains('trend') ||
+        value.contains('grafi') ||
+        value.contains('artıyo') ||
+        value.contains('arttı') ||
         value.contains('yoğunlaş') ||
         value.contains('yogunlas');
   }
@@ -124,6 +128,16 @@ $question
         value.contains('haber') ||
         value.contains('gündem') ||
         value.contains('gelişme') ||
+        value.contains('geçmiş') ||
+        value.contains('arttı') ||
+        value.contains('temettü') ||
+        value.contains('artıyo') ||
+        value.contains('son 12') ||
+        value.contains('KAP') ||
+        value.contains('bist') ||
+        value.contains('BIST') ||
+        value.contains('trend') ||
+        value.contains('grafi') ||
         value.contains('son durum') ||
         value.contains('bugün ne oldu') ||
         value.contains('ne oldu');
@@ -134,8 +148,14 @@ $question
     final mentionsMarketMovement =
         value.contains('düş') ||
         value.contains('yüks') ||
+        value.contains('son 12') ||
+        value.contains('trend') ||
+        value.contains('grafi') ||
+        value.contains('geçmiş') ||
         value.contains('gerile') ||
         value.contains('arttı') ||
+        value.contains('temettü') ||
+        value.contains('KAP') ||
         value.contains('artıyor') ||
         value.contains('değer kayb') ||
         value.contains('değer kazan');

@@ -103,7 +103,7 @@ class AIScoreCard extends StatelessWidget {
                   style: TextStyle(
                     color: color,
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -138,7 +138,7 @@ class AIScoreCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 44,
                               height: .95,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                               color: Color(0xFF0F172A),
                             ),
                           ),
@@ -148,7 +148,7 @@ class AIScoreCard extends StatelessWidget {
                             style: TextStyle(
                               color: color,
                               fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                               letterSpacing: .8,
                             ),
                           ),
@@ -293,7 +293,7 @@ class _MetricBar extends StatelessWidget {
               '$value%',
               style: const TextStyle(
                 color: Color(0xFF0F172A),
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

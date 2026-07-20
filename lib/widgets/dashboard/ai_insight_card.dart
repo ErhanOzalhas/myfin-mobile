@@ -40,7 +40,7 @@ class AIInsightCard extends StatelessWidget {
                 style: TextStyle(
                   color: color,
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -70,7 +70,7 @@ class _InsightLine extends StatelessWidget {
           '•',
           style: TextStyle(
             color: Color(0xFF64748B),
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(width: 8),

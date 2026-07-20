@@ -327,7 +327,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF087EA4),
                     ),
                   ),
@@ -361,7 +361,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   SurfaceCard(
                     child: Text(
                       'Portföy verisi alınırken bir hata oluştu.',
-                      style: TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(fontWeight: FontWeight.w400),
                     ),
                   ),
                 ],
@@ -550,7 +550,7 @@ class _PortfolioSectionHeader extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 19,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                   letterSpacing: -.2,
                 ),
@@ -572,7 +572,7 @@ class _PortfolioSectionHeader extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF087EA4),
                     ),
                   ),
@@ -699,7 +699,7 @@ class _DistributionProgressRow extends StatelessWidget {
                     segment.label,
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: Color(0xFF334155),
                     ),
                   ),
@@ -708,7 +708,7 @@ class _DistributionProgressRow extends StatelessWidget {
                   formatCurrency(value),
                   style: const TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -721,7 +721,7 @@ class _DistributionProgressRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: isPositive || isNegative
-                          ? FontWeight.w600
+                          ? FontWeight.w400
                           : FontWeight.w400,
                       color: changeColor,
                     ),
@@ -846,7 +846,7 @@ class _DistributionFilterRow extends StatelessWidget {
                   '${percent.toStringAsFixed(1)}%',
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -939,7 +939,7 @@ class _PortfolioCategoryFilters extends StatelessWidget {
                   ),
                   labelStyle: TextStyle(
                     color: selected ? Colors.white : const Color(0xFF475569),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -969,7 +969,7 @@ class _AssetsHeader extends StatelessWidget {
             'Varlıklar',
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF0F172A),
             ),
           ),
@@ -1160,7 +1160,7 @@ class _SelectedCategorySummary extends StatelessWidget {
               snapshot.category,
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 color: Color(0xFF475569),
               ),
             ),
@@ -1173,7 +1173,7 @@ class _SelectedCategorySummary extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF475569),
                 ),
               ),
@@ -1183,7 +1183,7 @@ class _SelectedCategorySummary extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF475569),
                 ),
               ),
@@ -1198,7 +1198,7 @@ class _SelectedCategorySummary extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   height: 1.15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -1208,7 +1208,7 @@ class _SelectedCategorySummary extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   height: 1.15,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   color: Color(0xFF0F172A),
                 ),
               ),
@@ -1236,7 +1236,7 @@ class _SelectedCategorySummary extends StatelessWidget {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                       color: changeColor,
                     ),
                   ),
@@ -1295,7 +1295,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               color: Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 2),
@@ -1306,7 +1306,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 25,
               height: 1.02,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               color: Color(0xFF0F172A),
               letterSpacing: -.7,
             ),
@@ -1334,7 +1334,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Color(0xFF92400E),
                         fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -1382,7 +1382,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                             color: profitColor,
                           ),
                         ),
@@ -1400,7 +1400,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                         formatPercent(summary.profitPercent),
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                           color: profitColor,
                         ),
                       ),
@@ -1427,7 +1427,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: Color(0xFF0F3A5D),
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -1438,7 +1438,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF0F3A5D),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -1482,7 +1482,7 @@ class _CompactSummaryValue extends StatelessWidget {
           style: const TextStyle(
             color: Colors.black45,
             fontSize: 9.5,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 3),
@@ -1493,7 +1493,7 @@ class _CompactSummaryValue extends StatelessWidget {
           style: TextStyle(
             color: valueColor ?? const Color(0xFF0F172A),
             fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -1541,7 +1541,7 @@ class _PortfolioList extends StatelessWidget {
           return const SurfaceCard(
             child: Text(
               'Portföy verisi alınırken bir hata oluştu.',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(fontWeight: FontWeight.w400),
             ),
           );
         }
@@ -1577,7 +1577,7 @@ class _PortfolioListContent extends StatelessWidget {
         child: Text(
           emptyMessage ??
               'Henüz portföy varlığı yok. Yeni İşlem butonuyla ilk varlığını ekleyebilirsin.',
-          style: TextStyle(fontWeight: FontWeight.w500),
+          style: TextStyle(fontWeight: FontWeight.w400),
         ),
       );
     }
@@ -1654,7 +1654,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       : '?',
                   style: const TextStyle(
                     color: Color(0xFF0369A1),
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                     fontSize: 17,
                   ),
                 ),
@@ -1671,7 +1671,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13.5,
                         height: 1.15,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                         letterSpacing: -.1,
                       ),
@@ -1684,7 +1684,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                             text: '${formatQuantity(item.quantity)} adet',
                             style: const TextStyle(
                               color: Color(0xFF0369A1),
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           TextSpan(text: ' • ${item.type}'),
@@ -1694,7 +1694,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 10.5,
                       ),
                     ),
@@ -1705,7 +1705,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 9.5,
                       ),
                     ),
@@ -1722,7 +1722,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       hasLivePrice ? 'Güncel Değer' : 'Maliyet',
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 9.5,
                       ),
                     ),
@@ -1738,7 +1738,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF0F172A),
                         letterSpacing: -.15,
                       ),
@@ -1757,7 +1757,7 @@ class _PortfolioAssetTile extends StatelessWidget {
                         color: hasLivePrice
                             ? performanceColor
                             : const Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         fontSize: 9.5,
                       ),
                     ),
