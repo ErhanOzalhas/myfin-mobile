@@ -39,6 +39,10 @@ class FirestoreService {
     return _userSubCollection('transactions');
   }
 
+  CollectionReference<Map<String, dynamic>> get _cashMovementsCollection {
+    return _userSubCollection('cashMovements');
+  }
+
   CollectionReference<Map<String, dynamic>> get _portfolioSnapshotsCollection {
     return _userSubCollection('portfolioSnapshots');
   }
@@ -185,6 +189,53 @@ class FirestoreService {
     return _transactionsCollection
         .orderBy('transactionDate', descending: true)
         .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchCashMovements() {
+    return _cashMovementsCollection
+        .orderBy('movementDate', descending: true)
+        .snapshots();
+  }
+
+  Future<DocumentReference<Map<String, dynamic>>> addCashMovement(
+    Map<String, dynamic> data,
+  ) {
+    return _cashMovementsCollection.add({
+      ...data,
+      'currency': 'TRY',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateCashMovement(String id, Map<String, dynamic> data) {
+    return _cashMovementsCollection.doc(id).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> deleteCashMovement(String id) {
+    return _cashMovementsCollection.doc(id).delete();
+  }
+
+  Future<void> upsertTransactionCashMovement(
+    String transactionId,
+    Map<String, dynamic>? data,
+  ) async {
+    final reference = _cashMovementsCollection.doc('tx_$transactionId');
+    if (data == null) {
+      final snapshot = await reference.get();
+      if (snapshot.exists) await reference.delete();
+      return;
+    }
+    await reference.set({
+      ...data,
+      'transactionId': transactionId,
+      'currency': 'TRY',
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> upsertPortfolioSnapshot(

@@ -36,7 +36,10 @@ class PortfolioScoreServiceV2 {
     return engine.calculate(buildInput(items, snapshot: snapshot));
   }
 
-  PortfolioScoreResultV2 calculateFromValuation(PortfolioValuation valuation) {
+  PortfolioScoreResultV2 calculateFromValuation(
+    PortfolioValuation valuation, {
+    double cashBalance = 0,
+  }) {
     final positions = valuation.items
         .map((entry) {
           final item = entry.item;
@@ -61,7 +64,26 @@ class PortfolioScoreServiceV2 {
             usesLiveFx: true,
           );
         })
-        .toList(growable: false);
+        .toList(growable: true);
+
+    if (cashBalance.isFinite && cashBalance > 0) {
+      positions.add(
+        PortfolioScorePosition(
+          symbol: 'CASH_TRY',
+          assetClass: 'cash',
+          sector: 'cash',
+          country: 'tr',
+          currency: 'TRY',
+          marketValue: cashBalance,
+          costBasis: cashBalance,
+          annualizedVolatility: 0,
+          maxDrawdown: 0,
+          liquidityScore: 100,
+          usesLivePrice: true,
+          usesLiveFx: true,
+        ),
+      );
+    }
 
     return engine.calculate(
       PortfolioScoreInput(

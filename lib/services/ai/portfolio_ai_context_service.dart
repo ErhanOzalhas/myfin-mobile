@@ -9,10 +9,14 @@ import 'portfolio_context_builder.dart';
 class PortfolioAIContextService {
   const PortfolioAIContextService();
 
-  PortfolioContextInput buildInput(PortfolioValuation valuation) {
+  PortfolioContextInput buildInput(
+    PortfolioValuation valuation, {
+    double cashBalance = 0,
+  }) {
     return PortfolioContextInput(
       currency: valuation.baseCurrency,
-      totalValue: valuation.totalValue,
+      totalValue: valuation.totalValue + cashBalance,
+      cashBalance: cashBalance,
       assets: valuation.items
           .map((entry) {
             final item = entry.item;
@@ -34,7 +38,10 @@ class PortfolioAIContextService {
     );
   }
 
-  String buildDetailedFacts(PortfolioValuation valuation) {
+  String buildDetailedFacts(
+    PortfolioValuation valuation, {
+    double cashBalance = 0,
+  }) {
     if (valuation.items.isEmpty) {
       return 'Portföyde henüz değerlendirilecek bir varlık yok.';
     }
@@ -50,6 +57,10 @@ class PortfolioAIContextService {
       ..writeln('Baz para: ${valuation.baseCurrency}')
       ..writeln('Toplam maliyet: ${_money(valuation.totalCost)}')
       ..writeln('Güncel toplam değer: ${_money(valuation.totalValue)}')
+      ..writeln('Kullanılabilir TL nakit: ${_money(cashBalance)}')
+      ..writeln(
+        'Toplam finansal varlık: ${_money(valuation.totalValue + cashBalance)}',
+      )
       ..writeln(
         'Toplam gerçekleşmemiş kâr/zarar: '
         '${_signedMoney(valuation.totalProfit)} '

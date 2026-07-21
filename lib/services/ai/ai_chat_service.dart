@@ -4,6 +4,7 @@ import 'package:myfin_mobile/services/ai/ai_service.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
 import 'package:myfin_mobile/services/ai/portfolio_ai_context_service.dart';
 import 'package:myfin_mobile/services/portfolio_valuation_service.dart';
+import 'package:myfin_mobile/repositories/cash_repository.dart';
 
 /// Compatibility layer for the existing AI chat screen.
 ///
@@ -36,7 +37,10 @@ class AIChatService {
       ),
       portfolioInput: valuation == null
           ? null
-          : _portfolioContextService.buildInput(valuation),
+          : _portfolioContextService.buildInput(
+              valuation,
+              cashBalance: CashRepository.instance.latest.balance,
+            ),
       userContext: const UserFinancialContext(
         name: 'MyFin User',
         baseCurrency: 'TRY',
@@ -64,7 +68,10 @@ class AIChatService {
       ),
       portfolioInput: valuation == null
           ? null
-          : _portfolioContextService.buildInput(valuation),
+          : _portfolioContextService.buildInput(
+              valuation,
+              cashBalance: CashRepository.instance.latest.balance,
+            ),
       userContext: const UserFinancialContext(
         name: 'MyFin User',
         baseCurrency: 'TRY',
@@ -80,7 +87,10 @@ class AIChatService {
     final String context = _contextBuilder.build(analysis).trim();
     final String valuationContext = valuation == null
         ? 'Gerçek portföy değerlemesi bu istekte mevcut değil.'
-        : _portfolioContextService.buildDetailedFacts(valuation);
+        : _portfolioContextService.buildDetailedFacts(
+            valuation,
+            cashBalance: CashRepository.instance.latest.balance,
+          );
     final String searchDirective = _needsCurrentNews(question)
         ? '=== ENABLE_WEB_SEARCH ===\nBu soru güncel haber/gelişme gerektiriyor. Güncel web kaynaklarını ara; haber tarihlerini ve kaynak bağlantılarını ver. Eski haberleri güncelmiş gibi sunma.'
         : '';

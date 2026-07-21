@@ -23,6 +23,7 @@ import '../widgets/dashboard/portfolio_pulse_panel.dart';
 import '../widgets/dashboard/smart_insights_panel.dart';
 import '../widgets/dashboard/watchlist_panel.dart';
 import '../widgets/dashboard/weekly_performance_card.dart';
+import '../widgets/cash_summary_card.dart';
 import 'package:myfin_mobile/auth/login_page.dart';
 import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analyzer.dart';
@@ -1082,17 +1083,23 @@ class _HeroPortfolioCard extends StatelessWidget {
             final summary = summarySnapshot.data ?? _fallbackSummary(items);
             final isPositive = summary.profitLoss >= 0;
 
-            return _PrimaryDashboardCard(
-              totalValueText: formatCurrency(summary.currentValue),
-              totalCostText: formatCurrency(summary.totalCost),
-              profitText:
-                  '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
-              profitPercentText: formatPercent(summary.profitPercent),
-              isProfit: isPositive,
-              onProfitTap: () => _openProfitLossDetailPage(context),
-              onTap: () {
-                _openPortfolioPage(context);
-              },
+            return Column(
+              children: [
+                _PrimaryDashboardCard(
+                  totalValueText: formatCurrency(summary.currentValue),
+                  totalCostText: formatCurrency(summary.totalCost),
+                  profitText:
+                      '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
+                  profitPercentText: formatPercent(summary.profitPercent),
+                  isProfit: isPositive,
+                  onProfitTap: () => _openProfitLossDetailPage(context),
+                  onTap: () {
+                    _openPortfolioPage(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+                CashSummaryCard(investmentValue: summary.currentValue),
+              ],
             );
           },
         );
@@ -3098,7 +3105,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                               style: TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 22,
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w600,
                                 letterSpacing: -.15,
                                 height: 1.24,
                               ),
@@ -3180,8 +3187,8 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                               const SizedBox(width: 7),
                               Text(
                                 portfolio.hasDominantAsset
-                                    ? 'Bugünün odağı: yoğunluğu dengele'
-                                    : 'Bugünün odağı: dengeni koru',
+                                    ? 'Bugünün odağı: Yoğunluğu dengele'
+                                    : 'Bugünün odağı: Dengeni koru',
                                 style: const TextStyle(
                                   color: Color(0xFF0F172A),
                                   fontSize: 13,
@@ -3234,39 +3241,75 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _AiQuickPrompt(
-                          label: 'Risk analizi',
-                          icon: Icons.shield_outlined,
-                          onTap: () => _openChat(
-                            context,
-                            analysis,
-                            items,
-                            'Portföyümdeki en önemli riskleri ve azaltmak için atabileceğim 3 adımı açıklar mısın?',
-                          ),
+                        _PromptAiSparkles(),
+                        SizedBox(width: 10),
+                        _AnimatedQuestionTitle(),
+                      ],
+                    ),
+                    const SizedBox(height: 9),
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _AiQuickPrompt(
+                                label: 'Risk analizi',
+                                icon: Icons.shield_outlined,
+                                onTap: () => _openChat(
+                                  context,
+                                  analysis,
+                                  items,
+                                  'Portföyümdeki en önemli riskleri ve azaltmak için atabileceğim 3 adımı açıklar mısın?',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _AiQuickPrompt(
+                                label: 'Dağılımı incele',
+                                icon: Icons.pie_chart_outline_rounded,
+                                onTap: () => _openChat(
+                                  context,
+                                  analysis,
+                                  items,
+                                  'Portföy dağılımımı incele; yoğunlaşan alanları ve dengelemek için alternatifleri anlat.',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        _AiQuickPrompt(
-                          label: 'Dağılımı incele',
-                          icon: Icons.pie_chart_outline_rounded,
-                          onTap: () => _openChat(
-                            context,
-                            analysis,
-                            items,
-                            'Portföy dağılımımı incele; yoğunlaşan alanları ve dengelemek için alternatifleri anlat.',
-                          ),
-                        ),
-                        _AiQuickPrompt(
-                          label: 'Piyasa gündemi',
-                          icon: Icons.public_rounded,
-                          onTap: () => _openChat(
-                            context,
-                            analysis,
-                            items,
-                            'Bugünün piyasa gündemini ve portföyümü etkileyebilecek önemli gelişmeleri özetler misin?',
-                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _AiQuickPrompt(
+                                label: 'Piyasa gündemi',
+                                icon: Icons.public_rounded,
+                                onTap: () => _openChat(
+                                  context,
+                                  analysis,
+                                  items,
+                                  'Bugünün piyasa gündemini ve portföyümü etkileyebilecek önemli gelişmeleri özetler misin?',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _AiQuickPrompt(
+                                label: 'Denge planı',
+                                icon: Icons.balance_rounded,
+                                onTap: () => _openChat(
+                                  context,
+                                  analysis,
+                                  items,
+                                  'Portföyümdeki bozuk dağılımı iyileştirmek için öncelik sırasına göre kısa bir denge planı hazırlar mısın?',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -3456,7 +3499,7 @@ class _AiQuickPrompt extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 15, color: const Color(0xFF475569)),
               const SizedBox(width: 6),
@@ -3524,6 +3567,124 @@ class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
         Icons.auto_awesome_rounded,
         color: Color(0xFFF5A623),
         size: 22,
+      ),
+    );
+  }
+}
+
+class _PromptAiSparkles extends StatefulWidget {
+  const _PromptAiSparkles();
+
+  @override
+  State<_PromptAiSparkles> createState() => _PromptAiSparklesState();
+}
+
+class _AnimatedQuestionTitle extends StatefulWidget {
+  const _AnimatedQuestionTitle();
+
+  @override
+  State<_AnimatedQuestionTitle> createState() => _AnimatedQuestionTitleState();
+}
+
+class _AnimatedQuestionTitleState extends State<_AnimatedQuestionTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const style = TextStyle(
+      fontSize: 13,
+      height: 1,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -.15,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Aklındaki ',
+          style: TextStyle(
+            fontSize: 13,
+            height: 1,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -.15,
+            color: Color(0xFF334155),
+          ),
+        ),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final value = Curves.easeInOut.transform(_controller.value);
+            return Transform.scale(
+              alignment: Alignment.centerLeft,
+              scale: 1 + value * .025,
+              child: Opacity(opacity: .88 + value * .12, child: child),
+            );
+          },
+          child: ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFF7C3AED), Color(0xFF0284C7)],
+            ).createShader(bounds),
+            child: const Text('Ne?', style: style),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PromptAiSparklesState extends State<_PromptAiSparkles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2300),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final value = Curves.easeInOut.transform(_controller.value);
+        return Transform.scale(
+          scale: 1 + value * .035,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0xFFF5A623,
+                  ).withValues(alpha: .16 + value * .18),
+                  blurRadius: 10 + value * 9,
+                  spreadRadius: value,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: const Icon(
+        Icons.auto_awesome_rounded,
+        color: Color(0xFFF5A623),
+        size: 25,
       ),
     );
   }

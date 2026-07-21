@@ -141,9 +141,9 @@ class IntelligenceScoreCard extends StatelessWidget {
                   child: Text(
                     '$normalizedScore',
                     style: TextStyle(
-                      fontSize: 50,
+                      fontSize: 46,
                       height: 1,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w700,
                       color: scoreColor,
                       letterSpacing: -1.8,
                     ),

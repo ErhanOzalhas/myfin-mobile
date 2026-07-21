@@ -185,6 +185,16 @@ void main() {
       result.warnings,
       everyElement(isNot(contains('Güncel fiyat bulunmadığı'))),
     );
+
+    final withCash = const PortfolioScoreServiceV2().calculateFromValuation(
+      valuation,
+      cashBalance: 5000,
+    );
+    expect(withCash.largestPositionWeight, closeTo(.4, .001));
+    expect(
+      withCash.breakdown.cashBuffer,
+      greaterThan(result.breakdown.cashBuffer),
+    );
   });
 
   test('legacy score entry points return the same overall score', () {

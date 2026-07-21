@@ -12,6 +12,7 @@ import '../../widgets/common/icon_box.dart';
 import '../../widgets/common/section_title.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/common/thin_divider.dart';
+import '../../widgets/cash_summary_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../../utils/no_animation_route.dart';
 import 'asset_detail_page.dart';
@@ -414,6 +415,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
                             ),
                           )
                         : _PortfolioSummaryCard(summary: valuation),
+                    if (valuation != null) ...[
+                      const SizedBox(height: 10),
+                      CashSummaryCard(investmentValue: valuation.totalValue),
+                    ],
                     const SizedBox(height: 18),
                     const _PortfolioSectionHeader(
                       icon: Icons.donut_large_rounded,
@@ -1306,7 +1311,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 25,
               height: 1.02,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
               letterSpacing: -.7,
             ),
@@ -1382,7 +1387,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: FontWeight.w600,
                             color: profitColor,
                           ),
                         ),
@@ -1400,7 +1405,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                         formatPercent(summary.profitPercent),
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w600,
                           color: profitColor,
                         ),
                       ),
@@ -1425,7 +1430,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 child: Text(
                   'Maliyet',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Color(0xFF0F3A5D),
                     fontWeight: FontWeight.w400,
                   ),
@@ -1438,7 +1443,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF0F3A5D),
-                  fontWeight: FontWeight.w400,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],

@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
+import '../../models/cash_movement.dart';
 import '../../repositories/portfolio_repository.dart';
+import '../../repositories/cash_repository.dart';
 import '../../services/market/models/asset_category.dart';
 import '../../services/market/registry/asset_info.dart';
 import '../../services/market/market_service.dart';
@@ -72,6 +74,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   String _assetType = 'Hisse';
   String _transactionType = 'Alış';
   String _currency = 'TRY';
+  String _cashFlowMode = 'external';
   DateTime _transactionDate = DateTime.now();
 
   @override
@@ -115,6 +118,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final note = (data['note'] ?? '').toString();
 
     _transactionType = type;
+    _cashFlowMode = (data['cashFlowMode'] ?? 'external').toString();
     _currency = currency;
     _assetName = assetName;
     _assetType = (data['assetType'] ?? _assetType).toString();
@@ -197,6 +201,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       _assetType = 'Hisse';
       _transactionType = 'Alış';
       _currency = 'TRY';
+      _cashFlowMode = 'external';
       _transactionDate = DateTime.now();
     });
   }
@@ -515,8 +520,25 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final resolvedAssetName = _assetName.trim().isEmpty
         ? _resolveAssetName(symbol)
         : _assetName.trim();
+    final usesCash = _currency == 'TRY' && _cashFlowMode == 'cash';
+    final transactionTotal = quantity * price;
 
     try {
+      if (usesCash && _transactionType == 'Alış') {
+        final cash = await CashRepository.instance.getBalance();
+        final originalCashAmount = widget.isEdit
+            ? ((widget.transactionData?['cashFlowMode'] == 'cash' &&
+                      widget.transactionData?['type'] == 'Alış')
+                  ? (widget.transactionData?['total'] as num?)?.toDouble() ?? 0
+                  : 0)
+            : 0;
+        if (cash.balance + originalCashAmount < transactionTotal - .005) {
+          throw StateError(
+            'TL nakit bakiyesi yetersiz. Kullanılabilir bakiye: '
+            '${formatCurrency(cash.balance + originalCashAmount, 'TRY')}',
+          );
+        }
+      }
       final items = await PortfolioRepository.instance.watchPortfolio().first;
 
       if (widget.isEdit) {
@@ -565,6 +587,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             'currency': _currency,
             'transactionDate': Timestamp.fromDate(_transactionDate),
             'note': _noteController.text.trim(),
+            'cashFlowMode': _cashFlowMode,
           },
         });
 
@@ -582,7 +605,17 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
               'note': _noteController.text.trim(),
               'wasEdited': true,
               'changeHistory': previousHistory,
+              'cashFlowMode': _cashFlowMode,
             });
+
+        await CashRepository.instance.syncTransactionMovement(
+          transactionId: widget.transactionId!,
+          transactionType: _transactionType,
+          usesCash: usesCash,
+          amountTry: transactionTotal,
+          date: _transactionDate,
+          symbol: symbol,
+        );
 
         await PortfolioRebuildService().rebuildFromTransactions();
 
@@ -656,7 +689,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         }
       }
 
-      await PortfolioRepository.instance.addTransaction({
+      final transactionId = await PortfolioRepository.instance.addTransaction({
         'symbol': symbol,
         'assetName': resolvedAssetName,
         'assetType': resolvedAssetType,
@@ -667,7 +700,17 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         'currency': _currency,
         'transactionDate': Timestamp.fromDate(_transactionDate),
         'note': _noteController.text.trim(),
+        'cashFlowMode': _cashFlowMode,
       });
+
+      await CashRepository.instance.syncTransactionMovement(
+        transactionId: transactionId,
+        transactionType: _transactionType,
+        usesCash: usesCash,
+        amountTry: transactionTotal,
+        date: _transactionDate,
+        symbol: symbol,
+      );
 
       if (!mounted) return;
 
@@ -1029,7 +1072,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         style: _segmentStyle(context),
                         selected: {_transactionType},
                         onSelectionChanged: (value) {
-                          setState(() => _transactionType = value.first);
+                          setState(() {
+                            _transactionType = value.first;
+                            _cashFlowMode =
+                                _transactionType == 'Satış' &&
+                                    _currency == 'TRY'
+                                ? 'cash'
+                                : 'external';
+                          });
                         },
                       ),
                     ),
@@ -1152,6 +1202,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
                               setState(() {
                                 _currency = value;
+                                if (value != 'TRY') {
+                                  _cashFlowMode = 'external';
+                                }
                               });
                             },
                           ),
@@ -1184,6 +1237,152 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _transactionType == 'Alış'
+                          ? 'Ödeme kaynağı'
+                          : 'Satış geliri',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: 'cash',
+                          label: Text(
+                            _transactionType == 'Alış'
+                                ? 'TL Nakit'
+                                : 'TL Nakde Aktar',
+                          ),
+                          icon: const Icon(
+                            Icons.account_balance_wallet_outlined,
+                          ),
+                          enabled: _currency == 'TRY',
+                        ),
+                        ButtonSegment(
+                          value: 'external',
+                          label: Text(
+                            _transactionType == 'Alış'
+                                ? 'Dış Kaynak'
+                                : 'Portföy Dışına',
+                          ),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                        ),
+                      ],
+                      selected: {_cashFlowMode},
+                      onSelectionChanged: (value) {
+                        setState(() => _cashFlowMode = value.first);
+                      },
+                    ),
+                    if (_currency == 'TRY') ...[
+                      const SizedBox(height: 8),
+                      StreamBuilder<CashBalanceSnapshot>(
+                        stream: CashRepository.instance.watchBalance(),
+                        initialData: CashRepository.instance.latest,
+                        builder: (context, cashSnapshot) {
+                          final balance = cashSnapshot.data?.balance ?? 0;
+                          final transactionAmount =
+                              _parseDouble(_quantityController.text) *
+                              _parseDouble(_priceController.text);
+                          final usesCash = _cashFlowMode == 'cash';
+                          final original = widget.transactionData;
+                          final originalUsesCash =
+                              widget.isEdit &&
+                              original?['currency'] == 'TRY' &&
+                              original?['cashFlowMode'] == 'cash';
+                          final originalTotal = originalUsesCash
+                              ? (original?['total'] as num?)?.toDouble() ?? 0
+                              : 0.0;
+                          final originalDelta = !originalUsesCash
+                              ? 0.0
+                              : original?['type'] == 'Alış'
+                              ? -originalTotal
+                              : originalTotal;
+                          final balanceBeforeEditedMovement =
+                              balance - originalDelta;
+                          final after = !usesCash
+                              ? balanceBeforeEditedMovement
+                              : _transactionType == 'Alış'
+                              ? balanceBeforeEditedMovement - transactionAmount
+                              : balanceBeforeEditedMovement + transactionAmount;
+                          final insufficient =
+                              usesCash &&
+                              _transactionType == 'Alış' &&
+                              after < 0;
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 9,
+                            ),
+                            decoration: BoxDecoration(
+                              color: insufficient
+                                  ? const Color(0xFFFEF2F2)
+                                  : const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: insufficient
+                                    ? const Color(0xFFFECACA)
+                                    : const Color(0xFFBFDBFE),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  size: 17,
+                                  color: insufficient
+                                      ? const Color(0xFFDC2626)
+                                      : const Color(0xFF0284C7),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Güncel TL nakit: ${formatCurrency(balance, 'TRY')}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: insufficient
+                                          ? const Color(0xFFB91C1C)
+                                          : const Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                ),
+                                if ((usesCash && transactionAmount > 0) ||
+                                    originalDelta != 0)
+                                  Text(
+                                    insufficient
+                                        ? 'Yetersiz'
+                                        : 'Sonra: ${formatCurrency(after, 'TRY')}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: insufficient
+                                          ? const Color(0xFFDC2626)
+                                          : const Color(0xFF0284C7),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    if (_currency != 'TRY') ...[
+                      const SizedBox(height: 7),
+                      const Text(
+                        'TL nakit kullanımı yalnızca TRY işlemlerinde kullanılabilir. Döviz işlemleri portföy varlığı olarak izlenir.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _noteController,
