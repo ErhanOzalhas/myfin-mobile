@@ -46,10 +46,12 @@ class AiChatPage extends StatefulWidget {
     super.key,
     required this.analysis,
     required this.portfolioItems,
+    this.initialQuestion,
   });
 
   final PortfolioAnalysis analysis;
   final List<PortfolioItem> portfolioItems;
+  final String? initialQuestion;
 
   @override
   State<AiChatPage> createState() => _AiChatPageState();
@@ -98,6 +100,10 @@ class _AiChatPageState extends State<AiChatPage> {
   @override
   void initState() {
     super.initState();
+    final initialQuestion = widget.initialQuestion?.trim() ?? '';
+    if (initialQuestion.isNotEmpty) {
+      _messageController.text = initialQuestion;
+    }
     _authSubscription ??= FirebaseAuth.instance.authStateChanges().listen((
       user,
     ) {

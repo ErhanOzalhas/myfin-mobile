@@ -1,12 +1,12 @@
 import '../models/ai_portfolio_score.dart';
 import '../models/portfolio_item.dart';
-import 'ai_score_engine.dart';
+import 'ai/portfolio_score_service_v2.dart';
 
 class AIScoreService {
   const AIScoreService();
 
   AIPortfolioScore calculate(List<PortfolioItem> items) {
-    final breakdown = const AIScoreEngine().calculate(items);
+    final result = const PortfolioScoreServiceV2().calculate(items);
 
     if (items.isEmpty) {
       return const AIPortfolioScore(
@@ -19,25 +19,28 @@ class AIScoreService {
       );
     }
 
-    final risk = switch (breakdown.overallScore) {
-      >= 80 => RiskLevel.low,
-      >= 60 => RiskLevel.medium,
+    final risk = switch (result.riskScore) {
+      <= 35 => RiskLevel.low,
+      <= 65 => RiskLevel.medium,
       _ => RiskLevel.high,
     };
 
-    final summary = _buildSummary(breakdown.overallScore);
+    final summary = _buildSummary(result.overallScore, result.confidence);
 
     return AIPortfolioScore(
-      overallScore: breakdown.overallScore,
-      diversification: breakdown.diversification,
-      momentum: breakdown.growth,
-      stability: breakdown.stability,
+      overallScore: result.overallScore,
+      diversification: result.breakdown.diversification.round(),
+      momentum: result.breakdown.riskAdjustedPerformance.round(),
+      stability: result.breakdown.marketRisk.round(),
       risk: risk,
       summary: summary,
     );
   }
 
-  String _buildSummary(int score) {
+  String _buildSummary(int score, int confidence) {
+    if (confidence < 45) {
+      return 'Skor veri kapsamı sınırlı olduğu için ön değerlendirme niteliğindedir.';
+    }
     if (score >= 80) {
       return 'Portföyünüz dengeli görünüyor. Mevcut dağılım korunabilir.';
     }

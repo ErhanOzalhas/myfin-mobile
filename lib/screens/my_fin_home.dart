@@ -26,6 +26,8 @@ import '../widgets/dashboard/weekly_performance_card.dart';
 import 'package:myfin_mobile/auth/login_page.dart';
 import 'package:myfin_mobile/screens/intelligence/ai_chat_page.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analyzer.dart';
+import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
+import 'package:myfin_mobile/services/ai/portfolio_score_service_v2.dart';
 import '../widgets/navigation/myfin_bottom_nav.dart';
 import 'transactions/transaction_history_page.dart';
 import 'transactions/transaction_detail_page.dart';
@@ -118,6 +120,12 @@ class _MyFinHomeState extends State<MyFinHome> {
               const SizedBox(height: 24),
               _HeroPortfolioCard(refreshTick: _refreshTick),
 
+              const SizedBox(height: 12),
+              _DashboardFadeIn(
+                delay: 25,
+                child: _MyFinAskAiButton(refreshTick: _refreshTick),
+              ),
+
               const SizedBox(height: 16),
 
               _DashboardFadeIn(
@@ -136,10 +144,13 @@ class _MyFinHomeState extends State<MyFinHome> {
 
               const _RowQuickActions(),
 
-              const SizedBox(height: 16),
-
-              _KpiGrid(refreshTick: _refreshTick),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
+              SectionTitle(
+                title: 'Hızlı Performans',
+                action: 'Detay',
+                onActionTap: () => _openPerformanceReportPage(context),
+              ),
+              _PerformanceHighlights(refreshTick: _refreshTick),
 
               const SizedBox(height: 24),
               SectionTitle(
@@ -281,7 +292,11 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
   }
 
   final portfolioSnapshot = const PortfolioIntelligenceService().build(items);
-  final total = portfolioSnapshot.totalValue;
+  final valuation = PortfolioValuationService.instance.peek(items);
+  final scoreV2 = valuation == null
+      ? const PortfolioScoreServiceV2().calculate(items)
+      : const PortfolioScoreServiceV2().calculateFromValuation(valuation);
+  final total = valuation?.totalValue ?? portfolioSnapshot.totalValue;
   if (total <= 0) {
     return const _PortfolioIntelligence(
       overallScore: 0,
@@ -305,8 +320,13 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
   final currencyWeights = <String, double>{};
   final countryWeights = <String, double>{};
 
+  final currentValues = <String, double>{
+    for (final entry in valuation?.items ?? const <PortfolioItemValuation>[])
+      entry.item.id: entry.currentValueInBaseCurrency,
+  };
+
   for (final item in items) {
-    final weight = item.totalCost / total;
+    final weight = (currentValues[item.id] ?? item.totalCost) / total;
     final symbol = item.symbol.trim().toUpperCase();
     final sector = _inferSector(item);
     final currency = item.currency.trim().isEmpty
@@ -321,7 +341,8 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
   }
 
   final fallbackBiggestPosition = _maxWeight(symbolWeights);
-  final biggestPosition = portfolioSnapshot.dominantAssetSymbol.isEmpty
+  final biggestPosition =
+      valuation != null || portfolioSnapshot.dominantAssetSymbol.isEmpty
       ? fallbackBiggestPosition
       : MapEntry(
           portfolioSnapshot.dominantAssetSymbol,
@@ -331,36 +352,14 @@ _PortfolioIntelligence _buildPortfolioIntelligence(List<PortfolioItem> items) {
   final topCurrency = _maxWeight(currencyWeights);
   final topCountry = _maxWeight(countryWeights);
 
-  final concentrationPenalty = (biggestPosition.value * 58).round();
-  final sectorPenalty = (topSector.value * 24).round();
+  final diversificationScore = scoreV2.breakdown.diversification.round();
 
-  final itemBonus = (items.length * 6).clamp(0, 24).round();
-
-  final diversificationScore =
-      (100 - concentrationPenalty - sectorPenalty + itemBonus)
-          .clamp(0, 100)
-          .round();
-
-  final riskScore =
-      (34 +
-              (biggestPosition.value * 38) +
-              (topSector.value * 18) +
-              (topCurrency.value > .85 ? 10 : 0) -
-              (items.length >= 5 ? 8 : 0))
-          .clamp(0, 100)
-          .round();
+  final riskScore = scoreV2.riskScore;
 
   final sectorScore = (100 - (topSector.value * 52)).clamp(0, 100).round();
   final currencyScore = (100 - (topCurrency.value * 42)).clamp(0, 100).round();
 
-  final overallScore =
-      ((diversificationScore * .38) +
-              ((100 - riskScore) * .28) +
-              (sectorScore * .2) +
-              (currencyScore * .14))
-          .round()
-          .clamp(0, 100)
-          .toInt();
+  final overallScore = scoreV2.overallScore;
 
   final signals = <String>[
     'En büyük pozisyon: ${biggestPosition.key} · ${_weightText(biggestPosition.value)}',
@@ -1085,6 +1084,7 @@ class _HeroPortfolioCard extends StatelessWidget {
 
             return _PrimaryDashboardCard(
               totalValueText: formatCurrency(summary.currentValue),
+              totalCostText: formatCurrency(summary.totalCost),
               profitText:
                   '${isPositive ? '+' : ''}${formatCurrency(summary.profitLoss)}',
               profitPercentText: formatPercent(summary.profitPercent),
@@ -1103,6 +1103,7 @@ class _HeroPortfolioCard extends StatelessWidget {
 
 class _PrimaryDashboardCard extends StatelessWidget {
   final String totalValueText;
+  final String totalCostText;
   final String profitText;
   final String profitPercentText;
   final bool isProfit;
@@ -1111,6 +1112,7 @@ class _PrimaryDashboardCard extends StatelessWidget {
 
   const _PrimaryDashboardCard({
     required this.totalValueText,
+    required this.totalCostText,
     required this.profitText,
     required this.profitPercentText,
     required this.isProfit,
@@ -1206,6 +1208,15 @@ class _PrimaryDashboardCard extends StatelessWidget {
                         letterSpacing: -1.6,
                       ),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Maliyet: $totalCostText',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .76),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1338,36 +1349,39 @@ class _PerformanceHighlights extends StatelessWidget {
       builder: (context, snapshot) {
         final items = snapshot.data ?? [];
 
-        return FutureBuilder<DashboardSummary>(
-          key: ValueKey('performance-summary-$refreshTick-${items.length}'),
-          future: _loadDashboardSummary(items),
-          builder: (context, summarySnapshot) {
-            final summary = summarySnapshot.data ?? _fallbackSummary(items);
-            final hasItems = items.isNotEmpty;
+        return FutureBuilder<PortfolioValuation>(
+          key: ValueKey('performance-highlights-$refreshTick-${items.length}'),
+          initialData: PortfolioValuationService.instance.peek(items),
+          future: PortfolioValuationService.instance.calculate(
+            items,
+            forceRefresh: refreshTick > 0,
+          ),
+          builder: (context, valuationSnapshot) {
+            final highlights = _PerformanceHighlightData.fromValuation(
+              valuationSnapshot.data,
+            );
 
             return Row(
               children: [
                 Expanded(
-                  child: _MetricCard(
+                  child: _DualPerformanceCard(
                     title: 'En İyi',
-                    value: hasItems ? (summary.bestPerformer ?? '-') : '-',
-                    subtitle: hasItems
-                        ? formatPercent(summary.bestPerformance)
-                        : 'Veri yok',
                     icon: Icons.emoji_events_rounded,
                     color: const Color(0xFF16A34A),
+                    percentItem: highlights.bestPercent,
+                    valueItem: highlights.bestValue,
+                    onTap: () => _openPerformanceReportPage(context),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _MetricCard(
+                  child: _DualPerformanceCard(
                     title: 'En Zayıf',
-                    value: hasItems ? (summary.worstPerformer ?? '-') : '-',
-                    subtitle: hasItems
-                        ? formatPercent(summary.worstPerformance)
-                        : 'Veri yok',
                     icon: Icons.trending_down_rounded,
                     color: const Color(0xFFDC2626),
+                    percentItem: highlights.worstPercent,
+                    valueItem: highlights.worstValue,
+                    onTap: () => _openPerformanceReportPage(context),
                   ),
                 ),
               ],
@@ -1375,6 +1389,188 @@ class _PerformanceHighlights extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _PerformanceHighlightData {
+  const _PerformanceHighlightData({
+    required this.bestPercent,
+    required this.bestValue,
+    required this.worstPercent,
+    required this.worstValue,
+  });
+
+  final _PerformanceHighlightItem bestPercent;
+  final _PerformanceHighlightItem bestValue;
+  final _PerformanceHighlightItem worstPercent;
+  final _PerformanceHighlightItem worstValue;
+
+  factory _PerformanceHighlightData.fromValuation(
+    PortfolioValuation? valuation,
+  ) {
+    if (valuation == null || valuation.items.isEmpty) {
+      const empty = _PerformanceHighlightItem(name: '-', subtitle: 'Veri yok');
+      return const _PerformanceHighlightData(
+        bestPercent: empty,
+        bestValue: empty,
+        worstPercent: empty,
+        worstValue: empty,
+      );
+    }
+
+    final byPercent = [...valuation.items]
+      ..sort((a, b) => b.profitPercent.compareTo(a.profitPercent));
+    final byValue = [...valuation.items]
+      ..sort(
+        (a, b) =>
+            b.profitLossInBaseCurrency.compareTo(a.profitLossInBaseCurrency),
+      );
+    return _PerformanceHighlightData(
+      bestPercent: _PerformanceHighlightItem.fromValuation(
+        byPercent.first,
+        usePercent: true,
+      ),
+      bestValue: _PerformanceHighlightItem.fromValuation(
+        byValue.first,
+        usePercent: false,
+      ),
+      worstPercent: _PerformanceHighlightItem.fromValuation(
+        byPercent.last,
+        usePercent: true,
+      ),
+      worstValue: _PerformanceHighlightItem.fromValuation(
+        byValue.last,
+        usePercent: false,
+      ),
+    );
+  }
+}
+
+class _PerformanceHighlightItem {
+  const _PerformanceHighlightItem({required this.name, required this.subtitle});
+
+  final String name;
+  final String subtitle;
+
+  factory _PerformanceHighlightItem.fromValuation(
+    PortfolioItemValuation valuation, {
+    required bool usePercent,
+  }) {
+    return _PerformanceHighlightItem(
+      name: valuation.item.symbol.trim().isEmpty ? '-' : valuation.item.symbol,
+      subtitle: usePercent
+          ? formatPercent(valuation.profitPercent)
+          : '${valuation.profitLossInBaseCurrency >= 0 ? '+' : ''}${formatCurrency(valuation.profitLossInBaseCurrency)}',
+    );
+  }
+}
+
+class _DualPerformanceCard extends StatelessWidget {
+  const _DualPerformanceCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.percentItem,
+    required this.valueItem,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color color;
+  final _PerformanceHighlightItem percentItem;
+  final _PerformanceHighlightItem valueItem;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(26),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconBox(icon: icon, color: color, size: 34),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFFCBD5E1),
+                      size: 24,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _PerformanceValueRow(item: percentItem, color: color),
+                const SizedBox(height: 5),
+                _PerformanceValueRow(item: valueItem, color: color),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PerformanceValueRow extends StatelessWidget {
+  const _PerformanceValueRow({required this.item, required this.color});
+
+  final _PerformanceHighlightItem item;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          item.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 1),
+        SizedBox(
+          width: double.infinity,
+          child: FittedBox(
+            alignment: Alignment.centerLeft,
+            fit: BoxFit.scaleDown,
+            child: Text(
+              item.subtitle,
+              maxLines: 1,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1530,6 +1726,11 @@ class _WeeklyPerformanceCard extends StatelessWidget {
                   : 'İlk günlük kapanış kaydedildi.',
               changeText: formatPercent(performance?.totalReturnPercent ?? 0),
               values: performance?.chartValues ?? const [],
+              dates:
+                  performance?.snapshots
+                      .map((snapshot) => snapshot.capturedAt)
+                      .toList() ??
+                  const [],
               isPositive: isPositive,
               color: color,
               momentumLabel: performance?.momentumLabel ?? 'Bekleniyor',
@@ -2152,6 +2353,17 @@ String _assetTypeLabel(String type) {
   }
 }
 
+String _portfolioItemDisplayName(List<PortfolioItem> items, String symbol) {
+  final normalizedSymbol = symbol.trim().toUpperCase();
+  for (final item in items) {
+    if (item.symbol.trim().toUpperCase() == normalizedSymbol &&
+        item.name.trim().isNotEmpty) {
+      return item.name.trim();
+    }
+  }
+  return symbol;
+}
+
 Color _assetTypeColor(String type) {
   switch (type.toLowerCase()) {
     case 'altin':
@@ -2289,8 +2501,11 @@ class _SmartInsightsPanel extends StatelessWidget {
               message: data.message,
               badge: data.badge,
               actions: data.actions,
+              evidence: data.evidence,
+              confidence: data.confidence,
               color: data.color,
               icon: data.icon,
+              onTap: () => _openIntelligencePage(context),
             );
           },
         );
@@ -2316,6 +2531,8 @@ class _SmartInsightData {
   final String message;
   final String badge;
   final List<String> actions;
+  final String evidence;
+  final int confidence;
   final Color color;
   final IconData icon;
 
@@ -2324,6 +2541,8 @@ class _SmartInsightData {
     required this.message,
     required this.badge,
     required this.actions,
+    required this.evidence,
+    required this.confidence,
     required this.color,
     required this.icon,
   });
@@ -2350,6 +2569,9 @@ class _SmartInsightData {
     final profitPercent = portfolio.profitLossPercent;
     final assetCount = portfolio.assetCount;
     final safeScore = score.clamp(0, 100);
+    final evidence =
+        '$dominantLabel %$dominantPercent · $assetCount varlık · AI skoru $safeScore';
+    final confidence = (58 + (assetCount * 7)).clamp(60, 92).round();
     final actions = <String>[];
 
     if (dominantRatio > .60) {
@@ -2393,6 +2615,8 @@ class _SmartInsightData {
             'Portföy hem performans hem dağılım açısından sağlıklı sinyal üretiyor.',
         badge: 'Güçlü',
         actions: actions,
+        evidence: evidence,
+        confidence: confidence,
         color: const Color(0xFF16A34A),
         icon: Icons.auto_awesome_rounded,
       );
@@ -2405,6 +2629,8 @@ class _SmartInsightData {
             '$dominantLabel tarafındaki yoğunluk ve performans birlikte izlenmeli.',
         badge: 'Dikkat',
         actions: actions,
+        evidence: evidence,
+        confidence: confidence,
         color: const Color(0xFFDC2626),
         icon: Icons.notification_important_rounded,
       );
@@ -2416,6 +2642,8 @@ class _SmartInsightData {
           'Portföyde net bir alarm yok; takip ve dağılım kontrolü yeterli görünüyor.',
       badge: 'Dengeli',
       actions: actions,
+      evidence: evidence,
+      confidence: confidence,
       color: const Color(0xFF008DB9),
       icon: Icons.psychology_rounded,
     );
@@ -2795,6 +3023,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
         final items = snapshot.data ?? [];
         final intelligence = _buildPortfolioIntelligence(items);
         final analysis = PortfolioAnalyzer.analyze(items);
+        final portfolio = const PortfolioIntelligenceService().build(items);
         final aiScore = analysis.aiScore;
         final scoreColor = _scoreColor(aiScore);
 
@@ -2925,68 +3154,226 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                noAnimationRoute(
-                                  builder: (_) => AiChatPage(
-                                    analysis: analysis,
-                                    portfolioItems: items,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Ink(
-                              height: 54,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF0F172A),
-                                    Color(0xFF008DB9),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF008DB9,
-                                    ).withValues(alpha: .24),
-                                    blurRadius: 24,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
+                  if (items.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                portfolio.hasDominantAsset
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.tips_and_updates_rounded,
+                                size: 17,
+                                color: portfolio.hasDominantAsset
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFF7C3AED),
                               ),
-                              child: const Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _PulsingAiGlowIcon(),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      "MyFin AI'ye Sor",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(width: 7),
+                              Text(
+                                portfolio.hasDominantAsset
+                                    ? 'Bugünün odağı: yoğunluğu dengele'
+                                    : 'Bugünün odağı: dengeni koru',
+                                style: const TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _AiMetric(
+                                  label: 'Çeşitlilik',
+                                  value:
+                                      '${intelligence.diversificationScore}/100',
+                                  color: _scoreColor(
+                                    intelligence.diversificationScore,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _AiMetric(
+                                  label: 'Risk',
+                                  value: '${intelligence.riskScore}/100',
+                                  color: intelligence.riskScore >= 70
+                                      ? const Color(0xFFDC2626)
+                                      : intelligence.riskScore >= 50
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFF16A34A),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _AiMetric(
+                                  label: 'En büyük pay',
+                                  value:
+                                      '${(portfolio.dominantAssetWeight * 100).round()}%',
+                                  caption: _portfolioItemDisplayName(
+                                    items,
+                                    portfolio.dominantAssetSymbol,
+                                  ),
+                                  color: const Color(0xFF008DB9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _AiQuickPrompt(
+                          label: 'Risk analizi',
+                          icon: Icons.shield_outlined,
+                          onTap: () => _openChat(
+                            context,
+                            analysis,
+                            items,
+                            'Portföyümdeki en önemli riskleri ve azaltmak için atabileceğim 3 adımı açıklar mısın?',
                           ),
                         ),
-                      ),
-                    ],
+                        _AiQuickPrompt(
+                          label: 'Dağılımı incele',
+                          icon: Icons.pie_chart_outline_rounded,
+                          onTap: () => _openChat(
+                            context,
+                            analysis,
+                            items,
+                            'Portföy dağılımımı incele; yoğunlaşan alanları ve dengelemek için alternatifleri anlat.',
+                          ),
+                        ),
+                        _AiQuickPrompt(
+                          label: 'Piyasa gündemi',
+                          icon: Icons.public_rounded,
+                          onTap: () => _openChat(
+                            context,
+                            analysis,
+                            items,
+                            'Bugünün piyasa gündemini ve portföyümü etkileyebilecek önemli gelişmeleri özetler misin?',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openChat(
+    BuildContext context,
+    PortfolioAnalysis analysis,
+    List<PortfolioItem> items,
+    String? initialQuestion,
+  ) {
+    Navigator.of(context).push(
+      noAnimationRoute(
+        builder: (_) => AiChatPage(
+          analysis: analysis,
+          portfolioItems: items,
+          initialQuestion: initialQuestion,
+        ),
+      ),
+    );
+  }
+}
+
+class _MyFinAskAiButton extends StatelessWidget {
+  const _MyFinAskAiButton({required this.refreshTick});
+
+  final int refreshTick;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<PortfolioItem>>(
+      stream: PortfolioRepository.instance.watchPortfolio(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        final analysis = PortfolioAnalyzer.analyze(items);
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              Navigator.of(context).push(
+                noAnimationRoute(
+                  builder: (_) =>
+                      AiChatPage(analysis: analysis, portfolioItems: items),
+                ),
+              );
+            },
+            child: Ink(
+              height: 62,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xFF0F172A), Color(0xFF008DB9)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF008DB9).withValues(alpha: .26),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const _PulsingAiGlowIcon(),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "MyFin AI'ye Sor",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Portföyün veya piyasa hakkında konuş',
+                          style: TextStyle(
+                            color: Color(0xFFD7F1FF),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 22,
                   ),
                 ],
               ),
@@ -2994,6 +3381,97 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
           ),
         );
       },
+    );
+  }
+}
+
+class _AiMetric extends StatelessWidget {
+  const _AiMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.caption,
+  });
+
+  final String label;
+  final String value;
+  final String? caption;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          if (caption != null && caption!.isNotEmpty)
+            Text(
+              caption!,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiQuickPrompt extends StatelessWidget {
+  const _AiQuickPrompt({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFF1F5F9),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: const Color(0xFF475569)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF334155),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

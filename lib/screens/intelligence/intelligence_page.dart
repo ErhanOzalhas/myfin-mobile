@@ -7,6 +7,10 @@ import '../../services/ai/ai_advisor_service.dart';
 import '../../services/ai/ai_history_service.dart';
 import '../../services/ai/ai_trend_service.dart';
 import '../../services/ai/portfolio_analyzer.dart';
+import '../../services/ai/portfolio_score_service_v2.dart';
+import '../../services/portfolio_valuation_service.dart';
+import '../../models/market_mood.dart';
+import '../../services/intelligence/market_mood_service.dart';
 import '../../services/ai/recommendation_engine_v2.dart';
 import '../../services/ai/timeline_engine.dart';
 import '../../widgets/intelligence/intelligence_ai_decision_card.dart';
@@ -30,12 +34,6 @@ class IntelligencePage extends StatelessWidget {
     return 'Veri Yok';
   }
 
-  String _moodForRisk(int risk) {
-    if (risk <= 35) return 'Olumlu';
-    if (risk <= 65) return 'Nötr';
-    return 'Temkinli';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,169 +45,197 @@ class IntelligencePage extends StatelessWidget {
         stream: PortfolioRepository.instance.watchPortfolio(),
         builder: (context, snapshot) {
           final items = snapshot.data ?? <PortfolioItem>[];
-          final analysis = PortfolioAnalyzer.analyze(items);
+          return FutureBuilder<PortfolioValuation>(
+            initialData: PortfolioValuationService.instance.peek(items),
+            future: PortfolioValuationService.instance.calculate(items),
+            builder: (context, valuationSnapshot) {
+              final valuation = valuationSnapshot.data;
+              final scoreResult = valuation == null
+                  ? null
+                  : const PortfolioScoreServiceV2().calculateFromValuation(
+                      valuation,
+                    );
+              final analysis = PortfolioAnalyzer.analyze(
+                items,
+                scoreResult: scoreResult,
+              );
 
-          final historyService = AIHistoryService();
-          if (items.isNotEmpty) {
-            historyService.saveIfChanged(analysis);
-          }
+              final historyService = AIHistoryService();
+              if (items.isNotEmpty) {
+                historyService.saveIfChanged(analysis);
+              }
 
-          final history = historyService.history;
-          final trend = const AITrendService().build(history);
-          final timelineEvents = const TimelineEngine().build(
-            analysis: analysis,
-            trend: trend,
-            history: history,
-          );
+              final history = historyService.history;
+              final trend = const AITrendService().build(history);
+              final timelineEvents = const TimelineEngine().build(
+                analysis: analysis,
+                trend: trend,
+                history: history,
+              );
 
-          final recommendationInsights = const RecommendationEngineV2()
-              .generate(analysis);
-          final recommendations = recommendationInsights
-              .map((item) => item.action)
-              .toList();
-          final advisorRecommendations = const AIAdvisorService().generate(
-            analysis,
-          );
+              final recommendationInsights = const RecommendationEngineV2()
+                  .generate(analysis);
+              final recommendations = recommendationInsights
+                  .map((item) => item.action)
+                  .toList();
+              final advisorRecommendations = const AIAdvisorService().generate(
+                analysis,
+              );
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IntelligenceScoreCard(
-                  score: analysis.aiScore,
-                  status: _statusForScore(analysis.aiScore),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-
-                      end: Alignment.bottomRight,
-
-                      colors: [Color(0xFF0F172A), Color(0xFF008DB9)],
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IntelligenceScoreCard(
+                      score: analysis.aiScore,
+                      status: _statusForScore(analysis.aiScore),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF008DB9).withOpacity(.24),
-                        blurRadius: 90,
-                        offset: const Offset(0, 14),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+
+                          end: Alignment.bottomRight,
+
+                          colors: [Color(0xFF0F172A), Color(0xFF008DB9)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF008DB9,
+                            ).withValues(alpha: .24),
+                            blurRadius: 90,
+                            offset: const Offset(0, 14),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          right: -40,
-                          top: -35,
-                          child: IgnorePointer(
-                            child: Container(
-                              width: 170,
-                              height: 170,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF6FD8FF,
-                                ).withValues(alpha: 0.10),
-                                boxShadow: [
-                                  BoxShadow(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              right: -40,
+                              top: -35,
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 170,
+                                  height: 170,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
                                     color: const Color(
                                       0xFF6FD8FF,
-                                    ).withValues(alpha: 0.18),
-                                    blurRadius: 90,
-                                    spreadRadius: 28,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(22),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              noAnimationRoute(
-                                builder: (_) => AiChatPage(
-                                  analysis: analysis,
-                                  portfolioItems: items,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 16,
-                            ),
-                            child: Row(
-                              children: [
-                                const _PulsingAiGlowIcon(),
-                                const SizedBox(width: 14),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'MyFin AI’ye Sor',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        'Portföyünü birlikte değerlendirelim',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
+                                    ).withValues(alpha: 0.10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF6FD8FF,
+                                        ).withValues(alpha: 0.18),
+                                        blurRadius: 90,
+                                        spreadRadius: 28,
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  noAnimationRoute(
+                                    builder: (_) => AiChatPage(
+                                      analysis: analysis,
+                                      portfolioItems: items,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const _PulsingAiGlowIcon(),
+                                    const SizedBox(width: 14),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'MyFin AI’ye Sor',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            'Portföyünü birlikte değerlendirelim',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const SizedBox(height: 16),
+                    IntelligenceRecommendationCard(
+                      recommendations: [
+                        ...advisorRecommendations,
+                        ...recommendations,
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                const SizedBox(height: 16),
-                IntelligenceRecommendationCard(
-                  recommendations: [
-                    ...advisorRecommendations,
-                    ...recommendations,
+                    const SizedBox(height: 16),
+                    FutureBuilder<MarketMoodResult>(
+                      initialData: MarketMoodService.instance.latest,
+                      future: MarketMoodService.instance.getMood(),
+                      builder: (context, moodSnapshot) {
+                        return IntelligenceMarketMoodCard(
+                          result: moodSnapshot.data,
+                          isLoading:
+                              moodSnapshot.connectionState ==
+                              ConnectionState.waiting,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    IntelligenceAIDecisionCard(
+                      strengths: analysis.strengths,
+                      warnings: analysis.warnings,
+                      riskLevel: analysis.riskLevel,
+                      investmentStyle: analysis.investmentStyle,
+                    ),
+                    const SizedBox(height: 16),
+                    IntelligenceTimelineCard(events: timelineEvents),
                   ],
                 ),
-                const SizedBox(height: 16),
-                IntelligenceAIDecisionCard(
-                  strengths: analysis.strengths,
-                  warnings: analysis.warnings,
-                  riskLevel: analysis.riskLevel,
-                  investmentStyle: analysis.investmentStyle,
-                ),
-                const SizedBox(height: 16),
-                IntelligenceMarketMoodCard(mood: _moodForRisk(analysis.risk)),
-                const SizedBox(height: 16),
-                IntelligenceTimelineCard(events: timelineEvents),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -255,7 +281,7 @@ class _PulsingAiGlowIconState extends State<_PulsingAiGlowIcon>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFF5A623).withOpacity(glowStrength),
+                color: const Color(0xFFF5A623).withValues(alpha: glowStrength),
                 blurRadius: 22,
                 spreadRadius: 3,
               ),

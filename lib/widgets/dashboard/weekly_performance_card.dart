@@ -9,6 +9,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
     required this.subtitle,
     required this.changeText,
     required this.values,
+    this.dates = const [],
     required this.isPositive,
     required this.color,
     required this.momentumLabel,
@@ -22,6 +23,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
   final String subtitle;
   final String changeText;
   final List<double> values;
+  final List<DateTime> dates;
   final bool isPositive;
   final Color color;
   final String momentumLabel;
@@ -74,7 +76,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           SizedBox(
-            height: 112,
+            height: 142,
             child: hasHistory
                 ? TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: 1),
@@ -84,6 +86,7 @@ class WeeklyPerformanceCard extends StatelessWidget {
                       return CustomPaint(
                         painter: _WeeklyTrendPainter(
                           values: values,
+                          dates: dates,
                           color: color,
                           progress: progress,
                         ),
@@ -250,11 +253,13 @@ class _PulseStat extends StatelessWidget {
 class _WeeklyTrendPainter extends CustomPainter {
   const _WeeklyTrendPainter({
     required this.values,
+    required this.dates,
     required this.color,
     required this.progress,
   });
 
   final List<double> values;
+  final List<DateTime> dates;
   final Color color;
   final double progress;
 
@@ -266,8 +271,9 @@ class _WeeklyTrendPainter extends CustomPainter {
       ..color = const Color(0xFFE5E7EB)
       ..strokeWidth = 1;
 
+    final chartBottom = size.height - 22;
     for (var i = 0; i < 4; i++) {
-      final y = size.height * (i / 3);
+      final y = chartBottom * (i / 3);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
@@ -279,7 +285,7 @@ class _WeeklyTrendPainter extends CustomPainter {
       final x = size.width * (index / (values.length - 1));
       final normalized = (values[index] - minValue) / range;
       final y =
-          size.height - (normalized * size.height * .78) - (size.height * .11);
+          chartBottom - (normalized * chartBottom * .74) - (chartBottom * .13);
       return Offset(x, y);
     }
 
@@ -305,8 +311,8 @@ class _WeeklyTrendPainter extends CustomPainter {
     }
 
     final areaPath = Path.from(path)
-      ..lineTo(size.width * progress, size.height)
-      ..lineTo(0, size.height)
+      ..lineTo(size.width * progress, chartBottom)
+      ..lineTo(0, chartBottom)
       ..close();
 
     final areaPaint = Paint()
@@ -336,13 +342,61 @@ class _WeeklyTrendPainter extends CustomPainter {
           7,
           Paint()..color = color.withValues(alpha: .12),
         );
+        _drawCenteredText(
+          canvas,
+          '${values[i] >= 0 ? '+' : ''}${values[i].toStringAsFixed(1)}%',
+          Offset(points[i].dx, (points[i].dy - 17).clamp(0, chartBottom - 16)),
+          color,
+          size: size,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        );
+        final day = i < dates.length ? dates[i].day.toString() : '${i + 1}';
+        _drawCenteredText(
+          canvas,
+          day,
+          Offset(points[i].dx, chartBottom + 6),
+          const Color(0xFF94A3B8),
+          size: size,
+          fontSize: 9,
+          fontWeight: FontWeight.w500,
+        );
       }
     }
+  }
+
+  void _drawCenteredText(
+    Canvas canvas,
+    String text,
+    Offset center,
+    Color color, {
+    required Size size,
+    required double fontSize,
+    required FontWeight fontWeight,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final x = (center.dx - painter.width / 2).clamp(
+      0.0,
+      size.width - painter.width,
+    );
+    painter.paint(canvas, Offset(x, center.dy));
   }
 
   @override
   bool shouldRepaint(covariant _WeeklyTrendPainter oldDelegate) {
     return oldDelegate.values != values ||
+        oldDelegate.dates != dates ||
         oldDelegate.color != color ||
         oldDelegate.progress != progress;
   }

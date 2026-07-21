@@ -138,8 +138,8 @@ class ReportExportService {
     );
     document.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(34),
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: const pw.EdgeInsets.all(28),
         header: (_) => _pdfHeader('Performans Raporu'),
         footer: _pdfFooter,
         build: (_) => [
@@ -157,55 +157,143 @@ class ReportExportService {
             ('Oynaklık', _percent(performance.volatilityPercent)),
             ('Net Sermaye', _signedMoney(performance.netContribution)),
           ]),
-          pw.SizedBox(height: 22),
-          pw.Text(
-            'Günlük Kapanışlar',
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.normal),
-          ),
-          pw.SizedBox(height: 8),
-          if (performance.snapshots.isEmpty)
-            pw.Text('Bu dönem için henüz kapanış verisi bulunmuyor.')
-          else
-            pw.TableHelper.fromTextArray(
-              headers: const [
-                'Tarih',
-                'Portföy Değeri',
-                'Maliyet',
-                'Kâr / Zarar',
-                'Varlık',
-              ],
-              data: performance.snapshots
-                  .map(
-                    (item) => [
-                      item.dateKey,
-                      _money(item.totalValue),
-                      _money(item.totalCost),
-                      _signedMoney(item.profitLoss),
-                      '${item.assetCount}',
-                    ],
-                  )
-                  .toList(),
-              headerDecoration: const pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFF0F73C5),
-              ),
-              headerStyle: pw.TextStyle(
-                color: PdfColors.white,
-                fontSize: 9,
-                fontWeight: pw.FontWeight.normal,
-              ),
-              cellStyle: const pw.TextStyle(fontSize: 8.5),
-              cellPadding: const pw.EdgeInsets.all(6),
-              border: const pw.TableBorder(
-                horizontalInside: pw.BorderSide(
-                  color: PdfColor.fromInt(0xFFE2E8F0),
-                  width: .5,
+          pw.SizedBox(height: 18),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                flex: 3,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Günlük Kapanışlar',
+                      style: pw.TextStyle(
+                        fontSize: 15,
+                        fontWeight: pw.FontWeight.normal,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    if (performance.snapshots.isEmpty)
+                      pw.Text('Bu dönem için henüz kapanış verisi bulunmuyor.')
+                    else
+                      pw.TableHelper.fromTextArray(
+                        headers: const [
+                          'Tarih',
+                          'Portföy Değeri',
+                          'Maliyet',
+                          'Kâr / Zarar',
+                          'Varlık',
+                        ],
+                        data: performance.snapshots
+                            .map(
+                              (item) => [
+                                item.dateKey,
+                                _money(item.totalValue),
+                                _money(item.totalCost),
+                                _signedMoney(item.profitLoss),
+                                '${item.assetCount}',
+                              ],
+                            )
+                            .toList(),
+                        headerDecoration: const pw.BoxDecoration(
+                          color: PdfColor.fromInt(0xFF0F73C5),
+                        ),
+                        headerStyle: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.normal,
+                        ),
+                        cellStyle: const pw.TextStyle(
+                          fontSize: 7.5,
+                          color: PdfColors.white,
+                        ),
+                        cellPadding: const pw.EdgeInsets.all(5),
+                        oddRowDecoration: const pw.BoxDecoration(
+                          color: PdfColor.fromInt(0xFF111827),
+                        ),
+                        rowDecoration: const pw.BoxDecoration(
+                          color: PdfColor.fromInt(0xFF0F172A),
+                        ),
+                        border: const pw.TableBorder(
+                          horizontalInside: pw.BorderSide(
+                            color: PdfColor.fromInt(0xFFE2E8F0),
+                            width: .5,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
+              pw.SizedBox(width: 16),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'Getiri Grafiği',
+                      style: pw.TextStyle(
+                        fontSize: 15,
+                        fontWeight: pw.FontWeight.normal,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.SvgImage(svg: _performanceChartSvg(performance)),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'Başlangıca göre kümülatif getiri',
+                      style: const pw.TextStyle(
+                        fontSize: 7.5,
+                        color: PdfColor.fromInt(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
     return document.save();
+  }
+
+  String _performanceChartSvg(PortfolioPerformance performance) {
+    const width = 260.0;
+    const height = 180.0;
+    const left = 16.0;
+    const right = 10.0;
+    const top = 20.0;
+    const bottom = 30.0;
+    final values = performance.chartValues;
+    if (values.length < 2) {
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height"><rect width="100%" height="100%" rx="12" fill="#F8FAFC"/><text x="130" y="92" text-anchor="middle" font-size="11" fill="#64748B">Grafik için en az iki kapanış gerekir</text></svg>';
+    }
+    final min = values.reduce((a, b) => a < b ? a : b);
+    final max = values.reduce((a, b) => a > b ? a : b);
+    final range = (max - min).abs() < .01 ? 1.0 : max - min;
+    final chartWidth = width - left - right;
+    final chartHeight = height - top - bottom;
+    final points = <String>[];
+    final circles = <String>[];
+    final labels = <String>[];
+    for (var i = 0; i < values.length; i++) {
+      final x = left + chartWidth * i / (values.length - 1);
+      final y = top + chartHeight - ((values[i] - min) / range * chartHeight);
+      points.add('${x.toStringAsFixed(1)},${y.toStringAsFixed(1)}');
+      circles.add(
+        '<circle cx="${x.toStringAsFixed(1)}" cy="${y.toStringAsFixed(1)}" r="3.5" fill="#16A34A"/>',
+      );
+      final day = i < performance.snapshots.length
+          ? performance.snapshots[i].dateKey.substring(8)
+          : '${i + 1}';
+      final label =
+          '${values[i] >= 0 ? '+' : ''}${values[i].toStringAsFixed(1)}%';
+      labels.add(
+        '<text x="${x.toStringAsFixed(1)}" y="${(y - 7).clamp(10, height - bottom - 6).toStringAsFixed(1)}" text-anchor="middle" font-size="7" font-weight="bold" fill="#16A34A">$label</text><text x="${x.toStringAsFixed(1)}" y="${height - 10}" text-anchor="middle" font-size="7" fill="#64748B">$day</text>',
+      );
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height"><rect width="100%" height="100%" rx="12" fill="#F8FAFC"/><line x1="$left" y1="${top + chartHeight / 2}" x2="${width - right}" y2="${top + chartHeight / 2}" stroke="#E2E8F0"/><line x1="$left" y1="${top + chartHeight}" x2="${width - right}" y2="${top + chartHeight}" stroke="#CBD5E1"/><polyline points="${points.join(' ')}" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${circles.join()}${labels.join()}</svg>';
   }
 
   Uint8List buildPortfolioExcel(PortfolioValuation valuation) {

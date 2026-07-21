@@ -262,6 +262,11 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
                             performance?.totalReturnPercent ?? 0,
                           ),
                           values: performance?.chartValues ?? const [],
+                          dates:
+                              performance?.snapshots
+                                  .map((snapshot) => snapshot.capturedAt)
+                                  .toList() ??
+                              const [],
                           isPositive: isPositive,
                           color: color,
                           momentumLabel:
