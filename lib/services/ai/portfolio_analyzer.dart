@@ -60,6 +60,7 @@ class PortfolioAnalyzer {
       investmentStyle: _buildInvestmentStyle(assetProfile, sectorProfile),
       focus: _buildFocus(assetCount, assetProfile, sectorProfile),
       strengths: _buildStrengths(
+        diversification: diversification,
         assetCount: assetCount,
         assetProfile: assetProfile,
         sectorProfile: sectorProfile,
@@ -81,6 +82,12 @@ class PortfolioAnalyzer {
         sectorProfile: sectorProfile,
         trend: trend,
       ),
+      summary: _buildSummary(
+        aiScore: aiScore,
+        assetCount: assetCount,
+        assetProfile: assetProfile,
+        sectorProfile: sectorProfile,
+      ),
     );
   }
 
@@ -94,6 +101,7 @@ class PortfolioAnalyzer {
       riskLevel: 'Veri yok',
       investmentStyle: 'Belirsiz',
       focus: 'Portföy boş',
+      summary: 'Analiz için portföy verisi bekleniyor.',
       strengths: [],
       warnings: [
         'Analiz için portföye en az bir varlık eklenmeli.',
@@ -391,12 +399,14 @@ class PortfolioAnalyzer {
 
   static List<String> _buildStrengths({
     required int assetCount,
+    required int diversification,
     required _AssetProfile assetProfile,
     required _SectorProfile sectorProfile,
     AITrendResult? trend,
   }) {
     return [
-      if (assetCount > 1) 'Portföy birden fazla varlığa yayılmış.',
+      if (diversification >= 75) 'Portföy çeşitlendirmesi güçlü seviyede.',
+      if (assetCount > 1 && diversification < 75) 'Portföy birden fazla varlığa yayılmış.',
       if (assetProfile.uniqueAssetClassCount >= 3)
         'Portföy farklı varlık sınıflarına yayılmış.',
       if (sectorProfile.uniqueSectorCount >= 3)
@@ -483,6 +493,28 @@ class PortfolioAnalyzer {
         'AI skorundaki düşüşün hangi varlık veya sektör kaynaklı olduğunu kontrol edin.',
       'Portföy dağılımını düzenli olarak takip edin.',
     ];
+  }
+
+  static String _buildSummary({
+    required int aiScore,
+    required int assetCount,
+    required _AssetProfile assetProfile,
+    required _SectorProfile sectorProfile,
+  }) {
+    if (aiScore >= 80) {
+      return 'Portföyünüz güçlü ve dengeli bölgede. Mevcut dağılım korunabilir.';
+    }
+
+    if (sectorProfile.dominantRatio >= 0.60 && assetCount > 1) {
+      final weightPercent = (sectorProfile.dominantRatio * 100).round();
+      return 'Portföyünüzün %$weightPercent oranı ${sectorProfile.dominantSector} üzerinde yoğunlaştığı için risk seviyesi yükseliyor.';
+    }
+
+    if (assetCount < 3 || assetProfile.uniqueAssetClassCount < 2) {
+      return 'Portföyünüz sınırlı çeşitliliğe sahip. Dağılım güçlendikçe AI skoru iyileşebilir.';
+    }
+
+    return 'Portföyünüz orta risk bölgesinde. Bazı iyileştirmeler puanı artırabilir.';
   }
 
   static int _clampScore(num value) {

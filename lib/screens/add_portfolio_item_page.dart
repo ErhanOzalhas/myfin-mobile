@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/services.dart';
 import '../models/portfolio_item.dart';
 import '../repositories/portfolio_repository.dart';
 import '../services/market_asset_catalog_service.dart';
+import '../widgets/add_portfolio/field_card.dart';
+import '../widgets/add_portfolio/suggestion_panel.dart';
 
 class AddPortfolioItemPage extends StatefulWidget {
   const AddPortfolioItemPage({super.key});
@@ -20,26 +23,51 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
   final _quantityController = TextEditingController();
   final _averagePriceController = TextEditingController();
 
+  static const List<DropdownMenuItem<String>> _categoryItems = [
+    DropdownMenuItem(value: 'Hisse', child: Text('Hisse')),
+    DropdownMenuItem(value: 'Fon', child: Text('Fon')),
+    DropdownMenuItem(value: 'Altın', child: Text('Altın')),
+    DropdownMenuItem(value: 'Kripto', child: Text('Kripto')),
+    DropdownMenuItem(value: 'Döviz', child: Text('Döviz')),
+  ];
+
+  static const List<DropdownMenuItem<String>> _currencyItems = [
+    DropdownMenuItem(value: 'TRY', child: Text('TRY')),
+    DropdownMenuItem(value: 'USD', child: Text('USD')),
+    DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+  ];
+
   String _type = 'Hisse';
   String _currency = 'TRY';
   bool _isSaving = false;
   final _catalogService = const MarketAssetCatalogService();
   List<MarketAsset> _suggestions = const [];
   bool _isSearching = false;
+  Timer? _debounce;
 
   Future<void> _searchAssets(String value) async {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
     final query = value.trim();
     if (query.length < 2) {
       setState(() => _suggestions = const []);
       return;
     }
 
-    setState(() => _isSearching = true);
-    final results = await _catalogService.search(query: query);
-    if (!mounted) return;
-    setState(() {
-      _suggestions = results;
-      _isSearching = false;
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = true;
+        _suggestions = const [];
+      });
+
+      final results = await _catalogService.search(query: query);
+
+      if (!mounted) return;
+      setState(() {
+        _suggestions = results;
+        _isSearching = false;
+      });
     });
   }
 
@@ -49,6 +77,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
     _symbolController.dispose();
     _quantityController.dispose();
     _averagePriceController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -74,8 +103,8 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
         name: _nameController.text.trim(),
         symbol: _symbolController.text.trim().toUpperCase(),
         type: _type,
-        quantity: _parseDouble(_quantityController.text),
-        averagePrice: _parseDouble(_averagePriceController.text),
+        quantity: _parseDouble(_quantityController.text.trim()),
+        averagePrice: _parseDouble(_averagePriceController.text.trim()),
         currency: _currency,
       );
 
@@ -83,10 +112,10 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
 
       if (!mounted) return;
       Navigator.of(context).pop();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Varlık kaydedilirken bir hata oluştu.')),
+        SnackBar(content: Text('Varlık kaydedilirken bir hata oluştu: $e')),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -133,20 +162,14 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              _FieldCard(
+              FieldCard(
                 child: DropdownButtonFormField<String>(
                   value: _type,
                   decoration: const InputDecoration(
                     labelText: 'Kategori',
                     border: InputBorder.none,
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'Hisse', child: Text('Hisse')),
-                    DropdownMenuItem(value: 'Fon', child: Text('Fon')),
-                    DropdownMenuItem(value: 'Altın', child: Text('Altın')),
-                    DropdownMenuItem(value: 'Kripto', child: Text('Kripto')),
-                    DropdownMenuItem(value: 'Döviz', child: Text('Döviz')),
-                  ],
+                  items: _categoryItems,
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -160,7 +183,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _FieldCard(
+              FieldCard(
                 child: TextFormField(
                   controller: _symbolController,
                   decoration: const InputDecoration(
@@ -175,7 +198,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
               ),
               if (_isSearching) ...[
                 const SizedBox(height: 8),
-                const _FieldCard(
+                const FieldCard(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Row(
@@ -193,13 +216,13 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 ),
               ] else if (suggestions.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                _SuggestionPanel(
+                SuggestionPanel(
                   suggestions: suggestions,
                   onSelected: _selectSuggestion,
                 ),
               ],
               const SizedBox(height: 12),
-              _FieldCard(
+              FieldCard(
                 child: TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -212,7 +235,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _FieldCard(
+              FieldCard(
                 child: TextFormField(
                   controller: _quantityController,
                   decoration: const InputDecoration(
@@ -220,7 +243,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                     hintText: 'Örn: 10',
                     border: InputBorder.none,
                   ),
-                  keyboardType: TextInputType.text,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                   ],
@@ -228,7 +251,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _FieldCard(
+              FieldCard(
                 child: TextFormField(
                   controller: _averagePriceController,
                   decoration: const InputDecoration(
@@ -236,7 +259,7 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                     hintText: 'Örn: 125,50',
                     border: InputBorder.none,
                   ),
-                  keyboardType: TextInputType.text,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                   ],
@@ -244,18 +267,14 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _FieldCard(
+              FieldCard(
                 child: DropdownButtonFormField<String>(
                   value: _currency,
                   decoration: const InputDecoration(
                     labelText: 'Para birimi',
                     border: InputBorder.none,
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'TRY', child: Text('TRY')),
-                    DropdownMenuItem(value: 'USD', child: Text('USD')),
-                    DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                  ],
+                  items: _currencyItems,
                   onChanged: (value) {
                     if (value != null) setState(() => _currency = value);
                   },
@@ -280,78 +299,6 @@ class _AddPortfolioItemPageState extends State<AddPortfolioItemPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SuggestionPanel extends StatelessWidget {
-  final List<MarketAsset> suggestions;
-  final ValueChanged<MarketAsset> onSelected;
-
-  const _SuggestionPanel({required this.suggestions, required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.045),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: suggestions.map((item) {
-          return ListTile(
-            dense: true,
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFF008DB9).withOpacity(.12),
-              child: Text(
-                item.symbol.characters.first,
-                style: const TextStyle(
-                  color: Color(0xFF008DB9),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-            title: Text(
-              '${item.symbol} • ${item.name}',
-              style: const TextStyle(fontWeight: FontWeight.w400),
-            ),
-            subtitle: Text('${item.market} • ${item.currency}'),
-            onTap: () => onSelected(item),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _FieldCard extends StatelessWidget {
-  final Widget child;
-
-  const _FieldCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.045),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

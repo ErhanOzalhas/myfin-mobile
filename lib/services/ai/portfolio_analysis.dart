@@ -8,6 +8,7 @@ class PortfolioAnalysis {
   final String riskLevel;
   final String investmentStyle;
   final String focus;
+  final String summary;
 
   final List<String> strengths;
   final List<String> warnings;
@@ -22,6 +23,7 @@ class PortfolioAnalysis {
     required this.riskLevel,
     required this.investmentStyle,
     required this.focus,
+    required this.summary,
     required this.strengths,
     required this.warnings,
     required this.recommendations,

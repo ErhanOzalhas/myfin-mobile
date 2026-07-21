@@ -1,4 +1,5 @@
 import '../portfolio_valuation_service.dart';
+import 'portfolio_analyzer.dart';
 import 'portfolio_context_builder.dart';
 
 /// Produces the single portfolio fact set used by MyFin AI surfaces.
@@ -90,32 +91,23 @@ class PortfolioAIContextService {
   }
 
   PortfolioAIHomeSummary buildHomeSummary(PortfolioValuation valuation) {
+    final analysis = PortfolioAnalyzer.analyze(
+      valuation.items.map((v) => v.item).toList(),
+    );
+
     if (valuation.items.isEmpty) {
       return const PortfolioAIHomeSummary(
         title: 'AI analizi için portföyünü oluştur',
         summary:
             'Varlık eklediğinde kalem, dağılım ve kâr/zarar özetleri burada görünecek.',
+        aiScore: 0,
       );
     }
 
-    final sorted = [...valuation.items]
-      ..sort(
-        (a, b) => b.currentValueInBaseCurrency.compareTo(
-          a.currentValueInBaseCurrency,
-        ),
-      );
-    final leader = sorted.first;
-    final weight = valuation.totalValue <= 0
-        ? 0.0
-        : leader.currentValueInBaseCurrency / valuation.totalValue * 100;
-    final direction = valuation.totalProfit >= 0 ? 'kârda' : 'zararda';
-    final concentration = weight >= 60
-        ? '${leader.item.name} %${weight.toStringAsFixed(1)} ağırlıkla yoğunlaşma riski oluşturuyor.'
-        : 'En büyük kalem ${leader.item.name}; portföy ağırlığı %${weight.toStringAsFixed(1)}.';
     return PortfolioAIHomeSummary(
-      title: 'Portföy ${_signedPercent(valuation.profitPercent)} $direction',
-      summary:
-          '$concentration ${valuation.assetCount} kalemin tamamı AI analizine hazır.',
+      title: 'AI Skoru: ${analysis.aiScore} • Risk: ${analysis.riskLevel}',
+      summary: analysis.summary,
+      aiScore: analysis.aiScore,
     );
   }
 
@@ -140,8 +132,13 @@ class PortfolioAIContextService {
 }
 
 class PortfolioAIHomeSummary {
-  const PortfolioAIHomeSummary({required this.title, required this.summary});
+  const PortfolioAIHomeSummary({
+    required this.title,
+    required this.summary,
+    required this.aiScore,
+  });
 
   final String title;
   final String summary;
+  final int aiScore;
 }
