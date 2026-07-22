@@ -73,7 +73,7 @@ class CashSummaryCard extends StatelessWidget {
                       Text(
                         'Nakit yönetimi',
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF0284C7),
                         ),

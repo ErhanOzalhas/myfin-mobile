@@ -7,6 +7,7 @@ import '../models/dashboard_summary.dart';
 import '../models/ai/portfolio_intelligence.dart';
 import '../models/portfolio_item.dart';
 import '../models/portfolio_performance.dart';
+import '../models/portfolio_profile.dart';
 import '../repositories/dashboard_repository.dart';
 import '../repositories/market_repository.dart';
 import '../repositories/portfolio_repository.dart';
@@ -14,6 +15,7 @@ import '../services/ai_analysis_service.dart';
 import '../services/portfolio_intelligence_service.dart';
 import '../services/portfolio_valuation_service.dart';
 import '../services/portfolio_performance_service.dart';
+import '../services/portfolio_profile_service.dart';
 import '../services/market/market_favorites_service.dart';
 import '../services/market/market_service.dart';
 import '../widgets/dashboard/distribution_card.dart';
@@ -44,6 +46,7 @@ import 'performance/performance_report_page.dart';
 import 'performance/profit_loss_detail_page.dart';
 import 'market/live_market_page.dart';
 import 'settings/settings_page.dart';
+import 'settings/portfolio_profiles_page.dart';
 import 'transactions/transaction_entry_page.dart';
 import '../services/portfolio_summary_service.dart';
 import '../utils/no_animation_route.dart';
@@ -99,11 +102,53 @@ class MyFinHome extends StatefulWidget {
   State<MyFinHome> createState() => _MyFinHomeState();
 }
 
-class _MyFinHomeState extends State<MyFinHome> {
+class _MyFinHomeState extends State<MyFinHome> with WidgetsBindingObserver {
+  static const _automaticRefreshInterval = Duration(minutes: 1);
+
   int _refreshTick = 0;
+  Timer? _automaticRefreshTimer;
+  bool _isAppActive = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startAutomaticRefresh();
+  }
+
+  @override
+  void dispose() {
+    _automaticRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppActive = state == AppLifecycleState.resumed;
+    if (_isAppActive) {
+      _startAutomaticRefresh();
+      _triggerRefresh();
+    } else {
+      _automaticRefreshTimer?.cancel();
+      _automaticRefreshTimer = null;
+    }
+  }
+
+  void _startAutomaticRefresh() {
+    _automaticRefreshTimer?.cancel();
+    _automaticRefreshTimer = Timer.periodic(_automaticRefreshInterval, (_) {
+      if (_isAppActive) _triggerRefresh();
+    });
+  }
+
+  void _triggerRefresh() {
+    if (!mounted) return;
+    setState(() => _refreshTick++);
+  }
 
   Future<void> _refreshMarketData() async {
-    setState(() => _refreshTick++);
+    _triggerRefresh();
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
 
@@ -217,8 +262,14 @@ class _MyFinHomeState extends State<MyFinHome> {
   }
 }
 
-Future<DashboardSummary> _loadDashboardSummary(List<PortfolioItem> items) {
-  return DashboardRepository.instance.calculate(items);
+Future<DashboardSummary> _loadDashboardSummary(
+  List<PortfolioItem> items, {
+  bool forceRefresh = false,
+}) {
+  return DashboardRepository.instance.calculate(
+    items,
+    forceRefresh: forceRefresh,
+  );
 }
 
 DashboardSummary _fallbackSummary(List<PortfolioItem> items) {
@@ -893,11 +944,35 @@ class _Header extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.userChanges(),
       initialData: FirebaseAuth.instance.currentUser,
-      builder: (context, snapshot) => _buildHeader(context, snapshot.data),
+      builder: (context, snapshot) => ValueListenableBuilder<String>(
+        valueListenable: PortfolioProfileService.instance.activeProfileId,
+        builder: (context, activeProfileId, child) =>
+            StreamBuilder<List<PortfolioProfile>>(
+              stream: PortfolioProfileService.instance.watchProfiles(),
+              builder: (context, profileSnapshot) {
+                PortfolioProfile? activeProfile;
+                for (final profile in profileSnapshot.data ?? const []) {
+                  if (profile.id == activeProfileId) activeProfile = profile;
+                }
+                return _buildHeader(context, snapshot.data, activeProfile);
+              },
+            ),
+      ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, User? user) {
+  IconData _profileIcon(String? key) => switch (key) {
+    'family' => Icons.family_restroom_rounded,
+    'child' => Icons.child_care_rounded,
+    'wallet' => Icons.account_balance_wallet_rounded,
+    _ => Icons.person_rounded,
+  };
+
+  Widget _buildHeader(
+    BuildContext context,
+    User? user,
+    PortfolioProfile? activeProfile,
+  ) {
     final isLoggedIn = user != null;
     final displayName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!.trim()
@@ -956,6 +1031,20 @@ class _Header extends StatelessWidget {
               ).push(noAnimationRoute(builder: (_) => const SettingsPage()));
             }
 
+            if (value == 'profiles') {
+              final selectedProfileId = await Navigator.of(context)
+                  .push<String>(
+                    noAnimationRoute(
+                      builder: (_) => const PortfolioProfilesPage(),
+                    ),
+                  );
+              if (selectedProfileId != null) {
+                await PortfolioProfileService.instance.selectProfile(
+                  selectedProfileId,
+                );
+              }
+            }
+
             if (value == 'login') {
               Navigator.of(
                 context,
@@ -978,10 +1067,12 @@ class _Header extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 19,
-                    backgroundColor: const Color(0xFFE7F6FB),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: Color(0xFF008DB9),
+                    backgroundColor: Color(
+                      activeProfile?.colorValue ?? 0xFF0284C7,
+                    ).withValues(alpha: .14),
+                    child: Icon(
+                      _profileIcon(activeProfile?.iconKey),
+                      color: Color(activeProfile?.colorValue ?? 0xFF0284C7),
                       size: 21,
                     ),
                   ),
@@ -1018,6 +1109,16 @@ class _Header extends StatelessWidget {
             ),
             const PopupMenuDivider(),
             const PopupMenuItem<String>(
+              value: 'profiles',
+              child: Row(
+                children: [
+                  Icon(Icons.switch_account_rounded, size: 20),
+                  SizedBox(width: 10),
+                  Text('Portföy profilleri'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
               value: 'settings',
               child: Row(
                 children: [
@@ -1041,12 +1142,44 @@ class _Header extends StatelessWidget {
               ),
             ),
           ],
-          child: CircleAvatar(
-            radius: 24,
-            backgroundColor: const Color(0xFF0F172A),
-            child: Icon(
-              isLoggedIn ? Icons.person_rounded : Icons.person_outline_rounded,
-              color: Colors.white,
+          child: SizedBox(
+            width: 58,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Color(
+                      activeProfile?.colorValue ?? 0xFF0284C7,
+                    ).withValues(alpha: .14),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Color(
+                        activeProfile?.colorValue ?? 0xFF0284C7,
+                      ).withValues(alpha: .32),
+                    ),
+                  ),
+                  child: Icon(
+                    _profileIcon(activeProfile?.iconKey),
+                    color: Color(activeProfile?.colorValue ?? 0xFF0284C7),
+                    size: 23,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  activeProfile?.name ?? 'Kişisel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1078,7 +1211,7 @@ class _HeroPortfolioCard extends StatelessWidget {
 
         return FutureBuilder<DashboardSummary>(
           key: ValueKey('hero-summary-$refreshTick-${items.length}'),
-          future: _loadDashboardSummary(items),
+          future: _loadDashboardSummary(items, forceRefresh: refreshTick > 0),
           builder: (context, summarySnapshot) {
             final summary = summarySnapshot.data ?? _fallbackSummary(items);
             final isPositive = summary.profitLoss >= 0;
@@ -1189,16 +1322,16 @@ class _PrimaryDashboardCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 Text(
                   'Toplam Portföy',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .74),
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 5),
                 SizedBox(
                   width: double.infinity,
                   child: FittedBox(
@@ -1300,7 +1433,7 @@ class _KpiGrid extends StatelessWidget {
 
         return FutureBuilder<DashboardSummary>(
           key: ValueKey('kpi-summary-$refreshTick-${items.length}'),
-          future: _loadDashboardSummary(items),
+          future: _loadDashboardSummary(items, forceRefresh: refreshTick > 0),
           builder: (context, totalsSnapshot) {
             final summary = totalsSnapshot.data ?? _fallbackSummary(items);
 
@@ -2355,6 +2488,8 @@ String _assetTypeLabel(String type) {
       return 'Kripto';
     case 'endeks':
       return 'Endeks';
+    case 'emtia':
+      return 'Emtia';
     default:
       return type.isEmpty ? 'Diğer' : type;
   }
@@ -2388,6 +2523,8 @@ Color _assetTypeColor(String type) {
       return const Color(0xFFF97316);
     case 'endeks':
       return const Color(0xFF0F766E);
+    case 'emtia':
+      return const Color(0xFF0891B2);
     default:
       return const Color(0xFF64748B);
   }
@@ -2441,7 +2578,7 @@ class _DistributionSnapshot {
     final entries = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final segments = entries.take(4).map((entry) {
+    final segments = entries.map((entry) {
       return _DistributionSegment(
         label: _assetTypeLabel(entry.key),
         ratio: entry.value / total,
@@ -3113,7 +3250,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 5),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -3134,7 +3271,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 0),
                   Padding(
                     padding: const EdgeInsets.only(left: 72),
                     child: Text(
@@ -3148,7 +3285,7 @@ class _MyFinIntelligenceHeroState extends State<_MyFinIntelligenceHero>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   Text(
                     summary,
                     maxLines: 3,

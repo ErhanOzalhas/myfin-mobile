@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../auth/login_page.dart';
 import '../services/app_startup_coordinator.dart';
 import '../services/price_alert_service.dart';
+import '../services/portfolio_profile_service.dart';
 import '../widgets/navigation/myfin_bottom_nav.dart';
 import 'intelligence/intelligence_page.dart';
 import 'my_fin_home.dart';
@@ -21,18 +22,22 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
-  late final List<Widget> _pages = [
-    const MyFinHome(showBottomNav: false),
-    const PortfolioPage(showBottomNav: false),
-    const TransactionEntryPage(showBottomNav: false),
-    const IntelligencePage(showBottomNav: false),
-    const SettingsPage(showBottomNav: false),
+  late final List<Widget> _pages = const [
+    MyFinHome(showBottomNav: false),
+    PortfolioPage(showBottomNav: false),
+    TransactionEntryPage(showBottomNav: false),
+    IntelligencePage(showBottomNav: false),
+    SettingsPage(showBottomNav: false),
   ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    PortfolioProfileService.instance.activeProfileId.addListener(
+      _profileChanged,
+    );
+    PortfolioProfileService.instance.initialize();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppStartupCoordinator.instance.preloadSecondary();
       PriceAlertService.instance.checkNow();
@@ -42,7 +47,22 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PortfolioProfileService.instance.activeProfileId.removeListener(
+      _profileChanged,
+    );
     super.dispose();
+  }
+
+  void _profileChanged() {
+    if (!mounted) return;
+    // activeProfileId bildirilirken alt sayfalarda da ValueListenableBuilder
+    // çalışıyor olabilir. Sekme ağacını aynı bildirim turunda sökmek Flutter'ın
+    // inherited bağımlılık assertion'ına yol açar; yeniden kurulumu bir sonraki
+    // kareye bırakıyoruz.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _selectedIndex = 0);
+    });
   }
 
   @override

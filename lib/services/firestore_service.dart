@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'portfolio_profile_service.dart';
 
 class FirestoreService {
   FirestoreService._();
@@ -27,24 +31,65 @@ class FirestoreService {
     return _usersCollection.doc(uid);
   }
 
-  CollectionReference<Map<String, dynamic>> _userSubCollection(String name) {
-    return _currentUserDoc().collection(name);
+  CollectionReference<Map<String, dynamic>> _profileSubCollection(String name) {
+    return _currentUserDoc()
+        .collection('profiles')
+        .doc(PortfolioProfileService.instance.activeProfileId.value)
+        .collection(name);
+  }
+
+  Stream<T> _profileAwareStream<T>(Stream<T> Function() createStream) {
+    late final StreamController<T> controller;
+    StreamSubscription<T>? subscription;
+    var bindingRevision = 0;
+
+    Future<void> bind() async {
+      final revision = ++bindingRevision;
+      await subscription?.cancel();
+      if (controller.isClosed || revision != bindingRevision) return;
+      subscription = createStream().listen(
+        controller.add,
+        onError: controller.addError,
+      );
+    }
+
+    void profileChanged() {
+      unawaited(bind());
+    }
+
+    controller = StreamController<T>(
+      onListen: () {
+        PortfolioProfileService.instance.activeProfileId.addListener(
+          profileChanged,
+        );
+        unawaited(bind());
+      },
+      onCancel: () async {
+        bindingRevision++;
+        PortfolioProfileService.instance.activeProfileId.removeListener(
+          profileChanged,
+        );
+        await subscription?.cancel();
+        subscription = null;
+      },
+    );
+    return controller.stream;
   }
 
   CollectionReference<Map<String, dynamic>> get _portfolioItemsCollection {
-    return _userSubCollection('portfolioItems');
+    return _profileSubCollection('portfolioItems');
   }
 
   CollectionReference<Map<String, dynamic>> get _transactionsCollection {
-    return _userSubCollection('transactions');
+    return _profileSubCollection('transactions');
   }
 
   CollectionReference<Map<String, dynamic>> get _cashMovementsCollection {
-    return _userSubCollection('cashMovements');
+    return _profileSubCollection('cashMovements');
   }
 
   CollectionReference<Map<String, dynamic>> get _portfolioSnapshotsCollection {
-    return _userSubCollection('portfolioSnapshots');
+    return _profileSubCollection('portfolioSnapshots');
   }
 
   Future<void> createOrUpdateUserProfile({
@@ -74,7 +119,7 @@ class FirestoreService {
     required double amount,
     required String currency,
   }) async {
-    return _userSubCollection('assets').add({
+    return _profileSubCollection('assets').add({
       'name': name,
       'type': type,
       'amount': amount,
@@ -85,22 +130,24 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchAssets() {
-    return _userSubCollection(
-      'assets',
-    ).orderBy('createdAt', descending: true).snapshots();
+    return _profileAwareStream(
+      () => _profileSubCollection(
+        'assets',
+      ).orderBy('createdAt', descending: true).snapshots(),
+    );
   }
 
   Future<void> updateAsset({
     required String assetId,
     required Map<String, dynamic> data,
   }) async {
-    await _userSubCollection(
+    await _profileSubCollection(
       'assets',
     ).doc(assetId).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> deleteAsset(String assetId) async {
-    await _userSubCollection('assets').doc(assetId).delete();
+    await _profileSubCollection('assets').doc(assetId).delete();
   }
 
   Future<DocumentReference<Map<String, dynamic>>> addDebt({
@@ -109,7 +156,7 @@ class FirestoreService {
     required String currency,
     String? note,
   }) async {
-    return _userSubCollection('debts').add({
+    return _profileSubCollection('debts').add({
       'name': name,
       'amount': amount,
       'currency': currency,
@@ -120,28 +167,32 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchDebts() {
-    return _userSubCollection(
-      'debts',
-    ).orderBy('createdAt', descending: true).snapshots();
+    return _profileAwareStream(
+      () => _profileSubCollection(
+        'debts',
+      ).orderBy('createdAt', descending: true).snapshots(),
+    );
   }
 
   Future<void> updateDebt({
     required String debtId,
     required Map<String, dynamic> data,
   }) async {
-    await _userSubCollection(
+    await _profileSubCollection(
       'debts',
     ).doc(debtId).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> deleteDebt(String debtId) async {
-    await _userSubCollection('debts').doc(debtId).delete();
+    await _profileSubCollection('debts').doc(debtId).delete();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchPortfolioItems() {
-    return _portfolioItemsCollection
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _profileAwareStream(
+      () => _portfolioItemsCollection
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+    );
   }
 
   Future<DocumentReference<Map<String, dynamic>>> addPortfolioItem(
@@ -186,15 +237,19 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchTransactions() {
-    return _transactionsCollection
-        .orderBy('transactionDate', descending: true)
-        .snapshots();
+    return _profileAwareStream(
+      () => _transactionsCollection
+          .orderBy('transactionDate', descending: true)
+          .snapshots(),
+    );
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchCashMovements() {
-    return _cashMovementsCollection
-        .orderBy('movementDate', descending: true)
-        .snapshots();
+    return _profileAwareStream(
+      () => _cashMovementsCollection
+          .orderBy('movementDate', descending: true)
+          .snapshots(),
+    );
   }
 
   Future<DocumentReference<Map<String, dynamic>>> addCashMovement(

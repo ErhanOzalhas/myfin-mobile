@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/price_alert.dart';
 import 'market/market_service.dart';
+import 'portfolio_profile_service.dart';
 
 class PriceAlertService {
   PriceAlertService._();
@@ -14,6 +15,8 @@ class PriceAlertService {
   static final PriceAlertService instance = PriceAlertService._();
 
   static const _storageKey = 'myfin_price_alerts_v1';
+  String get _profileStorageKey =>
+      '$_storageKey::${PortfolioProfileService.instance.activeProfileId.value}';
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
@@ -57,7 +60,12 @@ class PriceAlertService {
 
   Future<List<PriceAlert>> load() async {
     final preferences = await SharedPreferences.getInstance();
-    final raw = preferences.getString(_storageKey);
+    final raw =
+        preferences.getString(_profileStorageKey) ??
+        (PortfolioProfileService.instance.activeProfileId.value ==
+                PortfolioProfileService.defaultProfileId
+            ? preferences.getString(_storageKey)
+            : null);
     if (raw == null || raw.isEmpty) return <PriceAlert>[];
     try {
       final decoded = jsonDecode(raw);
@@ -179,7 +187,7 @@ class PriceAlertService {
   Future<void> _write(List<PriceAlert> alerts) async {
     final preferences = await SharedPreferences.getInstance();
     final saved = await preferences.setString(
-      _storageKey,
+      _profileStorageKey,
       jsonEncode(alerts.map((item) => item.toJson()).toList()),
     );
     if (!saved) {

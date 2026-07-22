@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/portfolio_item.dart';
 import 'market/currency_conversion_service.dart';
 import 'market/market_service.dart';
+import 'portfolio_profile_service.dart';
 
 class PortfolioItemValuation {
   final PortfolioItem item;
@@ -104,7 +105,8 @@ class PortfolioValuationService {
         )
         .join('::');
     final userId = FirebaseAuth.instance.currentUser?.uid ?? 'signed-out';
-    return '$userId::$portfolioFingerprint';
+    final profileId = PortfolioProfileService.instance.activeProfileId.value;
+    return '$userId::$profileId::$portfolioFingerprint';
   }
 
   PortfolioValuation? peek(List<PortfolioItem> items) {
@@ -361,7 +363,7 @@ class PortfolioValuationService {
     // ardışık gruplar kartın görünmesini gereksiz yere geciktiriyordu. Normal
     // bir portföyün fiyatlarını tek dalgada hazırlayıp büyük portföylerde de
     // sağlayıcıyı korumak için makul bir üst sınır kullanıyoruz.
-    const batchSize = 12;
+    const batchSize = 20;
     for (var index = 0; index < portfolioItems.length; index += batchSize) {
       final proposedEnd = index + batchSize;
       final end = proposedEnd < portfolioItems.length
@@ -502,6 +504,10 @@ class PortfolioValuationService {
   String? _marketExchangeFor(PortfolioItem item) {
     final type = item.type.trim().toLowerCase();
     final currency = item.currency.trim().toUpperCase();
+
+    if (type == 'kripto' || type == 'crypto') {
+      return 'CRYPTO';
+    }
 
     if ((type == 'hisse' || type == 'bist') && currency == 'TRY') {
       return 'XIST';

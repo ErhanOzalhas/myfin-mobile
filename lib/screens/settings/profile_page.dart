@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 
 import '../../services/firestore_service.dart';
 import '../../widgets/common/surface_card.dart';
@@ -72,6 +73,7 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('Profilim'),
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: ListView(

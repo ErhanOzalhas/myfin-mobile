@@ -12,8 +12,14 @@ class DashboardRepository {
     return valuation == null ? null : _summaryFromValuation(valuation);
   }
 
-  Future<DashboardSummary> calculate(List<PortfolioItem> items) async {
-    final valuation = await PortfolioValuationService.instance.calculate(items);
+  Future<DashboardSummary> calculate(
+    List<PortfolioItem> items, {
+    bool forceRefresh = false,
+  }) async {
+    final valuation = await PortfolioValuationService.instance.calculate(
+      items,
+      forceRefresh: forceRefresh,
+    );
     return _summaryFromValuation(valuation);
   }
 

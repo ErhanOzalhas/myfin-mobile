@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import '../transactions/transaction_entry_page.dart';
 import '../performance/profit_loss_detail_page.dart';
 import '../../models/portfolio_item.dart';
 import '../../repositories/portfolio_repository.dart';
 import '../../services/portfolio_valuation_service.dart';
+import '../../services/portfolio_profile_service.dart';
 import '../../services/report_export_service.dart';
 import '../../utils/myfin_formatters.dart';
 import '../../widgets/common/empty_state_line.dart';
@@ -59,6 +63,8 @@ String _portfolioCategoryLabel(String type) {
       return 'Fon';
     case 'endeks':
       return 'Endeks';
+    case 'emtia':
+      return 'Emtia';
     default:
       return type.trim().isEmpty ? 'Diğer' : type.trim();
   }
@@ -104,10 +110,16 @@ class PortfolioPage extends StatefulWidget {
   State<PortfolioPage> createState() => _PortfolioPageState();
 }
 
-class _PortfolioPageState extends State<PortfolioPage> {
+class _PortfolioPageState extends State<PortfolioPage>
+    with WidgetsBindingObserver {
+  static const _automaticRefreshInterval = Duration(minutes: 1);
+
   Future<PortfolioValuation>? _valuationFuture;
   PortfolioValuation? _lastValuation;
   String? _valuationFingerprint;
+  Timer? _automaticRefreshTimer;
+  bool _isAppActive = true;
+  bool _forceNextRefresh = false;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -118,6 +130,8 @@ class _PortfolioPageState extends State<PortfolioPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startAutomaticRefresh();
     final initial = widget.initialCategory?.trim();
     if (initial != null && initial.isNotEmpty) {
       _selectedCategory = _portfolioCategoryLabel(initial);
@@ -126,8 +140,37 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
   @override
   void dispose() {
+    _automaticRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppActive = state == AppLifecycleState.resumed;
+    if (_isAppActive) {
+      _startAutomaticRefresh();
+      _requestFreshValuation();
+    } else {
+      _automaticRefreshTimer?.cancel();
+      _automaticRefreshTimer = null;
+    }
+  }
+
+  void _startAutomaticRefresh() {
+    _automaticRefreshTimer?.cancel();
+    _automaticRefreshTimer = Timer.periodic(_automaticRefreshInterval, (_) {
+      if (_isAppActive) _requestFreshValuation();
+    });
+  }
+
+  void _requestFreshValuation() {
+    if (!mounted) return;
+    setState(() {
+      _forceNextRefresh = true;
+      _valuationFuture = null;
+    });
   }
 
   void _selectCategory(String category) {
@@ -179,7 +222,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
 
   String _fingerprint(List<PortfolioItem> items) {
     final sorted = [...items]..sort((a, b) => a.id.compareTo(b.id));
-    return sorted
+    final portfolioFingerprint = sorted
         .map(
           (item) => [
             item.id,
@@ -191,6 +234,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
           ].join('|'),
         )
         .join('::');
+    return '${PortfolioProfileService.instance.activeProfileId.value}::$portfolioFingerprint';
   }
 
   PortfolioValuation _costBasedValuation(List<PortfolioItem> items) {
@@ -239,17 +283,19 @@ class _PortfolioPageState extends State<PortfolioPage> {
     _valuationFingerprint = fingerprint;
 
     // Ana sayfa ile aynı servis önbelleğini ve aynı devam eden isteği paylaş.
-    final future = PortfolioValuationService.instance.calculate(items).then((
-      valuation,
-    ) {
-      if (_valuationFingerprint != fingerprint) return valuation;
-      if (mounted) {
-        setState(() => _lastValuation = valuation);
-      } else {
-        _lastValuation = valuation;
-      }
-      return valuation;
-    });
+    final forceRefresh = _forceNextRefresh;
+    _forceNextRefresh = false;
+    final future = PortfolioValuationService.instance
+        .calculate(items, forceRefresh: forceRefresh)
+        .then((valuation) {
+          if (_valuationFingerprint != fingerprint) return valuation;
+          if (mounted) {
+            setState(() => _lastValuation = valuation);
+          } else {
+            _lastValuation = valuation;
+          }
+          return valuation;
+        });
 
     _valuationFuture = future;
 
@@ -299,7 +345,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   children: [
                     Icon(
                       Icons.picture_as_pdf_rounded,
-                      color: Color(0xFFDC2626),
+                      color: Color(0xFF076b8c),
                     ),
                     SizedBox(width: 12),
                     Text('PDF Raporu'),
@@ -345,6 +391,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
             ),
           ),
         ],
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: StreamBuilder<List<PortfolioItem>>(
@@ -615,19 +662,7 @@ class _DistributionCard extends StatelessWidget {
         ? _DistributionSnapshot.fromCost(items)
         : _DistributionSnapshot.fromValuation(valuation!);
     final performanceByCategory = _CategoryPerformance.fromValuation(valuation);
-    const categories = <String>['Altın', 'Hisse', 'Döviz', 'Kripto'];
-
-    final segments = categories
-        .map((category) {
-          return distribution.segments.firstWhere(
-            (segment) => segment.label == category,
-            orElse: () => _DistributionSegment(
-              label: category,
-              ratio: 0,
-              color: _assetTypeColor(category),
-            ),
-          );
-        })
+    final segments = distribution.segments
         .where((segment) => segment.ratio > 0)
         .toList(growable: false);
 
@@ -908,6 +943,7 @@ class _PortfolioCategoryFilters extends StatelessWidget {
       'Hisse',
       'Döviz',
       'Kripto',
+      'Emtia',
       'Fon',
       'Endeks',
       'Diğer',
@@ -1874,7 +1910,7 @@ class _DistributionSnapshot {
     final entries = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final segments = entries.take(4).map((entry) {
+    final segments = entries.map((entry) {
       return _DistributionSegment(
         label: _assetTypeLabel(entry.key),
         ratio: entry.value / total,
@@ -1915,6 +1951,8 @@ String _assetTypeLabel(String type) {
       return 'Kripto';
     case 'endeks':
       return 'Endeks';
+    case 'emtia':
+      return 'Emtia';
     default:
       return type.isEmpty ? 'Diğer' : type;
   }
@@ -1937,6 +1975,8 @@ Color _assetTypeColor(String type) {
       return const Color(0xFFF97316);
     case 'endeks':
       return const Color(0xFF0F766E);
+    case 'emtia':
+      return const Color(0xFF0891B2);
     default:
       return const Color(0xFF64748B);
   }

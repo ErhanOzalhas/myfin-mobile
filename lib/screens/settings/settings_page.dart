@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 
 import '../../auth/login_page.dart';
+import '../../models/portfolio_profile.dart';
 import '../../services/price_alert_service.dart';
 import '../../services/user_preferences_service.dart';
+import '../../services/portfolio_profile_service.dart';
 import '../../utils/no_animation_route.dart';
 import '../../widgets/common/icon_box.dart';
 import '../../widgets/common/section_title.dart';
@@ -13,6 +16,7 @@ import '../../widgets/navigation/myfin_back_button.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import '../intelligence/intelligence_page.dart';
 import 'profile_page.dart';
+import 'portfolio_profiles_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final bool showBottomNav;
@@ -41,6 +45,14 @@ class _SettingsPageState extends State<SettingsPage> {
       _currency = currency;
       _loadingPreferences = false;
     });
+  }
+
+  Future<void> _openPortfolioProfiles() async {
+    final selectedProfileId = await Navigator.of(context).push<String>(
+      noAnimationRoute(builder: (_) => const PortfolioProfilesPage()),
+    );
+    if (selectedProfileId == null || !mounted) return;
+    await PortfolioProfileService.instance.selectProfile(selectedProfileId);
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -180,6 +192,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('Ayarlar'),
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: ListView(
@@ -246,6 +259,30 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<String>(
+              valueListenable: PortfolioProfileService.instance.activeProfileId,
+              builder: (context, activeId, child) =>
+                  StreamBuilder<List<PortfolioProfile>>(
+                    stream: PortfolioProfileService.instance.watchProfiles(),
+                    builder: (context, snapshot) {
+                      final profiles = snapshot.data ?? const [];
+                      var activeName = 'Kişisel';
+                      for (final profile in profiles) {
+                        if (profile.id == activeId) activeName = profile.name;
+                      }
+                      return SurfaceCard(
+                        padding: EdgeInsets.zero,
+                        child: _SettingsRow(
+                          icon: Icons.switch_account_rounded,
+                          title: 'Portföy profilleri',
+                          subtitle: 'Aktif: $activeName',
+                          onTap: _openPortfolioProfiles,
+                        ),
+                      );
+                    },
+                  ),
             ),
             const SizedBox(height: 22),
             const SectionTitle(title: 'Tercihler'),

@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
+import '../../repositories/portfolio_repository.dart';
 import '../../services/market/market_service.dart';
 import '../../services/market/models/market_quote.dart';
 import '../../utils/myfin_formatters.dart';
@@ -117,6 +120,10 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
     final normalizedType = item.type.trim().toLowerCase();
     final currency = item.currency.trim().toUpperCase();
 
+    if (normalizedType == 'kripto' || normalizedType == 'crypto') {
+      return 'CRYPTO';
+    }
+
     if ((normalizedType == 'hisse' || normalizedType == 'bist') &&
         currency == 'TRY') {
       return 'XIST';
@@ -135,6 +142,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
         centerTitle: false,
         backgroundColor: const Color(0xFFF7F9FC),
         elevation: 0,
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -446,6 +454,8 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
               const ThinDivider(),
               _AssetDetailRow(label: 'Para birimi', value: item.currency),
               const ThinDivider(),
+              _AssetFundingSourceRow(symbol: item.symbol),
+              const ThinDivider(),
               _AssetDetailRow(
                 label: 'Alış tarihi',
                 value: _formatAssetDate(item.createdAt),
@@ -477,6 +487,54 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
           onRetry: _retry,
         ),
       ],
+    );
+  }
+}
+
+class _AssetFundingSourceRow extends StatelessWidget {
+  const _AssetFundingSourceRow({required this.symbol});
+
+  final String symbol;
+
+  String _label(QuerySnapshot<Map<String, dynamic>>? snapshot) {
+    if (snapshot == null) return 'Yükleniyor';
+
+    final purchases = snapshot.docs
+        .where((document) {
+          final data = document.data();
+          return (data['symbol'] ?? '').toString().trim().toUpperCase() ==
+                  symbol.trim().toUpperCase() &&
+              (data['type'] ?? '').toString() == 'Alış';
+        })
+        .toList(growable: false);
+
+    if (purchases.isEmpty) return 'Belirtilmemiş';
+
+    final modes = purchases
+        .map((document) => document.data()['cashFlowMode']?.toString())
+        .toList(growable: false);
+    final hasCash = modes.contains('cash');
+    final hasExternal = modes.contains('external');
+    final hasUnknown = modes.any(
+      (mode) => mode != 'cash' && mode != 'external',
+    );
+
+    if (hasCash && hasExternal) return 'Karma';
+    if (hasCash) return hasUnknown ? 'TL Nakit / Belirsiz' : 'TL Nakit';
+    if (hasExternal) {
+      return hasUnknown ? 'Dış Kaynak / Belirsiz' : 'Dış Kaynak';
+    }
+    return 'Belirtilmemiş';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: PortfolioRepository.instance.watchTransactions(),
+      builder: (context, snapshot) => _AssetDetailRow(
+        label: 'Ödeme kaynağı',
+        value: snapshot.hasError ? 'Alınamadı' : _label(snapshot.data),
+      ),
     );
   }
 }

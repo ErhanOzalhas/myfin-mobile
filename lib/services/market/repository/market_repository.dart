@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import '../cache/market_cache.dart';
 import '../models/market_quote.dart';
 import '../providers/market_provider.dart';
 
 class MarketRepository {
+  static const _requestTimeout = Duration(seconds: 20);
+
   MarketRepository({required MarketProvider provider, MarketCache? cache})
     : _provider = provider,
       _cache = cache ?? MarketCache();
@@ -48,7 +52,15 @@ class MarketRepository {
       );
     }
 
-    final quote = await _provider.getQuote(normalized, exchange: exchange);
+    final quote = await _provider
+        .getQuote(normalized, exchange: exchange)
+        .timeout(
+          _requestTimeout,
+          onTimeout: () => throw TimeoutException(
+            '$normalized fiyat isteği zaman aşımına uğradı.',
+            _requestTimeout,
+          ),
+        );
 
     _cache.put(quote, exchange: cacheExchange);
 
@@ -82,7 +94,15 @@ class MarketRepository {
     }
 
     if (missing.isNotEmpty) {
-      final fetched = await _provider.getQuotes(missing, exchange: exchange);
+      final fetched = await _provider
+          .getQuotes(missing, exchange: exchange)
+          .timeout(
+            _requestTimeout,
+            onTimeout: () => throw TimeoutException(
+              'Toplu fiyat isteği zaman aşımına uğradı.',
+              _requestTimeout,
+            ),
+          );
       for (final quote in fetched) {
         final symbol = quote.symbol.trim().toUpperCase();
         bySymbol[symbol] = quote;

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../repositories/portfolio_repository.dart';
@@ -47,6 +48,12 @@ class TransactionDetailPage extends StatelessWidget {
     final price = (data['price'] as num?)?.toDouble() ?? 0;
     final total = (data['total'] as num?)?.toDouble() ?? 0;
     final currency = (data['currency'] ?? 'TRY').toString();
+    final cashFlowMode = data['cashFlowMode']?.toString();
+    final paymentSource = switch (cashFlowMode) {
+      'cash' => 'TL Nakit',
+      'external' => 'Dış Kaynak',
+      _ => 'Belirtilmemiş',
+    };
     final note = (data['note'] ?? '').toString();
     final latestChange = _latestChange;
     final hasChanges =
@@ -61,6 +68,7 @@ class TransactionDetailPage extends StatelessWidget {
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('İşlem Detayı'),
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: ListView(
@@ -103,6 +111,7 @@ class TransactionDetailPage extends StatelessWidget {
                     value: formatCurrency(total, currency),
                   ),
                   ReportRow(label: 'Para Birimi', value: currency),
+                  ReportRow(label: 'Ödeme Kaynağı', value: paymentSource),
                   ReportRow(label: 'İşlem Tarihi', value: formattedDate),
                   if (note.isNotEmpty) ReportRow(label: 'Not', value: note),
                 ],

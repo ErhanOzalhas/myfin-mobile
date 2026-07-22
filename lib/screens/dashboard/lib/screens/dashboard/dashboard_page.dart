@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 class DashboardPage extends StatelessWidget {
@@ -19,6 +20,7 @@ class DashboardPage extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        bottom: const ActiveProfileBar(),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),

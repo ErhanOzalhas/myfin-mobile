@@ -1,10 +1,16 @@
 import 'ai_history_entry.dart';
 import 'portfolio_analysis.dart';
+import '../portfolio_profile_service.dart';
 
 class AIHistoryService {
   const AIHistoryService();
 
-  static final List<AIHistoryEntry> _entries = [];
+  static final Map<String, List<AIHistoryEntry>> _entriesByProfile = {};
+
+  List<AIHistoryEntry> get _entries => _entriesByProfile.putIfAbsent(
+    PortfolioProfileService.instance.activeProfileId.value,
+    () => <AIHistoryEntry>[],
+  );
 
   List<AIHistoryEntry> get history {
     return List.unmodifiable(_entries);
@@ -56,10 +62,10 @@ class AIHistoryService {
 
     final hasMeaningfulChange =
         (latestEntry.aiScore - analysis.aiScore).abs() >= minScoreDelta ||
-            latestEntry.risk != analysis.risk ||
-            latestEntry.growth != analysis.growth ||
-            latestEntry.stability != analysis.stability ||
-            latestEntry.diversification != analysis.diversification;
+        latestEntry.risk != analysis.risk ||
+        latestEntry.growth != analysis.growth ||
+        latestEntry.stability != analysis.stability ||
+        latestEntry.diversification != analysis.diversification;
 
     if (!hasMeaningfulChange) {
       return latestEntry;

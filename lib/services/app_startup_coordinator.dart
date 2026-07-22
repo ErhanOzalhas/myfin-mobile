@@ -9,6 +9,7 @@ import '../repositories/portfolio_repository.dart';
 import 'market/market_favorites_service.dart';
 import 'market/market_service.dart';
 import 'portfolio_performance_service.dart';
+import 'portfolio_profile_service.dart';
 import 'user_cloud_service.dart';
 
 class AppStartupCoordinator {
@@ -58,6 +59,10 @@ class AppStartupCoordinator {
   }
 
   Future<void> _prepareForUser(User user) async {
+    await _ignoreFailure(
+      PortfolioProfileService.instance.initialize(),
+      label: 'portföy profilleri',
+    );
     final profileFuture = _ignoreFailure(
       UserCloudService.createUserProfileIfNeeded(user),
       label: 'kullanıcı profili',

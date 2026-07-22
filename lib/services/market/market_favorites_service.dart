@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'models/asset_category.dart';
 import 'models/market_quote.dart';
 import 'registry/asset_info.dart';
+import '../portfolio_profile_service.dart';
 
 class FavoriteMarketAsset {
   final AssetInfo asset;
@@ -18,6 +19,9 @@ class FavoriteMarketAsset {
 class MarketFavoritesService {
   MarketFavoritesService._() {
     FirebaseAuth.instance.authStateChanges().listen(_bindUser);
+    PortfolioProfileService.instance.activeProfileId.addListener(
+      _rebindActiveProfile,
+    );
   }
 
   static final MarketFavoritesService instance = MarketFavoritesService._();
@@ -56,20 +60,33 @@ class MarketFavoritesService {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _favoritesSubscription;
   String? _boundUserId;
+  String? _boundProfileId;
+
+  void _rebindActiveProfile() {
+    unawaited(_bindUser(FirebaseAuth.instance.currentUser));
+  }
 
   CollectionReference<Map<String, dynamic>> _collection(String uid) {
     return FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
+        .collection('profiles')
+        .doc(PortfolioProfileService.instance.activeProfileId.value)
         .collection('marketFavorites');
   }
 
   Future<void> _bindUser(User? user) async {
-    if (_boundUserId == user?.uid && _favoritesSubscription != null) return;
+    final profileId = PortfolioProfileService.instance.activeProfileId.value;
+    if (_boundUserId == user?.uid &&
+        _boundProfileId == profileId &&
+        _favoritesSubscription != null) {
+      return;
+    }
 
     await _favoritesSubscription?.cancel();
     _favoritesSubscription = null;
     _boundUserId = user?.uid;
+    _boundProfileId = user == null ? null : profileId;
 
     if (user == null) {
       favorites.value = _starterFavorites;
@@ -107,10 +124,14 @@ class MarketFavoritesService {
   }
 
   Future<void> _seedStarterFavoritesIfNeeded(String uid) async {
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+    final profileDoc = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('profiles')
+        .doc(PortfolioProfileService.instance.activeProfileId.value);
 
     try {
-      final profile = await userDoc.get();
+      final profile = await profileDoc.get();
       if (profile.data()?['marketFavoritesInitialized'] == true) return;
 
       final collection = _collection(uid);
@@ -126,7 +147,7 @@ class MarketFavoritesService {
         }
       }
 
-      batch.set(userDoc, {
+      batch.set(profileDoc, {
         'marketFavoritesInitialized': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../services/market/market_service.dart';
@@ -752,6 +753,7 @@ class _LiveMarketPageState extends State<LiveMarketPage> {
           ),
           const SizedBox(width: 8),
         ],
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: FutureBuilder<List<_MarketAssetResult>>(

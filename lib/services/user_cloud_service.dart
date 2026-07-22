@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'portfolio_profile_service.dart';
+
 class UserCloudService {
   UserCloudService._();
 
@@ -36,6 +38,11 @@ class UserCloudService {
   static CollectionReference<Map<String, dynamic>>? get portfolioItems {
     final user = currentUser;
     if (user == null) return null;
-    return _db.collection('users').doc(user.uid).collection('portfolioItems');
+    return _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('profiles')
+        .doc(PortfolioProfileService.instance.activeProfileId.value)
+        .collection('portfolioItems');
   }
 }

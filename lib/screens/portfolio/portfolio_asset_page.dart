@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
@@ -177,6 +178,7 @@ class _PortfolioAssetPageState extends State<PortfolioAssetPage> {
         leading: const MyFinBackButton(),
         title: const Text('Portföy Varlıkları'),
         centerTitle: false,
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: StreamBuilder<List<PortfolioItem>>(

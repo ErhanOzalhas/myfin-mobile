@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/dashboard_summary.dart';
@@ -199,6 +200,7 @@ class _PerformanceReportPageState extends State<PerformanceReportPage> {
             ),
           ),
         ],
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: StreamBuilder<List<PortfolioItem>>(

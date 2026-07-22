@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 
 import '../../models/cash_movement.dart';
 import '../../repositories/cash_repository.dart';
 import '../../utils/myfin_formatters.dart';
+import '../../utils/turkish_currency_input_formatter.dart';
 import '../../widgets/navigation/myfin_back_button.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 
@@ -16,6 +17,7 @@ class CashManagementPage extends StatelessWidget {
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('TL Nakit'),
+        bottom: const ActiveProfileBar(),
       ),
       body: StreamBuilder<CashBalanceSnapshot>(
         stream: CashRepository.instance.watchBalance(),
@@ -55,7 +57,7 @@ class CashManagementPage extends StatelessWidget {
               const SizedBox(height: 24),
               const Text(
                 'Nakit Hareketleri',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 10),
               if (data.movements.isEmpty)
@@ -158,10 +160,7 @@ class _CashMovementSheetState extends State<_CashMovementSheet> {
     super.initState();
     final movement = widget.movement;
     if (movement != null) {
-      _amountController.text = movement.amount
-          .abs()
-          .toStringAsFixed(2)
-          .replaceAll('.', ',');
+      _amountController.text = formatTurkishDecimal(movement.amount.abs());
       _noteController.text = movement.note;
     }
   }
@@ -236,16 +235,14 @@ class _CashMovementSheetState extends State<_CashMovementSheet> {
                 : _isDeposit
                 ? 'TL Nakit Ekle'
                 : 'TL Nakit Çek',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _amountController,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-            ],
+            inputFormatters: const [TurkishCurrencyInputFormatter()],
             decoration: const InputDecoration(
               labelText: 'Tutar',
               prefixText: '₺ ',
@@ -354,6 +351,12 @@ class _MovementTile extends StatelessWidget {
       CashMovementType.sell => 'Varlık Satışı',
       CashMovementType.adjustment => 'Bakiye Düzeltme',
     };
+    final isAssetMovement =
+        movement.type == CashMovementType.buy ||
+        movement.type == CashMovementType.sell;
+    final assetName = movement.note
+        .replaceFirst(RegExp(r'\s+(alışı|satışı)$', caseSensitive: false), '')
+        .trim();
     return Card(
       elevation: 0,
       child: ListTile(
@@ -366,11 +369,21 @@ class _MovementTile extends StatelessWidget {
             color: positive ? Colors.green.shade700 : Colors.red.shade700,
           ),
         ),
-        title: Text(title),
+        title: Text(
+          isAssetMovement && assetName.isNotEmpty ? assetName : title,
+          style: TextStyle(
+            fontSize: isAssetMovement ? 14 : 13,
+            fontWeight: isAssetMovement ? FontWeight.w600 : FontWeight.w400,
+            color: const Color(0xFF1F2937),
+          ),
+        ),
         subtitle: Text(
-          movement.note.isEmpty
+          isAssetMovement
+              ? '$title · ${_date(movement.movementDate)}'
+              : movement.note.isEmpty
               ? _date(movement.movementDate)
               : '${movement.note} · ${_date(movement.movementDate)}',
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w400),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -394,13 +407,37 @@ class _MovementTile extends StatelessWidget {
             if (onEdit != null || onDelete != null)
               PopupMenuButton<String>(
                 tooltip: 'Hareket işlemleri',
+                constraints: const BoxConstraints(minWidth: 108, maxWidth: 124),
+                menuPadding: const EdgeInsets.symmetric(vertical: 2),
                 onSelected: (value) {
                   if (value == 'edit') onEdit?.call();
                   if (value == 'delete') onDelete?.call();
                 },
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Düzenle')),
-                  PopupMenuItem(value: 'delete', child: Text('Sil')),
+                  PopupMenuItem(
+                    value: 'edit',
+                    height: 35,
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      'Düzenle',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    height: 35,
+                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      'Sil',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                 ],
               ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 import 'package:myfin_mobile/models/portfolio_item.dart';
 import 'package:myfin_mobile/repositories/portfolio_repository.dart';
@@ -24,6 +25,7 @@ class AnalysisPage extends StatelessWidget {
         title: const Text('AI Intelligence'),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        bottom: const ActiveProfileBar(),
       ),
       body: StreamBuilder<List<PortfolioItem>>(
         stream: PortfolioRepository.instance.watchPortfolio(),

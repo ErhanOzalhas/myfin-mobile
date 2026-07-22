@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../models/portfolio_item.dart';
@@ -42,6 +43,7 @@ class IntelligencePage extends StatelessWidget {
       appBar: AppBar(
         leading: const MyFinBackButton(),
         title: const Text('MyFin Intelligence'),
+        bottom: const ActiveProfileBar(),
       ),
       body: StreamBuilder<CashBalanceSnapshot>(
         stream: CashRepository.instance.watchBalance(),

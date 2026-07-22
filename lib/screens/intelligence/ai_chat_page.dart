@@ -4,6 +4,7 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
@@ -13,6 +14,7 @@ import 'package:myfin_mobile/services/ai/openai_provider.dart';
 import 'package:myfin_mobile/services/ai/portfolio_analysis.dart';
 import 'package:myfin_mobile/models/portfolio_item.dart';
 import 'package:myfin_mobile/services/portfolio_valuation_service.dart';
+import '../../services/portfolio_profile_service.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 
 /// MyFin AI Chat Page
@@ -115,7 +117,8 @@ class _AiChatPageState extends State<AiChatPage> {
     });
 
     final user = FirebaseAuth.instance.currentUser;
-    final sessionKey = user?.uid ?? 'signed-out';
+    final profileId = PortfolioProfileService.instance.activeProfileId.value;
+    final sessionKey = '${user?.uid ?? 'signed-out'}::$profileId';
     final displayName = _displayNameFor(user);
     final session = _sessions.putIfAbsent(
       sessionKey,
@@ -452,6 +455,7 @@ class _AiChatPageState extends State<AiChatPage> {
         foregroundColor: const Color(0xFF0F172A),
         titleSpacing: 0,
         title: const Text('MyFin AI'),
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: Column(

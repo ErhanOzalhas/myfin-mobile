@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
@@ -13,6 +14,7 @@ import '../../repositories/cash_repository.dart';
 import '../../services/market/models/asset_category.dart';
 import '../../services/market/registry/asset_info.dart';
 import '../../services/market/market_service.dart';
+import '../../services/market/currency_conversion_service.dart';
 import '../../services/market/registry/asset_registry.dart';
 import '../../services/market/search/coingecko_coin_index.dart';
 import '../../services/market/search/unified_asset_search_service.dart';
@@ -520,19 +522,33 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final resolvedAssetName = _assetName.trim().isEmpty
         ? _resolveAssetName(symbol)
         : _assetName.trim();
-    final usesCash = _currency == 'TRY' && _cashFlowMode == 'cash';
+    final usesCash = _cashFlowMode == 'cash';
     final transactionTotal = quantity * price;
 
     try {
+      final transactionAmountTry = usesCash
+          ? await CurrencyConversionService.instance.convert(
+              amount: transactionTotal,
+              from: _currency,
+              to: 'TRY',
+              forceRefresh: _currency != 'TRY',
+            )
+          : transactionTotal;
       if (usesCash && _transactionType == 'Alış') {
         final cash = await CashRepository.instance.getBalance();
         final originalCashAmount = widget.isEdit
             ? ((widget.transactionData?['cashFlowMode'] == 'cash' &&
                       widget.transactionData?['type'] == 'Alış')
-                  ? (widget.transactionData?['total'] as num?)?.toDouble() ?? 0
+                  ? (widget.transactionData?['cashAmountTry'] as num?)
+                            ?.toDouble() ??
+                        ((widget.transactionData?['currency'] == 'TRY')
+                            ? (widget.transactionData?['total'] as num?)
+                                      ?.toDouble() ??
+                                  0
+                            : 0)
                   : 0)
             : 0;
-        if (cash.balance + originalCashAmount < transactionTotal - .005) {
+        if (cash.balance + originalCashAmount < transactionAmountTry - .005) {
           throw StateError(
             'TL nakit bakiyesi yetersiz. Kullanılabilir bakiye: '
             '${formatCurrency(cash.balance + originalCashAmount, 'TRY')}',
@@ -606,13 +622,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
               'wasEdited': true,
               'changeHistory': previousHistory,
               'cashFlowMode': _cashFlowMode,
+              'cashAmountTry': usesCash ? transactionAmountTry : null,
             });
 
         await CashRepository.instance.syncTransactionMovement(
           transactionId: widget.transactionId!,
           transactionType: _transactionType,
           usesCash: usesCash,
-          amountTry: transactionTotal,
+          amountTry: transactionAmountTry,
           date: _transactionDate,
           symbol: symbol,
         );
@@ -701,13 +718,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         'transactionDate': Timestamp.fromDate(_transactionDate),
         'note': _noteController.text.trim(),
         'cashFlowMode': _cashFlowMode,
+        'cashAmountTry': usesCash ? transactionAmountTry : null,
       });
 
       await CashRepository.instance.syncTransactionMovement(
         transactionId: transactionId,
         transactionType: _transactionType,
         usesCash: usesCash,
-        amountTry: transactionTotal,
+        amountTry: transactionAmountTry,
         date: _transactionDate,
         symbol: symbol,
       );
@@ -1041,6 +1059,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           ),
           const SizedBox(width: 10),
         ],
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: Form(
@@ -1199,13 +1218,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                                 .toList(),
                             onChanged: (value) {
                               if (value == null) return;
-
-                              setState(() {
-                                _currency = value;
-                                if (value != 'TRY') {
-                                  _cashFlowMode = 'external';
-                                }
-                              });
+                              setState(() => _currency = value);
                             },
                           ),
                         ),
@@ -1261,7 +1274,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           icon: const Icon(
                             Icons.account_balance_wallet_outlined,
                           ),
-                          enabled: _currency == 'TRY',
+                          enabled: true,
                         ),
                         ButtonSegment(
                           value: 'external',
@@ -1374,13 +1387,30 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     ],
                     if (_currency != 'TRY') ...[
                       const SizedBox(height: 7),
-                      const Text(
-                        'TL nakit kullanımı yalnızca TRY işlemlerinde kullanılabilir. Döviz işlemleri portföy varlığı olarak izlenir.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF64748B),
-                          height: 1.35,
+                      FutureBuilder<double>(
+                        future: CurrencyConversionService.instance.convert(
+                          amount:
+                              _parseDouble(_quantityController.text) *
+                              _parseDouble(_priceController.text),
+                          from: _currency,
+                          to: 'TRY',
                         ),
+                        builder: (context, snapshot) {
+                          final amountTry = snapshot.data;
+                          final message = _cashFlowMode != 'cash'
+                              ? 'Dış kaynak seçildi; TL nakit etkilenmez.'
+                              : amountTry == null
+                              ? 'Güncel kurla TL karşılığı hesaplanıyor…'
+                              : 'TL nakitten düşecek yaklaşık tutar: ${formatCurrency(amountTry, 'TRY')}';
+                          return Text(
+                            message,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                              height: 1.35,
+                            ),
+                          );
+                        },
                       ),
                     ],
                     const SizedBox(height: 14),

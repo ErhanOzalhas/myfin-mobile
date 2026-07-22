@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/price_alert.dart';
@@ -109,6 +110,7 @@ class _PriceAlertPageState extends State<PriceAlertPage> {
                 : const Icon(Icons.refresh_rounded),
           ),
         ],
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: _loading

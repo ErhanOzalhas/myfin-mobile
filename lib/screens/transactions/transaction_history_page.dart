@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:myfin_mobile/widgets/profile/active_profile_bar.dart';
 import 'package:myfin_mobile/widgets/navigation/myfin_back_button.dart';
 
 import '../../repositories/portfolio_repository.dart';
@@ -9,6 +10,7 @@ import '../../widgets/common/icon_box.dart';
 import '../../widgets/common/surface_card.dart';
 import '../../widgets/navigation/myfin_bottom_nav.dart';
 import 'transaction_detail_page.dart';
+import 'transaction_entry_page.dart';
 import '../../utils/no_animation_route.dart';
 
 enum _HistoryPeriod { sevenDays, oneMonth, threeMonths, sixMonths, custom }
@@ -148,6 +150,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
               : '${widget.symbolFilter} İşlem Geçmişi',
         ),
         centerTitle: false,
+        bottom: const ActiveProfileBar(),
       ),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -467,6 +470,61 @@ class _TransactionHistoryTile extends StatelessWidget {
     required this.transactionId,
   });
 
+  Future<void> _deleteTransaction(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('İşlemi Sil'),
+        content: const Text(
+          'Bu işlem kalıcı olarak silinecek.\n\nDevam etmek istiyor musunuz?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await PortfolioRepository.instance.deleteTransaction(transactionId);
+    await PortfolioRebuildService().rebuildFromTransactions();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('İşlem silindi.')));
+  }
+
+  void _editTransaction(BuildContext context) {
+    Navigator.of(context).push(
+      noAnimationRoute(
+        builder: (_) => TransactionEntryPage(
+          transactionId: transactionId,
+          transactionData: data,
+          formattedDate: formattedDate,
+        ),
+      ),
+    );
+  }
+
+  void _viewTransaction(BuildContext context) {
+    Navigator.of(context).push(
+      noAnimationRoute(
+        builder: (_) => TransactionDetailPage(
+          transactionId: transactionId,
+          data: data,
+          formattedDate: formattedDate,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final symbol = (data['symbol'] ?? '-').toString();
@@ -488,108 +546,179 @@ class _TransactionHistoryTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: () {
-          Navigator.of(context).push(
-            noAnimationRoute(
-              builder: (_) => TransactionDetailPage(
-                transactionId: transactionId,
-                data: data,
-                formattedDate: formattedDate,
-              ),
-            ),
-          );
-        },
-        child: SurfaceCard(
-          child: Row(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  IconBox(icon: icon, color: color),
-                  if (hasChanges)
-                    Positioned(
-                      right: -1,
-                      top: -1,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
+      child: SurfaceCard(
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconBox(icon: icon, color: color),
+                    if (hasChanges)
+                      Positioned(
+                        right: -1,
+                        top: -1,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assetName.isEmpty || assetName == symbol
+                            ? symbol
+                            : '$symbol • $assetName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: type,
+                              style: TextStyle(color: color),
+                            ),
+                            TextSpan(
+                              text:
+                                  ' • ${formatQuantity(quantity)} adet • Birim: ${formatCurrency(price, currency)} • $formattedDate',
+                            ),
+                          ],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      assetName.isEmpty || assetName == symbol
-                          ? symbol
-                          : '$symbol • $assetName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      formatCurrency(total, currency),
                       style: const TextStyle(
+                        color: Color(0xFF0F3150),
                         fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                        color: Color(0xFF0F172A),
+                        fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: type,
-                            style: TextStyle(color: color),
-                          ),
-                          TextSpan(
-                            text:
-                                ' • ${formatQuantity(quantity)} adet • Birim: ${formatCurrency(price, currency)} • $formattedDate',
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black54,
+                    const SizedBox(height: 3),
+                    const Text(
+                      'İşlem Tutarı',
+                      style: TextStyle(
+                        color: Colors.black45,
                         fontWeight: FontWeight.w400,
-                        fontSize: 11,
+                        fontSize: 10,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    formatCurrency(total, currency),
-                    style: const TextStyle(
-                      color: Color(0xFF0F3150),
-                      fontWeight: FontWeight.w400,
-                      fontSize: 13,
-                    ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (hasChanges) ...[
+                  const Icon(
+                    Icons.history_rounded,
+                    size: 13,
+                    color: Color(0xFFF59E0B),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(width: 4),
                   const Text(
-                    'İşlem Tutarı',
+                    'Düzenlendi',
                     style: TextStyle(
                       color: Colors.black45,
-                      fontWeight: FontWeight.w400,
                       fontSize: 10,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const Spacer(),
                 ],
-              ),
-            ],
+                _CompactAction(
+                  label: 'Görüntüle',
+                  onTap: () => _viewTransaction(context),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    '·',
+                    style: TextStyle(color: Colors.black38, fontSize: 12),
+                  ),
+                ),
+                _CompactAction(
+                  label: 'Düzenle',
+                  onTap: () => _editTransaction(context),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    '·',
+                    style: TextStyle(color: Colors.black38, fontSize: 12),
+                  ),
+                ),
+                _CompactAction(
+                  label: 'Sil',
+                  color: const Color(0xFFDC2626),
+                  onTap: () => _deleteTransaction(context),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactAction extends StatelessWidget {
+  const _CompactAction({
+    required this.label,
+    required this.onTap,
+    this.color = const Color(0xFF0E7490),
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
